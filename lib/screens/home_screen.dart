@@ -12,16 +12,23 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bg,
-      body: SafeArea(child: CustomScrollView(slivers: [
-        SliverToBoxAdapter(child: _header()),
-        SliverToBoxAdapter(child: _hero()),
-        SliverToBoxAdapter(child: _categories()),
-        SliverToBoxAdapter(child: _featured()),
-        SliverToBoxAdapter(child: _studentCard()),
-        const SliverToBoxAdapter(child: SizedBox(height: 28)),
-      ])),
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(child: _header()),
+            SliverToBoxAdapter(child: _hero()),
+            SliverToBoxAdapter(child: _categories()),
+            SliverToBoxAdapter(child: _featured()),
+            SliverToBoxAdapter(child: _studentCard()),
+            const SliverToBoxAdapter(child: SizedBox(height: 28)),
+          ],
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
-        height: 70, backgroundColor: Colors.white, elevation: 5, selectedIndex: 0,
+        height: 70,
+        backgroundColor: Colors.white,
+        elevation: 5,
+        selectedIndex: 0,
         indicatorColor: const Color(0xFFECE8FF),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded, color: purple), label: 'Home'),
@@ -36,12 +43,15 @@ class HomeScreen extends StatelessWidget {
   Widget _header() => Padding(
     padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
     child: Row(children: [
-      const CampusLogo(size: 48), const SizedBox(width: 11),
+      const CampusLogo(size: 48),
+      const SizedBox(width: 11),
       const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('CampusSupply', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: ink, letterSpacing: -.6)),
         Text('Student life, simplified.', style: TextStyle(fontSize: 11, color: muted)),
       ])),
-      _roundIcon(Icons.notifications_none_rounded), const SizedBox(width: 8), _roundIcon(Icons.shopping_bag_outlined),
+      _roundIcon(Icons.notifications_none_rounded),
+      const SizedBox(width: 8),
+      _roundIcon(Icons.shopping_bag_outlined),
     ]),
   );
 
@@ -57,9 +67,9 @@ class HomeScreen extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Ready for
-campus life?', style: TextStyle(color: Colors.white, fontSize: 29, height: 1.02, fontWeight: FontWeight.w800, letterSpacing: -1)),
-            SizedBox(height: 9), Text('Books, stationery, gadgets, lab supplies and more — curated for students.', style: TextStyle(color: Color(0xFFE4E0FF), fontSize: 12.5, height: 1.45)),
+            Text('Ready for\ncampus life?', style: TextStyle(color: Colors.white, fontSize: 29, height: 1.02, fontWeight: FontWeight.w800, letterSpacing: -1)),
+            SizedBox(height: 9),
+            Text('Books, stationery, gadgets, lab supplies and more — curated for students.', style: TextStyle(color: Color(0xFFE4E0FF), fontSize: 12.5, height: 1.45)),
           ])),
           Container(width: 70, height: 70, decoration: BoxDecoration(color: Colors.white.withValues(alpha: .10), shape: BoxShape.circle), child: const Icon(Icons.school_rounded, color: Colors.white, size: 38)),
         ]),
@@ -101,8 +111,11 @@ campus life?', style: TextStyle(color: Colors.white, fontSize: 29, height: 1.02,
   ])));
 
   Widget _studentCard() => Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Container(padding: const EdgeInsets.all(19), decoration: BoxDecoration(color: const Color(0xFF17172B), borderRadius: BorderRadius.circular(24)), child: Row(children: [
-    Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFF2A2844), borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFC9BDFF))), const SizedBox(width: 13),
-    const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Make it yours.', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)), SizedBox(height: 4), Text('Sign in to save favourites and get a more personal campus experience.', style: TextStyle(color: Color(0xFFB4B1C5), fontSize: 11, height: 1.35))])), const SizedBox(width: 8),
+    Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFF2A2844), borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFC9BDFF)),
+    ),
+    const SizedBox(width: 13),
+    const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Make it yours.', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)), SizedBox(height: 4), Text('Sign in to save favourites and get a more personal campus experience.', style: TextStyle(color: Color(0xFFB4B1C5), fontSize: 11, height: 1.35))])),
+    const SizedBox(width: 8),
     IconButton(onPressed: () {}, icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white)),
   ]));
 
