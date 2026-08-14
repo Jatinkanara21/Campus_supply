@@ -3,639 +3,299 @@ import 'package:flutter/material.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  static const navy = Color(0xFF0B1F3A);
+  static const blue = Color(0xFF2563EB);
+  static const bg = Color(0xFFF7F9FC);
+  static const muted = Color(0xFF64748B);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FB),
-
+      backgroundColor: bg,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-
-              // ================= HEADER =================
-
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-
-                child: Row(
-                  children: [
-
-                    Container(
-                      width: 48,
-                      height: 48,
-
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x12000000),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
-
-                      padding: const EdgeInsets.all(7),
-
-                      child: Image.asset(
-                        'assets/images/campus_supply.jpeg',
-                      ),
-                    ),
-
-                    const SizedBox(width: 12),
-
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
-
-                        children: [
-
-                          Text(
-                            'CampusSupply',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF123A70),
-                            ),
-                          ),
-
-                          Text(
-                            'Student essentials',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    Container(
-                      width: 45,
-                      height: 45,
-
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-
-                      child: IconButton(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.notifications_none,
-                          color: Color(0xFF123A70),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // ================= WELCOME =================
-
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  20,
-                  15,
-                  20,
-                  0,
-                ),
-
-                child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
-
-                  children: [
-
-                    const Text(
-                      'Hello, Student 👋',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF102A43),
-                      ),
-                    ),
-
-                    const SizedBox(height: 5),
-
-                    const Text(
-                      'What do you need for your campus today?',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 15,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // ================= SEARCH =================
-
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius:
-                        BorderRadius.circular(16),
-
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x10000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-
-                      child: const TextField(
-                        decoration: InputDecoration(
-                          hintText:
-                          'Search books, pens, bags...',
-                          prefixIcon: Icon(
-                            Icons.search,
-                            color: Color(0xFF1769E0),
-                          ),
-
-                          suffixIcon: Icon(
-                            Icons.tune,
-                            color: Color(0xFF1769E0),
-                          ),
-
-                          border: InputBorder.none,
-
-                          contentPadding:
-                          EdgeInsets.symmetric(
-                            vertical: 17,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // ================= BANNER =================
-
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                ),
-
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(22),
-
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF1255C7),
-                        Color(0xFF2186F3),
-                      ],
-                    ),
-
-                    borderRadius:
-                    BorderRadius.circular(24),
-
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x301769E0),
-                        blurRadius: 15,
-                        offset: Offset(0, 7),
-                      ),
-                    ],
-                  ),
-
-                  child: Row(
-                    children: [
-
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.start,
-
-                          children: [
-
-                            const Text(
-                              'Everything you need',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight:
-                                FontWeight.bold,
-                              ),
-                            ),
-
-                            const SizedBox(height: 8),
-
-                            const Text(
-                              'Make your campus life easier with CampusSupply.',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
-                                height: 1.4,
-                              ),
-                            ),
-
-                            const SizedBox(height: 15),
-
-                            ElevatedButton(
-                              onPressed: () {},
-                              style:
-                              ElevatedButton.styleFrom(
-                                backgroundColor:
-                                Colors.white,
-                                foregroundColor:
-                                Color(0xFF1769E0),
-                              ),
-
-                              child: const Text(
-                                'Explore Now',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(width: 10),
-
-                      const Icon(
-                        Icons.school,
-                        size: 75,
-                        color: Colors.white24,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // ================= CATEGORIES =================
-
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                ),
-
-                child: Row(
-                  mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
-
-                  children: [
-
-                    const Text(
-                      'Categories',
-                      style: TextStyle(
-                        fontSize: 21,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF102A43),
-                      ),
-                    ),
-
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        'See All',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              SizedBox(
-                height: 125,
-
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                  ),
-
-                  children: [
-
-                    category(
-                      Icons.edit,
-                      'Pens',
-                      const Color(0xFFE8F1FF),
-                    ),
-
-                    category(
-                      Icons.menu_book,
-                      'Books',
-                      const Color(0xFFFFF0DD),
-                    ),
-
-                    category(
-                      Icons.backpack,
-                      'Bags',
-                      const Color(0xFFE7F8EF),
-                    ),
-
-                    category(
-                      Icons.calculate,
-                      'Math',
-                      const Color(0xFFF1E9FF),
-                    ),
-
-                    category(
-                      Icons.palette,
-                      'Art',
-                      const Color(0xFFFFE8EF),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // ================= POPULAR =================
-
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                ),
-
-                child: Row(
-                  mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
-
-                  children: [
-
-                    const Text(
-                      'Popular Items',
-                      style: TextStyle(
-                        fontSize: 21,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF102A43),
-                      ),
-                    ),
-
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        'See All',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                ),
-
-                child: Row(
-                  children: [
-
-                    product(
-                      Icons.edit,
-                      'Premium Pen',
-                      'Smooth writing',
-                    ),
-
-                    const SizedBox(width: 14),
-
-                    product(
-                      Icons.menu_book,
-                      'Notebook',
-                      'A4 College Book',
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // ================= LOGIN CARD =================
-
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                ),
-
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                    BorderRadius.circular(20),
-
-                    border: Border.all(
-                      color: const Color(0xFFE2E8F0),
-                    ),
-                  ),
-
-                  child: Column(
-                    children: [
-
-                      const Icon(
-                        Icons.account_circle_outlined,
-                        size: 45,
-                        color: Color(0xFF1769E0),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      const Text(
-                        'Join CampusSupply',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      const SizedBox(height: 5),
-
-                      const Text(
-                        'Create an account to get the full experience.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 13,
-                        ),
-                      ),
-
-                      const SizedBox(height: 18),
-
-                      Row(
-                        children: [
-
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/login',
-                                );
-                              },
-
-                              style:
-                              ElevatedButton.styleFrom(
-                                backgroundColor:
-                                const Color(
-                                  0xFF1769E0,
-                                ),
-                                foregroundColor:
-                                Colors.white,
-                              ),
-
-                              child: const Text(
-                                'LOGIN',
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(width: 12),
-
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/register',
-                                );
-                              },
-
-                              child: const Text(
-                                'REGISTER',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-            ],
-          ),
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(child: _header(context)),
+            SliverToBoxAdapter(child: _hero()),
+            SliverToBoxAdapter(child: _categories()),
+            SliverToBoxAdapter(child: _popular()),
+            SliverToBoxAdapter(child: _campusBanner()),
+            SliverToBoxAdapter(child: _loginCard(context)),
+            const SliverToBoxAdapter(child: SizedBox(height: 28)),
+          ],
         ),
       ),
+      bottomNavigationBar: _bottomNav(),
     );
   }
 
-  // ================= CATEGORY CARD =================
-
-  Widget category(
-      IconData icon,
-      String title,
-      Color background,
-      ) {
-    return Container(
-      width: 105,
-
-      margin: const EdgeInsets.only(right: 12),
-
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(18),
-      ),
-
-      child: Column(
-        mainAxisAlignment:
-        MainAxisAlignment.center,
-
+  Widget _header(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+      child: Row(
         children: [
-
-          Icon(
-            icon,
-            size: 35,
-            color: const Color(0xFF1769E0),
-          ),
-
-          const SizedBox(height: 10),
-
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
+          Container(
+            height: 48,
+            width: 48,
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: const [BoxShadow(color: Color(0x120B1F3A), blurRadius: 16)],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.asset('assets/images/campus_supply.jpeg', fit: BoxFit.cover),
             ),
           ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('CampusSupply', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: navy)),
+                SizedBox(height: 2),
+                Text('Everything for student life', style: TextStyle(fontSize: 11.5, color: muted)),
+              ],
+            ),
+          ),
+          _iconButton(Icons.notifications_none_rounded),
+          const SizedBox(width: 8),
+          _iconButton(Icons.person_outline_rounded),
         ],
       ),
     );
   }
 
-  // ================= PRODUCT CARD =================
-
-  Widget product(
-      IconData icon,
-      String title,
-      String subtitle,
-      ) {
-    return Expanded(
+  Widget _hero() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       child: Container(
-        padding: const EdgeInsets.all(15),
-
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0D000000),
-              blurRadius: 10,
-            ),
-          ],
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0B1F3A), Color(0xFF174EA6)],
+          ),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: const [BoxShadow(color: Color(0x300B1F3A), blurRadius: 24, offset: Offset(0, 10))],
         ),
-
         child: Column(
-          crossAxisAlignment:
-          CrossAxisAlignment.start,
-
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
+            const Text('Campus made simple.', style: TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w800, height: 1.05)),
+            const SizedBox(height: 8),
+            const Text('Find books, stationery, tech and everyday essentials — all in one place.', style: TextStyle(color: Color(0xFFD8E6FF), fontSize: 13.5, height: 1.45)),
+            const SizedBox(height: 18),
             Container(
-              height: 90,
-              width: double.infinity,
-
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAF2FF),
-                borderRadius:
-                BorderRadius.circular(15),
-              ),
-
-              child: Icon(
-                icon,
-                size: 45,
-                color: const Color(0xFF1769E0),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+              child: const TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search books, stationery, electronics...',
+                  hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                  prefixIcon: Icon(Icons.search_rounded, color: blue),
+                  suffixIcon: Icon(Icons.tune_rounded, color: muted, size: 20),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 16),
+                ),
               ),
             ),
-
-            const SizedBox(height: 12),
-
-            Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
-            ),
-
-            const SizedBox(height: 5),
-
-            Text(
-              subtitle,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                _heroChip(Icons.local_shipping_outlined, 'Campus delivery'),
+                const SizedBox(width: 8),
+                _heroChip(Icons.verified_outlined, 'Student focused'),
+              ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _heroChip(IconData icon, String text) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 9),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .10), borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 17),
+            const SizedBox(width: 6),
+            Flexible(child: Text(text, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w600))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _categories() {
+    final items = [
+      (Icons.menu_book_rounded, 'Books'),
+      (Icons.edit_note_rounded, 'Stationery'),
+      (Icons.laptop_mac_rounded, 'Electronics'),
+      (Icons.science_rounded, 'Lab Supplies'),
+      (Icons.backpack_rounded, 'Bags'),
+    ];
+    return Column(
+      children: [
+        _sectionTitle('Shop by category', 'View all'),
+        SizedBox(
+          height: 105,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (_, i) => Container(
+              width: 92,
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE8EDF4))),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFFEFF5FF), borderRadius: BorderRadius.circular(13)), child: Icon(items[i].$1, color: blue, size: 22)),
+                  const SizedBox(height: 8),
+                  Text(items[i].$2, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: navy)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 25),
+      ],
+    );
+  }
+
+  Widget _popular() {
+    return Column(
+      children: [
+        _sectionTitle('Popular right now', 'See all'),
+        SizedBox(
+          height: 235,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            children: [
+              _productCard(Icons.menu_book_rounded, 'Exam Notes', 'Study essentials', 'Popular'),
+              const SizedBox(width: 14),
+              _productCard(Icons.edit_rounded, 'Study Kit', 'Pens + highlighters', 'Student pick'),
+              const SizedBox(width: 14),
+              _productCard(Icons.headphones_rounded, 'Campus Audio', 'Everyday tech', 'Trending'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 25),
+      ],
+    );
+  }
+
+  Widget _productCard(IconData icon, String title, String subtitle, String tag) {
+    return SizedBox(
+      width: 185,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE8EDF4))),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(color: const Color(0xFFF0F5FF), borderRadius: BorderRadius.circular(15)),
+                child: Stack(
+                  children: [
+                    Center(child: Icon(icon, size: 58, color: blue)),
+                    Positioned(top: 9, left: 9, child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Text(tag, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: blue)))),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 11),
+            Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: navy)),
+            const SizedBox(height: 3),
+            Text(subtitle, style: const TextStyle(fontSize: 11, color: muted)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _campusBanner() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 25),
+      child: Container(
+        padding: const EdgeInsets.all(19),
+        decoration: BoxDecoration(color: const Color(0xFFEAF2FF), borderRadius: BorderRadius.circular(22)),
+        child: Row(
+          children: [
+            Container(width: 48, height: 48, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.school_rounded, color: blue)),
+            const SizedBox(width: 13),
+            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Built for campus life', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: navy)), SizedBox(height: 4), Text('Discover essentials made for your classes, projects and everyday college life.', style: TextStyle(fontSize: 11.5, color: muted, height: 1.35))])),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _loginCard(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: navy, borderRadius: BorderRadius.circular(23)),
+        child: Row(
+          children: [
+            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Your campus, your account.', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)), SizedBox(height: 5), Text('Sign in to save favourites and personalise your experience.', style: TextStyle(color: Color(0xFFB9C9E2), fontSize: 11.5, height: 1.4))])),
+            const SizedBox(width: 12),
+            Column(
+              children: [
+                SizedBox(height: 36, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/login'), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: navy, padding: const EdgeInsets.symmetric(horizontal: 15)), child: const Text('Sign in', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)))),
+                const SizedBox(height: 7),
+                GestureDetector(onTap: () => Navigator.pushNamed(context, '/register'), child: const Text('Create account', style: TextStyle(color: Color(0xFFBBD5FF), fontSize: 10.5, fontWeight: FontWeight.w700))),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title, String action) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: Row(
+        children: [
+          Expanded(child: Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: navy))),
+          Text(action, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: blue)),
+        ],
+      ),
+    );
+  }
+
+  Widget _iconButton(IconData icon) {
+    return Container(
+      height: 42,
+      width: 42,
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE8EDF4))),
+      child: Icon(icon, color: navy, size: 21),
+    );
+  }
+
+  Widget _bottomNav() {
+    return NavigationBar(
+      height: 68,
+      backgroundColor: Colors.white,
+      elevation: 8,
+      selectedIndex: 0,
+      indicatorColor: const Color(0xFFE7F0FF),
+      destinations: const [
+        NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded, color: blue), label: 'Home'),
+        NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded, color: blue), label: 'Explore'),
+        NavigationDestination(icon: Icon(Icons.favorite_border_rounded), selectedIcon: Icon(Icons.favorite_rounded, color: blue), label: 'Saved'),
+        NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded, color: blue), label: 'Profile'),
+      ],
     );
   }
 }
