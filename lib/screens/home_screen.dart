@@ -1,301 +1,112 @@
 import 'package:flutter/material.dart';
+import '../widgets/campus_logo.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  static const navy = Color(0xFF0B1F3A);
-  static const blue = Color(0xFF2563EB);
-  static const bg = Color(0xFFF7F9FC);
-  static const muted = Color(0xFF64748B);
+  static const ink = Color(0xFF17172B);
+  static const purple = Color(0xFF6D4AFF);
+  static const muted = Color(0xFF77778A);
+  static const bg = Color(0xFFF8F8FC);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bg,
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(child: _header(context)),
-            SliverToBoxAdapter(child: _hero()),
-            SliverToBoxAdapter(child: _categories()),
-            SliverToBoxAdapter(child: _popular()),
-            SliverToBoxAdapter(child: _campusBanner()),
-            SliverToBoxAdapter(child: _loginCard(context)),
-            const SliverToBoxAdapter(child: SizedBox(height: 28)),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _bottomNav(),
-    );
-  }
-
-  Widget _header(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-      child: Row(
-        children: [
-          Container(
-            height: 48,
-            width: 48,
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: const [BoxShadow(color: Color(0x120B1F3A), blurRadius: 16)],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.asset('assets/images/campus_supply.jpeg', fit: BoxFit.cover),
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('CampusSupply', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: navy)),
-                SizedBox(height: 2),
-                Text('Everything for student life', style: TextStyle(fontSize: 11.5, color: muted)),
-              ],
-            ),
-          ),
-          _iconButton(Icons.notifications_none_rounded),
-          const SizedBox(width: 8),
-          _iconButton(Icons.person_outline_rounded),
+      body: SafeArea(child: CustomScrollView(slivers: [
+        SliverToBoxAdapter(child: _header()),
+        SliverToBoxAdapter(child: _hero()),
+        SliverToBoxAdapter(child: _categories()),
+        SliverToBoxAdapter(child: _featured()),
+        SliverToBoxAdapter(child: _studentCard()),
+        const SliverToBoxAdapter(child: SizedBox(height: 28)),
+      ])),
+      bottomNavigationBar: NavigationBar(
+        height: 70, backgroundColor: Colors.white, elevation: 5, selectedIndex: 0,
+        indicatorColor: const Color(0xFFECE8FF),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded, color: purple), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.explore_outlined), selectedIcon: Icon(Icons.explore_rounded, color: purple), label: 'Explore'),
+          NavigationDestination(icon: Icon(Icons.favorite_border_rounded), selectedIcon: Icon(Icons.favorite_rounded, color: purple), label: 'Saved'),
+          NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded, color: purple), label: 'Profile'),
         ],
       ),
     );
   }
 
-  Widget _hero() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0B1F3A), Color(0xFF174EA6)],
-          ),
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: const [BoxShadow(color: Color(0x300B1F3A), blurRadius: 24, offset: Offset(0, 10))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Campus made simple.', style: TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w800, height: 1.05)),
-            const SizedBox(height: 8),
-            const Text('Find books, stationery, tech and everyday essentials — all in one place.', style: TextStyle(color: Color(0xFFD8E6FF), fontSize: 13.5, height: 1.45)),
-            const SizedBox(height: 18),
-            Container(
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
-              child: const TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search books, stationery, electronics...',
-                  hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                  prefixIcon: Icon(Icons.search_rounded, color: blue),
-                  suffixIcon: Icon(Icons.tune_rounded, color: muted, size: 20),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                _heroChip(Icons.local_shipping_outlined, 'Campus delivery'),
-                const SizedBox(width: 8),
-                _heroChip(Icons.verified_outlined, 'Student focused'),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _header() => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
+    child: Row(children: [
+      const CampusLogo(size: 48), const SizedBox(width: 11),
+      const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('CampusSupply', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: ink, letterSpacing: -.6)),
+        Text('Student life, simplified.', style: TextStyle(fontSize: 11, color: muted)),
+      ])),
+      _roundIcon(Icons.notifications_none_rounded), const SizedBox(width: 8), _roundIcon(Icons.shopping_bag_outlined),
+    ]),
+  );
 
-  Widget _heroChip(IconData icon, String text) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 9),
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .10), borderRadius: BorderRadius.circular(12)),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.white, size: 17),
-            const SizedBox(width: 6),
-            Flexible(child: Text(text, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w600))),
-          ],
-        ),
+  Widget _hero() => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
+    child: Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF1B1738), Color(0xFF6D4AFF)]),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: const [BoxShadow(color: Color(0x2D6D4AFF), blurRadius: 28, offset: Offset(0, 12))],
       ),
-    );
-  }
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Ready for
+campus life?', style: TextStyle(color: Colors.white, fontSize: 29, height: 1.02, fontWeight: FontWeight.w800, letterSpacing: -1)),
+            SizedBox(height: 9), Text('Books, stationery, gadgets, lab supplies and more — curated for students.', style: TextStyle(color: Color(0xFFE4E0FF), fontSize: 12.5, height: 1.45)),
+          ])),
+          Container(width: 70, height: 70, decoration: BoxDecoration(color: Colors.white.withValues(alpha: .10), shape: BoxShape.circle), child: const Icon(Icons.school_rounded, color: Colors.white, size: 38)),
+        ]),
+        const SizedBox(height: 20),
+        Container(
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(17)),
+          child: const TextField(decoration: InputDecoration(hintText: 'What are you looking for?', prefixIcon: Icon(Icons.search_rounded, color: purple), suffixIcon: Icon(Icons.tune_rounded, color: muted), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 16))),
+        ),
+        const SizedBox(height: 13),
+        Row(children: [_chip(Icons.bolt_rounded, 'Quick discovery'), const SizedBox(width: 8), _chip(Icons.verified_rounded, 'Student picks')]),
+      ]),
+    ),
+  );
+
+  Widget _chip(IconData icon, String text) => Expanded(child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9), decoration: BoxDecoration(color: Colors.white.withValues(alpha: .11), borderRadius: BorderRadius.circular(13)), child: Row(children: [Icon(icon, color: Colors.white, size: 16), const SizedBox(width: 6), Flexible(child: Text(text, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w700)))])));
 
   Widget _categories() {
-    final items = [
-      (Icons.menu_book_rounded, 'Books'),
-      (Icons.edit_note_rounded, 'Stationery'),
-      (Icons.laptop_mac_rounded, 'Electronics'),
-      (Icons.science_rounded, 'Lab Supplies'),
-      (Icons.backpack_rounded, 'Bags'),
-    ];
-    return Column(
-      children: [
-        _sectionTitle('Shop by category', 'View all'),
-        SizedBox(
-          height: 105,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            scrollDirection: Axis.horizontal,
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, i) => Container(
-              width: 92,
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE8EDF4))),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFFEFF5FF), borderRadius: BorderRadius.circular(13)), child: Icon(items[i].$1, color: blue, size: 22)),
-                  const SizedBox(height: 8),
-                  Text(items[i].$2, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: navy)),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 25),
-      ],
-    );
+    final data = [(Icons.menu_book_rounded, 'Books'), (Icons.edit_rounded, 'Stationery'), (Icons.devices_rounded, 'Tech'), (Icons.science_rounded, 'Lab'), (Icons.backpack_rounded, 'Bags')];
+    return Column(children: [
+      _title('Explore categories', 'See all'),
+      SizedBox(height: 108, child: ListView.separated(padding: const EdgeInsets.symmetric(horizontal: 20), scrollDirection: Axis.horizontal, itemCount: data.length, separatorBuilder: (_, __) => const SizedBox(width: 12), itemBuilder: (_, i) => Container(width: 94, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFEAE8F2))), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF0EDFF), borderRadius: BorderRadius.circular(14)), child: Icon(data[i].$1, color: purple, size: 22)), const SizedBox(height: 8), Text(data[i].$2, style: const TextStyle(color: ink, fontWeight: FontWeight.w700, fontSize: 11))])))),
+      const SizedBox(height: 27),
+    ]);
   }
 
-  Widget _popular() {
-    return Column(
-      children: [
-        _sectionTitle('Popular right now', 'See all'),
-        SizedBox(
-          height: 235,
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            scrollDirection: Axis.horizontal,
-            children: [
-              _productCard(Icons.menu_book_rounded, 'Exam Notes', 'Study essentials', 'Popular'),
-              const SizedBox(width: 14),
-              _productCard(Icons.edit_rounded, 'Study Kit', 'Pens + highlighters', 'Student pick'),
-              const SizedBox(width: 14),
-              _productCard(Icons.headphones_rounded, 'Campus Audio', 'Everyday tech', 'Trending'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 25),
-      ],
-    );
-  }
+  Widget _featured() => Column(children: [
+    _title('Made for your semester', 'View all'),
+    SizedBox(height: 242, child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 20), children: [
+      _card(Icons.menu_book_rounded, 'Study essentials', 'Notes, books & guides', 'BESTSELLER'), const SizedBox(width: 14),
+      _card(Icons.draw_rounded, 'Creative kit', 'Pens, markers & art', 'STUDENT PICK'), const SizedBox(width: 14),
+      _card(Icons.headphones_rounded, 'Campus tech', 'Audio & accessories', 'TRENDING'),
+    ])),
+    const SizedBox(height: 27),
+  ]);
 
-  Widget _productCard(IconData icon, String title, String subtitle, String tag) {
-    return SizedBox(
-      width: 185,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE8EDF4))),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(color: const Color(0xFFF0F5FF), borderRadius: BorderRadius.circular(15)),
-                child: Stack(
-                  children: [
-                    Center(child: Icon(icon, size: 58, color: blue)),
-                    Positioned(top: 9, left: 9, child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Text(tag, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: blue)))),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 11),
-            Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: navy)),
-            const SizedBox(height: 3),
-            Text(subtitle, style: const TextStyle(fontSize: 11, color: muted)),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _card(IconData icon, String title, String subtitle, String tag) => SizedBox(width: 190, child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFEAE8F2))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Expanded(child: Container(width: double.infinity, decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFF2F0FF), Color(0xFFEAE5FF)]), borderRadius: BorderRadius.circular(17)), child: Stack(children: [Center(child: Icon(icon, size: 58, color: purple)), Positioned(top: 9, left: 9, child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Text(tag, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: purple))))]))),
+    const SizedBox(height: 11), Text(title, style: const TextStyle(color: ink, fontSize: 14, fontWeight: FontWeight.w800)), const SizedBox(height: 4), Text(subtitle, style: const TextStyle(color: muted, fontSize: 10.5)),
+  ])));
 
-  Widget _campusBanner() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 25),
-      child: Container(
-        padding: const EdgeInsets.all(19),
-        decoration: BoxDecoration(color: const Color(0xFFEAF2FF), borderRadius: BorderRadius.circular(22)),
-        child: Row(
-          children: [
-            Container(width: 48, height: 48, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.school_rounded, color: blue)),
-            const SizedBox(width: 13),
-            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Built for campus life', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: navy)), SizedBox(height: 4), Text('Discover essentials made for your classes, projects and everyday college life.', style: TextStyle(fontSize: 11.5, color: muted, height: 1.35))])),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _studentCard() => Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Container(padding: const EdgeInsets.all(19), decoration: BoxDecoration(color: const Color(0xFF17172B), borderRadius: BorderRadius.circular(24)), child: Row(children: [
+    Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFF2A2844), borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFC9BDFF))), const SizedBox(width: 13),
+    const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Make it yours.', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)), SizedBox(height: 4), Text('Sign in to save favourites and get a more personal campus experience.', style: TextStyle(color: Color(0xFFB4B1C5), fontSize: 11, height: 1.35))])), const SizedBox(width: 8),
+    IconButton(onPressed: () {}, icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white)),
+  ]));
 
-  Widget _loginCard(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: navy, borderRadius: BorderRadius.circular(23)),
-        child: Row(
-          children: [
-            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Your campus, your account.', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)), SizedBox(height: 5), Text('Sign in to save favourites and personalise your experience.', style: TextStyle(color: Color(0xFFB9C9E2), fontSize: 11.5, height: 1.4))])),
-            const SizedBox(width: 12),
-            Column(
-              children: [
-                SizedBox(height: 36, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/login'), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: navy, padding: const EdgeInsets.symmetric(horizontal: 15)), child: const Text('Sign in', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)))),
-                const SizedBox(height: 7),
-                GestureDetector(onTap: () => Navigator.pushNamed(context, '/register'), child: const Text('Create account', style: TextStyle(color: Color(0xFFBBD5FF), fontSize: 10.5, fontWeight: FontWeight.w700))),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _title(String title, String action) => Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 12), child: Row(children: [Expanded(child: Text(title, style: const TextStyle(color: ink, fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -.4))), Text(action, style: const TextStyle(color: purple, fontSize: 11.5, fontWeight: FontWeight.w800))]));
 
-  Widget _sectionTitle(String title, String action) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-      child: Row(
-        children: [
-          Expanded(child: Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: navy))),
-          Text(action, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: blue)),
-        ],
-      ),
-    );
-  }
-
-  Widget _iconButton(IconData icon) {
-    return Container(
-      height: 42,
-      width: 42,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE8EDF4))),
-      child: Icon(icon, color: navy, size: 21),
-    );
-  }
-
-  Widget _bottomNav() {
-    return NavigationBar(
-      height: 68,
-      backgroundColor: Colors.white,
-      elevation: 8,
-      selectedIndex: 0,
-      indicatorColor: const Color(0xFFE7F0FF),
-      destinations: const [
-        NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded, color: blue), label: 'Home'),
-        NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded, color: blue), label: 'Explore'),
-        NavigationDestination(icon: Icon(Icons.favorite_border_rounded), selectedIcon: Icon(Icons.favorite_rounded, color: blue), label: 'Saved'),
-        NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded, color: blue), label: 'Profile'),
-      ],
-    );
-  }
+  Widget _roundIcon(IconData icon) => Container(width: 42, height: 42, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFEAE8F2))), child: Icon(icon, color: ink, size: 20));
 }
