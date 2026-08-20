@@ -11,11 +11,11 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   static const deepForest = Color(0xFF0B2E20);
   static const darkEmerald = Color(0xFF124D36);
-  static const emerald = Color(0xFF1F7A5A);
   static const sage = Color(0xFF5F8F7A);
   static const mint = Color(0xFFA7D7C5);
   static const warmGold = Color(0xFFD8B76A);
   static const warmTaupe = Color(0xFF8A7B68);
+  static const espresso = Color(0xFF2A211B);
 
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -59,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: darkEmerald,
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(color: const Color(0xFF2D624B)),
-                  boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 24, offset: Offset(0, 12))],
+                  boxShadow: const [BoxShadow(color: Color(0x552A211B), blurRadius: 24, offset: Offset(0, 12))],
                 ),
                 child: Form(
                   key: formKey,
@@ -72,26 +72,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 8),
                       const Text('Sign in to continue your campus journey.', style: TextStyle(color: warmTaupe, fontSize: 15)),
                       const SizedBox(height: 32),
-                      _label('Email address'),
+                      const Text('Email address', style: TextStyle(fontWeight: FontWeight.w700, color: mint)),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(hintText: 'you@example.com', prefixIcon: Icon(Icons.mail_outline_rounded)),
+                        decoration: const InputDecoration(hintText: 'you@example.com', prefixIcon: Icon(Icons.mail_outline_rounded, color: sage)),
                         validator: (v) => v == null || !v.contains('@') ? 'Enter a valid email address' : null,
                       ),
                       const SizedBox(height: 20),
-                      _label('Password'),
+                      const Text('Password', style: TextStyle(fontWeight: FontWeight.w700, color: mint)),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: passwordController,
                         obscureText: hidePassword,
                         decoration: InputDecoration(
                           hintText: 'Enter your password',
-                          prefixIcon: const Icon(Icons.lock_outline_rounded),
+                          prefixIcon: const Icon(Icons.lock_outline_rounded, color: sage),
                           suffixIcon: IconButton(
                             onPressed: () => setState(() => hidePassword = !hidePassword),
-                            icon: Icon(hidePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                            icon: Icon(hidePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: sage),
                           ),
                         ),
                         validator: (v) => v == null || v.length < 6 ? 'Password must be at least 6 characters' : null,
@@ -120,14 +120,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
-  Widget _label(String text) => const SizedBox.shrink().buildLabel(text);
-}
-
-extension on SizedBox {
-  Widget buildLabel(String text) => Text(text, style: const TextStyle(fontWeight: FontWeight.w700, color: LoginScreenText.label));
-}
-
-class LoginScreenText {
-  static const label = Color(0xFFA7D7C5);
 }
