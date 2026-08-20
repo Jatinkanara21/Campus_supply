@@ -3,6 +3,10 @@ import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/product_detail_screen.dart';
+import 'screens/wishlist_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/admin_screen.dart';
 
 void main() => runApp(const CampusSupplyApp());
 
@@ -26,74 +30,18 @@ class CampusSupplyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: deepForest,
-        colorScheme: const ColorScheme.dark(
-          primary: emerald,
-          onPrimary: mint,
-          secondary: warmGold,
-          onSecondary: deepForest,
-          surface: darkEmerald,
-          onSurface: mint,
-          error: Color(0xFFE7A18A),
-          onError: deepForest,
+        colorScheme: const ColorScheme.dark(primary: emerald, onPrimary: mint, secondary: warmGold, onSecondary: deepForest, surface: darkEmerald, onSurface: mint, error: Color(0xFFE7A18A), onError: deepForest),
+        appBarTheme: const AppBarTheme(backgroundColor: deepForest, foregroundColor: mint, elevation: 0, centerTitle: false),
+        cardTheme: const CardThemeData(color: darkEmerald, elevation: 0, margin: EdgeInsets.zero, shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(22)))),
+        inputDecorationTheme: const InputDecorationTheme(
+          filled: true, fillColor: darkEmerald, labelStyle: TextStyle(color: sage), hintStyle: TextStyle(color: sage), prefixIconColor: sage, suffixIconColor: sage,
+          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(18)), borderSide: BorderSide(color: Color(0xFF2D624B))),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(18)), borderSide: BorderSide(color: Color(0xFF2D624B))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(18)), borderSide: BorderSide(color: warmGold, width: 1.5)),
         ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: deepForest,
-          foregroundColor: mint,
-          elevation: 0,
-          centerTitle: false,
-        ),
-        cardTheme: CardThemeData(
-          color: darkEmerald,
-          elevation: 0,
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(22))),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: darkEmerald,
-          labelStyle: const TextStyle(color: sage),
-          hintStyle: const TextStyle(color: sage),
-          prefixIconColor: sage,
-          suffixIconColor: sage,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(18)),
-            borderSide: BorderSide(color: Color(0xFF2D624B)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(18)),
-            borderSide: BorderSide(color: Color(0xFF2D624B)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(18)),
-            borderSide: BorderSide(color: warmGold, width: 1.5),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(18)),
-            borderSide: BorderSide(color: Color(0xFFE7A18A)),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.all(Radius.circular(18)),
-            borderSide: BorderSide(color: Color(0xFFE7A18A), width: 1.5),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: emerald,
-            foregroundColor: mint,
-            disabledBackgroundColor: sage,
-            disabledForegroundColor: deepForest,
-            minimumSize: const Size(0, 54),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          ),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(foregroundColor: warmGold),
-        ),
-        snackBarTheme: const SnackBarThemeData(
-          backgroundColor: espresso,
-          contentTextStyle: TextStyle(color: mint),
-          actionTextColor: warmGold,
-        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(style: ElevatedButton.styleFrom(backgroundColor: emerald, foregroundColor: mint, minimumSize: const Size(0, 54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)))),
+        textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: warmGold)),
+        snackBarTheme: const SnackBarThemeData(backgroundColor: espresso, contentTextStyle: TextStyle(color: mint), actionTextColor: warmGold),
       ),
       initialRoute: '/',
       routes: {
@@ -101,6 +49,10 @@ class CampusSupplyApp extends StatelessWidget {
         '/home': (_) => const HomeScreen(),
         '/login': (_) => const LoginScreen(),
         '/register': (_) => const RegisterScreen(),
+        '/product': (_) => const ProductDetailScreen(),
+        '/wishlist': (_) => const WishlistScreen(),
+        '/profile': (_) => const ProfileScreen(),
+        '/admin': (_) => const AdminScreen(),
       },
     );
   }
