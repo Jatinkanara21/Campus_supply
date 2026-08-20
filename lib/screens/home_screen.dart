@@ -35,9 +35,7 @@ class HomeScreen extends StatelessWidget {
         elevation: 0,
         selectedIndex: 0,
         indicatorColor: darkEmerald,
-        labelTextStyle: WidgetStateProperty.all(
-          const TextStyle(color: mint, fontSize: 10, fontWeight: FontWeight.w700),
-        ),
+        labelTextStyle: WidgetStateProperty.all(const TextStyle(color: mint, fontSize: 10, fontWeight: FontWeight.w700)),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined, color: sage), selectedIcon: Icon(Icons.home_rounded, color: mint), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.explore_outlined, color: sage), selectedIcon: Icon(Icons.explore_rounded, color: mint), label: 'Explore'),
@@ -64,10 +62,7 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/login'),
-            child: _roundIcon(Icons.person_outline_rounded),
-          ),
+          GestureDetector(onTap: () => Navigator.pushNamed(context, '/login'), child: _roundIcon(Icons.person_outline_rounded)),
         ],
       ),
     );
@@ -79,14 +74,10 @@ class HomeScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF124D36), Color(0xFF1F7A5A), Color(0xFF5F8F7A)],
-          ),
+          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [darkEmerald, emerald, sage]),
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: const Color(0xFFD8B76A), width: 0.6),
-          boxShadow: const [BoxShadow(color: Color(0x44000000), blurRadius: 18, offset: Offset(0, 9))],
+          border: Border.all(color: gold, width: 0.6),
+          boxShadow: const [BoxShadow(color: Color(0x552A211B), blurRadius: 18, offset: Offset(0, 9))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,12 +94,7 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(color: forest.withValues(alpha: 0.45), shape: BoxShape.circle, border: Border.all(color: gold, width: 1)),
-                  child: const Icon(Icons.school_rounded, color: gold, size: 38),
-                ),
+                Container(width: 72, height: 72, decoration: BoxDecoration(color: forest.withValues(alpha: 0.45), shape: BoxShape.circle, border: Border.all(color: gold, width: 1)), child: const Icon(Icons.school_rounded, color: gold, size: 38)),
               ],
             ),
             const SizedBox(height: 20),
@@ -116,13 +102,7 @@ class HomeScreen extends StatelessWidget {
               decoration: BoxDecoration(color: espresso, borderRadius: BorderRadius.circular(17), border: Border.all(color: sage, width: 0.7)),
               child: const TextField(
                 style: TextStyle(color: mint),
-                decoration: InputDecoration(
-                  hintText: 'Search books, stationery, laptops...',
-                  hintStyle: TextStyle(color: taupe, fontSize: 12),
-                  prefixIcon: Icon(Icons.search_rounded, color: gold),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 16),
-                ),
+                decoration: InputDecoration(hintText: 'Search books, stationery, laptops...', hintStyle: TextStyle(color: taupe, fontSize: 12), prefixIcon: Icon(Icons.search_rounded, color: gold), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 16)),
               ),
             ),
           ],
@@ -150,25 +130,18 @@ class HomeScreen extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             itemCount: data.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, i) {
-              return Container(
-                width: 94,
-                decoration: BoxDecoration(color: darkEmerald, borderRadius: BorderRadius.circular(20), border: Border.all(color: sage, width: 0.5)),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(color: data[i].$3.withValues(alpha: 0.19), borderRadius: BorderRadius.circular(14)),
-                      child: Icon(data[i].$1, color: data[i].$3, size: 22),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(data[i].$2, style: const TextStyle(color: mint, fontWeight: FontWeight.w700, fontSize: 11)),
-                  ],
-                ),
-              );
-            },
+            itemBuilder: (_, i) => Container(
+              width: 94,
+              decoration: BoxDecoration(color: darkEmerald, borderRadius: BorderRadius.circular(20), border: Border.all(color: sage, width: 0.5)),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(width: 46, height: 46, decoration: BoxDecoration(color: data[i].$3.withValues(alpha: 0.19), borderRadius: BorderRadius.circular(14)), child: Icon(data[i].$1, color: data[i].$3, size: 22)),
+                  const SizedBox(height: 8),
+                  Text(data[i].$2, style: const TextStyle(color: mint, fontWeight: FontWeight.w700, fontSize: 11)),
+                ],
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 27),
@@ -213,10 +186,7 @@ class HomeScreen extends StatelessWidget {
             Expanded(
               child: Container(
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [darkEmerald, Color.lerp(espresso, accent, 0.35)!]),
-                  borderRadius: BorderRadius.circular(17),
-                ),
+                decoration: BoxDecoration(gradient: LinearGradient(colors: [darkEmerald, Color.lerp(espresso, accent, 0.35)!]), borderRadius: BorderRadius.circular(17)),
                 child: Stack(
                   children: [
                     Center(child: Icon(icon, size: 58, color: accent)),
@@ -251,12 +221,7 @@ class HomeScreen extends StatelessWidget {
         decoration: BoxDecoration(color: darkEmerald, borderRadius: BorderRadius.circular(24), border: Border.all(color: gold, width: 0.6)),
         child: Row(
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(color: forest, borderRadius: BorderRadius.circular(15)),
-              child: const Icon(Icons.auto_awesome_rounded, color: gold),
-            ),
+            Container(width: 48, height: 48, decoration: BoxDecoration(color: forest, borderRadius: BorderRadius.circular(15)), child: const Icon(Icons.auto_awesome_rounded, color: gold)),
             const SizedBox(width: 13),
             const Expanded(
               child: Column(
@@ -268,10 +233,7 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-            IconButton(
-              onPressed: () => Navigator.pushNamed(context, '/login'),
-              icon: const Icon(Icons.arrow_forward_rounded, color: gold),
-            ),
+            IconButton(onPressed: () => Navigator.pushNamed(context, '/login'), icon: const Icon(Icons.arrow_forward_rounded, color: gold)),
           ],
         ),
       ),
@@ -281,21 +243,11 @@ class HomeScreen extends StatelessWidget {
   Widget _title(String title, String action) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-      child: Row(
-        children: [
-          Expanded(child: Text(title, style: const TextStyle(color: mint, fontSize: 19, fontWeight: FontWeight.w800))),
-          Text(action, style: const TextStyle(color: gold, fontSize: 11.5, fontWeight: FontWeight.w800)),
-        ],
-      ),
+      child: Row(children: [Expanded(child: Text(title, style: const TextStyle(color: mint, fontSize: 19, fontWeight: FontWeight.w800))), Text(action, style: const TextStyle(color: gold, fontSize: 11.5, fontWeight: FontWeight.w800))]),
     );
   }
 
   Widget _roundIcon(IconData icon) {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(color: darkEmerald, borderRadius: BorderRadius.circular(14), border: Border.all(color: gold, width: 0.7)),
-      child: Icon(icon, color: mint, size: 20),
-    );
+    return Container(width: 42, height: 42, decoration: BoxDecoration(color: darkEmerald, borderRadius: BorderRadius.circular(14), border: Border.all(color: gold, width: 0.7)), child: Icon(icon, color: mint, size: 20));
   }
 }
