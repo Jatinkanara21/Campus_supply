@@ -25,7 +25,13 @@ class _ShopScreenState extends State<ShopScreen> {
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: FirestoreDatabase.instance.watchProducts(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return _message('Could not load products. Check your Firestore rules and connection.');
+          if (snapshot.hasError) {
+            final error = snapshot.error.toString();
+            return _message(
+              'Could not load products.\\n\\n$error\\n\\n'
+              'Check that Firestore is created and firestore.rules are deployed.',
+            );
+          }
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           final products = snapshot.data!;
           final categories = <String>{'All', ...products.map((p) => (p['category'] ?? 'General').toString())}.toList();
