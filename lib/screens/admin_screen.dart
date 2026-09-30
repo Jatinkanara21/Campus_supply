@@ -297,6 +297,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
                 final file = result.files.single;
                 final extension = file.extension ?? 'jpg';
+                final contentType = _contentTypeForExtension(extension);
                 final ref = FirebaseStorage.instance.ref(
                   'public/home/hero_${DateTime.now().millisecondsSinceEpoch}.$extension',
                 );
@@ -304,7 +305,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 await ref.putData(
                   file.bytes!,
                   SettableMetadata(
-                    contentType: file.mimeType ?? 'image/jpeg',
+                    contentType: contentType,
                     cacheControl: 'public,max-age=3600',
                   ),
                 );
@@ -391,6 +392,23 @@ class _AdminScreenState extends State<AdminScreen> {
       },
     );
     controller.dispose();
+  }
+
+  String _contentTypeForExtension(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'gif':
+        return 'image/gif';
+      case 'avif':
+        return 'image/avif';
+      case 'jpg':
+      case 'jpeg':
+      default:
+        return 'image/jpeg';
+    }
   }
 
   Future<void> _seedCatalog() async {
