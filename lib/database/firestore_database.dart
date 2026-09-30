@@ -40,12 +40,73 @@ class FirestoreDatabase {
   }
 
   Stream<List<Map<String, dynamic>>> watchProducts() {
-    return products
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => {'id': doc.id, ...doc.data()})
-            .toList());
+    return products.snapshots().map((snapshot) {
+      final items = snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+      items.sort((a, b) {
+        final ad = a['createdAt'];
+        final bd = b['createdAt'];
+        if (ad is Timestamp && bd is Timestamp) return bd.compareTo(ad);
+        return 0;
+      });
+      return items;
+    });
+  }
+
+  Stream<List<Map<String, dynamic>>> watchCategories() {
+    return categories.snapshots().map((snapshot) => snapshot.docs
+        .map((doc) => {'id': doc.id, ...doc.data()})
+        .toList());
+  }
+
+  Stream<List<Map<String, dynamic>>> watchBundles() {
+    return bundles.snapshots().map((snapshot) => snapshot.docs
+        .map((doc) => {'id': doc.id, ...doc.data()})
+        .toList());
+  }
+
+  Future<void> updateCartQuantity({
+    required String uid,
+    required String productId,
+    required int quantity,
+  }) async {
+    final ref = carts.doc('${uid}_${productId}');
+    if (quantity <= 0) {
+      await ref.delete();
+      return;
+    }
+    await ref.set({
+      'userId': uid,
+      'productId': productId,
+      'quantity': quantity,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> removeFromCart({
+    required String uid,
+    required String productId,
+  }) => carts.doc('${uid}_${productId}').delete();
+
+  Future<void> clearCart(String uid) async {
+    final snapshot = await carts.where('userId', isEqualTo: uid).get();
+    final batch = _db.batch();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
+  Stream<List<Map<String, dynamic>>> watchOrders(String uid) {
+    return orders.where('userId', isEqualTo: uid).snapshots().map((snapshot) {
+      final items = snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+      items.sort((a, b) {
+        final ad = a['createdAt'];
+        final bd = b['createdAt'];
+        if (ad is Timestamp && bd is Timestamp) return bd.compareTo(ad);
+        return 0;
+      });
+      return items;
+    });
   }
 
   Future<void> upsertProduct({
@@ -140,3 +201,4 @@ class FirestoreDatabase {
     });
   }
 }
+
