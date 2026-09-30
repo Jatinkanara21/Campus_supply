@@ -20,18 +20,26 @@ class AuthService {
       );
       final user = credential.user;
       if (user == null) return false;
+
       await user.updateDisplayName(name.trim());
-      await _db.collection('users').doc(user.uid).set({
-        'name': name.trim(),
-        'email': email.trim().toLowerCase(),
-        'role': 'user',
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('logged_in', true);
-      await prefs.setString('user_email', email.trim().toLowerCase());
-      await prefs.setString('user_name', name.trim());
+
+      try {
+        await _db.collection('users').doc(user.uid).set({
+          'name': name.trim(),
+          'email': email.trim().toLowerCase(),
+          'role': 'user',
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } on FirebaseException {
+        // Authentication succeeded even if the profile document cannot
+        // currently be written (for example before Firestore rules are deployed).
+      }
+
+      await _saveSession(
+        email: user.email ?? email.trim().toLowerCase(),
+        name: name.trim(),
+      );
       return true;
     } on FirebaseAuthException {
       return false;
@@ -49,19 +57,39 @@ class AuthService {
       );
       final user = credential.user;
       if (user == null) return false;
-      final snapshot = await _db.collection('users').doc(user.uid).get();
-      final data = snapshot.data();
-      final name = (data?['name'] as String?) ??
-          user.displayName ??
-          email.trim().split('@').first;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('logged_in', true);
-      await prefs.setString('user_email', user.email ?? email.trim().toLowerCase());
-      await prefs.setString('user_name', name);
+
+      var name = user.displayName ?? email.trim().split('@').first;
+
+      // Do not block a successful Firebase Authentication login if the
+      // Firestore profile is temporarily unavailable or rules are not deployed.
+      try {
+        final snapshot = await _db.collection('users').doc(user.uid).get();
+        final data = snapshot.data();
+        name = (data?['name'] as String?) ?? name;
+      } on FirebaseException {
+        // Keep the fallback name and continue the login flow.
+      }
+
+      await _saveSession(
+        email: user.email ?? email.trim().toLowerCase(),
+        name: name,
+      );
       return true;
     } on FirebaseAuthException {
       return false;
+    } on FirebaseException {
+      return false;
     }
+  }
+
+  static Future<void> _saveSession({
+    required String email,
+    required String name,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('logged_in', true);
+    await prefs.setString('user_email', email);
+    await prefs.setString('user_name', name);
   }
 
   static Future<bool> isLoggedIn() async => _auth.currentUser != null;
@@ -69,23 +97,42 @@ class AuthService {
   static Future<String> userName() async {
     final user = _auth.currentUser;
     if (user == null) return 'Student';
-    final snapshot = await _db.collection('users').doc(user.uid).get();
-    final data = snapshot.data();
-    return (data?['name'] as String?) ?? user.displayName ?? 'Student';
+
+    try {
+      final snapshot = await _db.collection('users').doc(user.uid).get();
+      final data = snapshot.data();
+      return (data?['name'] as String?) ?? user.displayName ?? 'Student';
+    } on FirebaseException {
+      return user.displayName ?? 'Student';
+    }
   }
 
   static Future<bool> isAdmin() async {
     final user = _auth.currentUser;
     if (user == null) return false;
-    final snapshot = await _db.collection('users').doc(user.uid).get();
-    return snapshot.data()?['role'] == 'admin';
+
+    try {
+      final snapshot = await _db.collection('users').doc(user.uid).get();
+      return snapshot.data()?['role'] == 'admin';
+    } on FirebaseException {
+      return false;
+    }
   }
 
   static Future<String> role() async {
     final user = _auth.currentUser;
     if (user == null) return 'guest';
-    final snapshot = await _db.collection('users').doc(user.uid).get();
-    return (snapshot.data()?['role'] as String?) ?? 'user';
+
+    try {
+      final snapshot = await _db.collection('users').doc(user.uid).get();
+      return (snapshot.data()?['role'] as String?) ?? 'user';
+    } on FirebaseException {
+      return 'user';
+    }
+  }
+
+  static Future<void> sendPasswordResetEmail(String email) async {
+    await _auth.sendPasswordResetEmail(email: email.trim().toLowerCase());
   }
 
   static Future<void> logout() async {
