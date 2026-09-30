@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../database/firestore_database.dart';
 import '../widgets/campus_logo.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -99,30 +100,55 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 0),
-                  sliver: SliverGrid(
-                    delegate: SliverChildBuilderDelegate(
-                      (_, i) {
-                        final p = products[i];
-                        return _ProductCard(
-                          icon: p.$1,
-                          title: p.$2,
-                          price: p.$3,
-                          rating: p.$4,
-                          accent: p.$5,
-                          badge: p.$6,
-                          onTap: () => Navigator.pushNamed(context, '/product'),
+                SliverToBoxAdapter(
+                  child: StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: FirestoreDatabase.instance.watchProducts(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Center(child: CircularProgressIndicator()),
                         );
-                      },
-                      childCount: products.length,
-                    ),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: constraints.maxWidth >= 900 ? 4 : 2,
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
-                      childAspectRatio: constraints.maxWidth >= 900 ? .78 : .68,
-                    ),
+                      }
+                      final products = snapshot.data!.take(4).toList();
+                      if (products.isEmpty) {
+                        return Container(
+                          margin: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 0),
+                          padding: const EdgeInsets.all(22),
+                          decoration: BoxDecoration(
+                            color: white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: border),
+                          ),
+                          child: const Text(
+                            'Products will appear here after an admin adds them in Firestore.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: muted),
+                          ),
+                        );
+                      }
+                      return Padding(
+                        padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 0),
+                        child: GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: products.length,
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: constraints.maxWidth >= 900 ? 4 : 2,
+                            crossAxisSpacing: 14,
+                            mainAxisSpacing: 14,
+                            childAspectRatio: constraints.maxWidth >= 900 ? .78 : .68,
+                          ),
+                          itemBuilder: (_, i) {
+                            final p = products[i];
+                            return _FirebaseProductCard(
+                              product: p,
+                              onTap: () => Navigator.pushNamed(context, '/product', arguments: p),
+                            );
+                          },
+                        ),
+                      );
+                    },
                   ),
                 ),
                 SliverPadding(
@@ -900,6 +926,31 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FirebaseProductCard extends StatelessWidget {
+  final Map<String, dynamic> product;
+  final VoidCallback onTap;
+  const _FirebaseProductCard({required this.product, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrl=(product['imageUrl']??'').toString();
+    return GestureDetector(
+      onTap:onTap,
+      child: Container(
+        padding:const EdgeInsets.all(12),
+        decoration:BoxDecoration(color:HomeScreen.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:HomeScreen.border)),
+        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Expanded(child:Container(width:double.infinity,decoration:BoxDecoration(color:const Color(0xFFF5F3EE),borderRadius:BorderRadius.circular(16)),clipBehavior:Clip.antiAlias,child:imageUrl.isNotEmpty?Image.network(imageUrl,fit:BoxFit.cover,errorBuilder:(_,__,___)=>const Icon(Icons.inventory_2_rounded,color:HomeScreen.blue,size:62)):const Icon(Icons.inventory_2_rounded,color:HomeScreen.blue,size:62))),
+          const SizedBox(height:9),
+          Text((product['name']??'Product').toString(),maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:HomeScreen.ink,fontSize:13,fontWeight:FontWeight.w800)),
+          const SizedBox(height:5),
+          Row(children:[const Icon(Icons.star_rounded,color:Color(0xFFF4B400),size:15),const SizedBox(width:3),Text((product['rating']??'New').toString(),style:const TextStyle(color:HomeScreen.muted,fontSize:10.5,fontWeight:FontWeight.w700)),const Spacer(),Text('₹${product['price']??0}',style:const TextStyle(color:HomeScreen.blue,fontSize:15,fontWeight:FontWeight.w900))]),
+        ]),
       ),
     );
   }
