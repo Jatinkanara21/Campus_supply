@@ -63,7 +63,7 @@ class HomeScreen extends StatelessWidget {
                     child: _SectionHeading(
                       title: 'Shop by category',
                       action: 'View all',
-                      onTap: () {},
+                      onTap: () => Navigator.pushNamed(context, '/shop'),
                     ),
                   ),
                 ),
@@ -313,7 +313,7 @@ class HomeScreen extends StatelessWidget {
               ),
             ],
           ),
-          child: const TextField(
+          child: TextField(onSubmitted: (value) { final query = value.trim(); if (query.isNotEmpty) Navigator.pushNamed(context, '/shop', arguments: {'query': query, 'category': 'All'}); },
             decoration: InputDecoration(
               border: InputBorder.none,
               prefixIcon: Icon(Icons.search_rounded, color: blue, size: 23),
@@ -396,7 +396,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 17),
                 GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/product'),
+                  onTap: () => Navigator.pushNamed(context, '/shop'),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 12),
                     decoration: BoxDecoration(
