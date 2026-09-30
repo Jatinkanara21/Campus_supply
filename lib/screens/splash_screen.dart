@@ -27,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _scale = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _controller.forward();
-    Timer(const Duration(milliseconds: 2200), () {
+    Timer(const Duration(milliseconds: 1200), () {
       if (mounted) Navigator.pushReplacementNamed(context, '/home');
     });
   }
