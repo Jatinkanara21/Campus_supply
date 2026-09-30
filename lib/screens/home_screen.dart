@@ -20,22 +20,6 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categories = [
-      (Icons.edit_rounded, 'Pens & Pencils', softBlue, blue),
-      (Icons.menu_book_rounded, 'Sketchbooks', softYellow, const Color(0xFF9A7600)),
-      (Icons.palette_rounded, 'Art Supplies', softCoral, coral),
-      (Icons.straighten_rounded, 'Drafting Tools', softMint, const Color(0xFF16805B)),
-      (Icons.book_rounded, 'Notebooks', const Color(0xFFF0EAFF), const Color(0xFF7450E8)),
-      (Icons.devices_rounded, 'Tech Accessories', const Color(0xFFE7F7F8), const Color(0xFF087F8C)),
-    ];
-
-    final products = [
-      (Icons.edit_rounded, 'Smooth Gel Pens', '₹149', '4.8', blue, 'Best seller'),
-      (Icons.menu_book_rounded, 'A5 Premium Sketchbook', '₹349', '4.9', const Color(0xFF7450E8), 'Student pick'),
-      (Icons.straighten_rounded, 'Campus Drafting Set', '₹499', '4.7', coral, 'Popular'),
-      (Icons.palette_rounded, 'Studio Marker Pack', '₹599', '4.8', const Color(0xFF16805B), 'New'),
-    ];
-
     return Scaffold(
       backgroundColor: cream,
       body: SafeArea(
@@ -70,22 +54,50 @@ class HomeScreen extends StatelessWidget {
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 0),
                   sliver: SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: 118,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: categories.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 12),
-                        itemBuilder: (_, i) {
-                          final c = categories[i];
-                          return _CategoryCard(
-                            icon: c.$1,
-                            title: c.$2,
-                            background: c.$3,
-                            accent: c.$4,
+                    child: StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: FirestoreDatabase.instance.watchCategories(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return const _CategoryMessage(message: 'Could not load categories.');
+                        }
+                        if (!snapshot.hasData) {
+                          return const SizedBox(
+                            height: 118,
+                            child: Center(child: CircularProgressIndicator()),
                           );
-                        },
-                      ),
+                        }
+
+                        final categories = snapshot.data!;
+                        if (categories.isEmpty) {
+                          return const _CategoryMessage(
+                            message: 'No categories yet. Add categories from Admin Dashboard.',
+                          );
+                        }
+
+                        return SizedBox(
+                          height: 118,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: categories.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 12),
+                            itemBuilder: (_, i) {
+                              final category = categories[i];
+                              final name = (category['name'] ?? category['slug'] ?? 'Category').toString();
+                              return _CategoryCard(
+                                icon: _categoryIcon(name),
+                                title: name,
+                                background: _categoryBackground(i),
+                                accent: _categoryAccent(i),
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  '/shop',
+                                  arguments: {'category': name, 'query': ''},
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -96,7 +108,7 @@ class HomeScreen extends StatelessWidget {
                       title: 'Popular this week',
                       subtitle: 'Made for campus life',
                       action: 'See all',
-                      onTap: () {},
+                      onTap: () => Navigator.pushNamed(context, '/shop'),
                     ),
                   ),
                 ),
@@ -332,146 +344,187 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _Hero(BuildContext context, {required bool wide}) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 235),
-      padding: EdgeInsets.fromLTRB(wide ? 30 : 22, 25, wide ? 24 : 16, 22),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [blue, Color(0xFF4A80EF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x252563EB),
-            blurRadius: 24,
-            offset: Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 7,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: .15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'BACK TO CAMPUS',
-                    style: TextStyle(
-                      color: white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 13),
-                const Text(
-                  'Big ideas start\nwith small supplies.',
-                  style: TextStyle(
-                    color: white,
-                    fontSize: 30,
-                    height: 1.02,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1.1,
-                  ),
-                ),
-                const SizedBox(height: 9),
-                const Text(
-                  'Student-friendly prices. Creative-friendly supplies.',
-                  style: TextStyle(
-                    color: Color(0xFFEAF2FF),
-                    fontSize: 12.5,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 17),
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/shop'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: yellow,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Shop campus essentials',
-                          style: TextStyle(
-                            color: ink,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        SizedBox(width: 7),
-                        Icon(Icons.arrow_forward_rounded, color: ink, size: 17),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: FirestoreDatabase.instance.watchHomeSettings(),
+      builder: (context, snapshot) {
+        final imageUrl = (snapshot.data?['heroImageUrl'] ?? '').toString().trim();
+
+        return Container(
+          constraints: const BoxConstraints(minHeight: 235),
+          padding: EdgeInsets.fromLTRB(wide ? 30 : 22, 25, wide ? 24 : 16, 22),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [blue, Color(0xFF4A80EF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 3,
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 145, minHeight: 165),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .09),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white.withValues(alpha: .08)),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x252563EB),
+                blurRadius: 24,
+                offset: Offset(0, 12),
               ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Positioned(
-                    top: 16,
-                    right: 18,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        color: yellow,
-                        shape: BoxShape.circle,
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 7,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'BACK TO CAMPUS',
+                        style: TextStyle(
+                          color: white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
                       ),
                     ),
-                  ),
-                  const Icon(
-                    Icons.backpack_rounded,
-                    color: yellow,
-                    size: 82,
-                  ),
-                  const Positioned(
-                    bottom: 17,
-                    child: Text(
-                      'CREATE.',
+                    const SizedBox(height: 13),
+                    const Text(
+                      'Big ideas start\nwith small supplies.',
                       style: TextStyle(
                         color: white,
-                        fontSize: 10,
+                        fontSize: 30,
+                        height: 1.02,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: 2,
+                        letterSpacing: -1.1,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 9),
+                    const Text(
+                      'Student-friendly prices. Creative-friendly supplies.',
+                      style: TextStyle(
+                        color: Color(0xFFEAF2FF),
+                        fontSize: 12.5,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 17),
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, '/shop'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: yellow,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Shop campus essentials',
+                              style: TextStyle(
+                                color: ink,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            SizedBox(width: 7),
+                            Icon(Icons.arrow_forward_rounded, color: ink, size: 17),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 3,
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 300, minHeight: 165),
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .09),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: Colors.white.withValues(alpha: .14)),
+                  ),
+                  child: imageUrl.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(18),
+                            child: Text(
+                              'Add a hero image from Admin Dashboard',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Color(0xFFEAF2FF),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        )
+                      : Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder: (_, __, ___) => const Center(
+                            child: Text(
+                              'Hero image could not be loaded.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Color(0xFFEAF2FF),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  IconData _categoryIcon(String name) {
+    final value = name.toLowerCase();
+    if (value.contains('pen') || value.contains('pencil')) return Icons.edit_rounded;
+    if (value.contains('book') || value.contains('notebook')) return Icons.menu_book_rounded;
+    if (value.contains('art') || value.contains('paint') || value.contains('marker')) return Icons.palette_rounded;
+    if (value.contains('draft') || value.contains('geometry')) return Icons.straighten_rounded;
+    if (value.contains('tech') || value.contains('electronic')) return Icons.devices_rounded;
+    if (value.contains('bag')) return Icons.backpack_rounded;
+    return Icons.category_rounded;
+  }
+
+  Color _categoryBackground(int index) {
+    const values = [
+      softBlue,
+      softYellow,
+      softCoral,
+      softMint,
+      Color(0xFFF0EAFF),
+      Color(0xFFE7F7F8),
+    ];
+    return values[index % values.length];
+  }
+
+  Color _categoryAccent(int index) {
+    const values = [
+      blue,
+      Color(0xFF9A7600),
+      coral,
+      Color(0xFF16805B),
+      Color(0xFF7450E8),
+      Color(0xFF087F8C),
+    ];
+    return values[index % values.length];
   }
 
   Widget _StudentDeal() {
@@ -631,41 +684,64 @@ class HomeScreen extends StatelessWidget {
     required String title,
     required Color background,
     required Color accent,
+    required VoidCallback onTap,
   }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 112,
+        padding: const EdgeInsets.all(11),
+        decoration: BoxDecoration(
+          color: white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: border),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 45,
+              height: 45,
+              decoration: BoxDecoration(
+                color: background,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: accent, size: 22),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: ink,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                height: 1.15,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _CategoryMessage({required String message}) {
     return Container(
-      width: 112,
-      padding: const EdgeInsets.all(11),
+      height: 118,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
         color: white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: border),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 45,
-            height: 45,
-            decoration: BoxDecoration(
-              color: background,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: accent, size: 22),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            maxLines: 2,
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: ink,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w800,
-              height: 1.15,
-            ),
-          ),
-        ],
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: muted, fontSize: 12, fontWeight: FontWeight.w600),
       ),
     );
   }
