@@ -78,7 +78,8 @@ class AdminManagementScreen extends StatelessWidget {
       case AdminSection.products:
         subtitle = '₹' + (data['price'] ?? '-').toString() + ' • ' + (data['category'] ?? 'General').toString();
         break;
-      case AdminSection.catalog:
+      case AdminSection.categories:
+      case AdminSection.bundles:
         subtitle = (data['description'] ?? 'Catalog item').toString();
         break;
       case AdminSection.orders:
