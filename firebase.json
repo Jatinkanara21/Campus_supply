@@ -2,5 +2,28 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "campus-supply-abcbf",
+          "appId": "1:409088882814:android:e66f1e62eaf16e56a7c02f",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "campus-supply-abcbf",
+          "configurations": {
+            "android": "1:409088882814:android:e66f1e62eaf16e56a7c02f",
+            "ios": "1:409088882814:ios:67e6d3b20f582d1ca7c02f",
+            "macos": "1:409088882814:ios:67e6d3b20f582d1ca7c02f",
+            "web": "1:409088882814:web:0f80207f65057a70a7c02f",
+            "windows": "1:409088882814:web:8aad002b6c2ebf12a7c02f"
+          }
+        }
+      }
+    }
   }
 }
