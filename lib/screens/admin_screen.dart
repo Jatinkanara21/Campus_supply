@@ -1,45 +1,196 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
+import 'admin_management_screen.dart';
 
-class AdminScreen extends StatelessWidget {
+class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
-  static const forest = Color(0xFF0B2E20), dark = Color(0xFF124D36), emerald = Color(0xFF1F7A5A), mint = Color(0xFFA7D7C5), gold = Color(0xFFD8B76A), taupe = Color(0xFF8A7B68), sage = Color(0xFF5F8F7A), espresso = Color(0xFF2A211B);
+  @override
+  State<AdminScreen> createState() => _AdminScreenState();
+}
+
+class _AdminScreenState extends State<AdminScreen> {
+  static const cream = Color(0xFFFAF8F3);
+  static const ink = Color(0xFF172033);
+  static const blue = Color(0xFF2563EB);
+  static const yellow = Color(0xFFFACC15);
+  static const muted = Color(0xFF707681);
+
+  bool loading = true;
+  bool admin = false;
+  String name = 'Admin';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final result = await AuthService.isAdmin();
+    final userName = await AuthService.userName();
+    if (!mounted) return;
+    setState(() {
+      admin = result;
+      name = userName;
+      loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (!admin) {
+      return Scaffold(
+        backgroundColor: cream,
+        appBar: AppBar(title: const Text('Admin Access')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_outline_rounded, size: 64, color: blue),
+                const SizedBox(height: 16),
+                const Text(
+                  'Admin access required',
+                  style: TextStyle(color: ink, fontSize: 24, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Set your Firebase users document role to admin before opening this page.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: muted),
+                ),
+                const SizedBox(height: 18),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Back'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: forest,
-      appBar: AppBar(title: const Text('Admin Dashboard'), leading: const Icon(Icons.admin_panel_settings_rounded), actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none_rounded))]),
-      body: ListView(padding: const EdgeInsets.all(20), children: [
-        const Text('Welcome back, Admin!', style: TextStyle(color: mint, fontSize: 24, fontWeight: FontWeight.w900)), const SizedBox(height: 5), const Text('Manage your Campus Supply store.', style: TextStyle(color: taupe)), const SizedBox(height: 20),
-        GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.55, children: [_metric('145', 'Products', Icons.inventory_2_outlined), _metric('78', 'Orders', Icons.receipt_long_outlined), _metric('1,256', 'Users', Icons.people_outline_rounded), _metric('₹1.25L', 'Revenue', Icons.currency_rupee_rounded)]),
-        const SizedBox(height: 22),
-        _title('Quick Actions'),
-        Row(children: [_action(Icons.add_box_outlined, 'Add Product'), _action(Icons.category_outlined, 'Categories'), _action(Icons.people_outline_rounded, 'Users')]),
-        const SizedBox(height: 22),
-        _title('Recent Products'),
-        ...['Campus Pro Backpack', 'Wireless Headphones', 'Premium Notebook', 'Steel Water Bottle'].map((name) => Container(margin: const EdgeInsets.only(bottom: 9), decoration: BoxDecoration(color: dark, borderRadius: BorderRadius.circular(17)), child: ListTile(leading: const CircleAvatar(backgroundColor: Color(0xFF356B4A), child: Icon(Icons.inventory_2_outlined, color: mint)), title: Text(name, style: const TextStyle(color: mint, fontWeight: FontWeight.w700)), subtitle: const Text('Active • In stock', style: TextStyle(color: sage, fontSize: 11)), trailing: const Icon(Icons.edit_outlined, color: gold)))),
-        const SizedBox(height: 12),
-        _title('Sales Overview'),
-        Container(height: 170, padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: espresso, borderRadius: BorderRadius.circular(22), border: Border.all(color: sage.withValues(alpha: .45))), child: CustomPaint(painter: _ChartPainter(), child: const SizedBox.expand())),
-      ]),
+      backgroundColor: cream,
+      appBar: AppBar(
+        title: const Text('Admin Dashboard'),
+        actions: [
+          IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
+        ],
+      ),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance.collection('products').snapshots(),
+        builder: (context, products) {
+          return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance.collection('orders').snapshots(),
+            builder: (context, orders) {
+              return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: FirebaseFirestore.instance.collection('users').snapshots(),
+                builder: (context, users) {
+                  return ListView(
+                    padding: const EdgeInsets.all(18),
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [blue, Color(0xFF1747B8)]),
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        child: Row(
+                          children: [
+                            const CircleAvatar(
+                              radius: 28,
+                              backgroundColor: yellow,
+                              child: Icon(Icons.admin_panel_settings_rounded, color: ink),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Welcome, ' + name,
+                                    style: const TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text('Campus Supply administration', style: TextStyle(color: Color(0xFFDDE8FF))),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      GridView.count(
+                        crossAxisCount: MediaQuery.sizeOf(context).width >= 700 ? 4 : 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 1.35,
+                        children: [
+                          _metric(products.data?.docs.length.toString() ?? '0', 'Products', Icons.inventory_2_outlined),
+                          _metric(orders.data?.docs.length.toString() ?? '0', 'Orders', Icons.receipt_long_outlined),
+                          _metric(users.data?.docs.length.toString() ?? '0', 'Users', Icons.people_outline_rounded),
+                          _metric('5', 'Modules', Icons.dashboard_customize_outlined),
+                        ],
+                      ),
+                      const SizedBox(height: 22),
+                      const Text('Management', style: TextStyle(color: ink, fontSize: 20, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 12),
+                      _menu(context, Icons.inventory_2_outlined, 'Products', 'Add, edit and remove products', AdminSection.products),
+                      _menu(context, Icons.category_outlined, 'Categories & Bundles', 'Manage catalog structure', AdminSection.catalog),
+                      _menu(context, Icons.receipt_long_outlined, 'Orders', 'Review and update order status', AdminSection.orders),
+                      _menu(context, Icons.people_outline_rounded, 'Users', 'View users and manage roles', AdminSection.users),
+                      _menu(context, Icons.rate_review_outlined, 'Reviews', 'Moderate customer reviews', AdminSection.reviews),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          await AuthService.logout();
+                          if (!mounted) return;
+                          Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+                        },
+                        icon: const Icon(Icons.logout_rounded),
+                        label: const Text('Sign out'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
-  Widget _metric(String value, String label, IconData icon) => Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: dark, borderRadius: BorderRadius.circular(20), border: Border.all(color: sage.withValues(alpha: .35))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: gold), const SizedBox(height: 8), Text(value, style: const TextStyle(color: mint, fontSize: 21, fontWeight: FontWeight.w900)), Text(label, style: const TextStyle(color: sage, fontSize: 10))]));
-  Widget _title(String text) => Padding(padding: const EdgeInsets.only(bottom: 11), child: Text(text, style: const TextStyle(color: mint, fontSize: 18, fontWeight: FontWeight.w800)));
-  Widget _action(IconData icon, String text) => Expanded(child: Container(margin: const EdgeInsets.only(right: 8), padding: const EdgeInsets.symmetric(vertical: 15), decoration: BoxDecoration(color: dark, borderRadius: BorderRadius.circular(17)), child: Column(children: [Icon(icon, color: gold), const SizedBox(height: 6), Text(text, textAlign: TextAlign.center, style: const TextStyle(color: mint, fontSize: 10, fontWeight: FontWeight.w700))])));
-}
+  Widget _metric(String value, String label, IconData icon) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE7E2D9))),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+      Icon(icon, color: blue),
+      const SizedBox(height: 8),
+      Text(value, style: const TextStyle(color: ink, fontSize: 22, fontWeight: FontWeight.w900)),
+      Text(label, style: const TextStyle(color: muted, fontSize: 11)),
+    ]),
+  );
 
-class _ChartPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final grid = Paint()..color = const Color(0xFF5F8F7A).withValues(alpha: .2)..strokeWidth = 1;
-    final line = Paint()..color = const Color(0xFFA7D7C5)..strokeWidth = 3..style = PaintingStyle.stroke;
-    for (var i = 1; i < 5; i++) { final y = size.height * i / 5; canvas.drawLine(Offset(0, y), Offset(size.width, y), grid); }
-    final points = [0.78, .58, .66, .40, .48, .25, .18];
-    final path = Path();
-    for (var i = 0; i < points.length; i++) { final p = Offset(size.width * i / (points.length - 1), size.height * points[i]); if (i == 0) path.moveTo(p.dx, p.dy); else path.lineTo(p.dx, p.dy); }
-    canvas.drawPath(path, line);
-  }
-  @override bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget _menu(BuildContext context, IconData icon, String title, String subtitle, AdminSection section) => Container(
+    margin: const EdgeInsets.only(bottom: 10),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE7E2D9))),
+    child: ListTile(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdminManagementScreen(section: section))),
+      leading: CircleAvatar(backgroundColor: const Color(0xFFEAF2FF), child: Icon(icon, color: blue)),
+      title: Text(title, style: const TextStyle(color: ink, fontWeight: FontWeight.w800)),
+      subtitle: Text(subtitle, style: const TextStyle(color: muted, fontSize: 12)),
+      trailing: const Icon(Icons.chevron_right_rounded, color: muted),
+    ),
+  );
 }
