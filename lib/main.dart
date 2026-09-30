@@ -10,6 +10,8 @@ import 'screens/product_detail_screen.dart';
 import 'screens/wishlist_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/admin_screen.dart';
+import 'screens/cart_screen.dart';
+import 'screens/bundles_screen.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -40,6 +42,8 @@ class CampusSupplyApp extends StatelessWidget {
           '/wishlist': (_) => const WishlistScreen(),
           '/profile': (_) => const ProfileScreen(),
           '/admin': (_) => const AdminScreen(),
+          '/cart': (_) => const CartScreen(),
+          '/bundles': (_) => const BundlesScreen(),
         },
       );
 }
