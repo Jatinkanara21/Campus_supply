@@ -8,6 +8,8 @@ class AppTheme {
   static const yellow = Color(0xFFFACC15);
   static const coral = Color(0xFFF97368);
   static const white = Colors.white;
+  static const muted = Color(0xFF6B7280);
+  static const border = Color(0xFFE7E2D9);
 
   static ThemeData light() {
     final base = ThemeData(useMaterial3: true, brightness: Brightness.light);
@@ -16,21 +18,21 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(seedColor: blue, brightness: Brightness.light, surface: cream),
       textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(bodyColor: ink, displayColor: ink),
       appBarTheme: const AppBarTheme(backgroundColor: cream, foregroundColor: ink, elevation: 0, surfaceTintColor: Colors.transparent),
-      navigationBarTheme: const NavigationBarThemeData(
-        backgroundColor: white, surfaceTintColor: white, indicatorColor: Color(0xFFEAF2FF),
-        labelTextStyle: WidgetStatePropertyAll(TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: ink)),
-      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true, fillColor: white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: Color(0xFFE7E2D9))),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: Color(0xFFE7E2D9))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: blue, width: 1.5)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: blue, width: 1.5)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(backgroundColor: blue, foregroundColor: white, minimumSize: const Size(0, 52),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w800)),
+        style: ElevatedButton.styleFrom(backgroundColor: blue, foregroundColor: white, minimumSize: const Size(0, 52), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w800)),
       ),
-      cardTheme: CardThemeData(color: white, elevation: 0, margin: EdgeInsets.zero, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Color(0xFFE7E2D9)))),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(backgroundColor: blue, foregroundColor: white, minimumSize: const Size(0, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+      ),
+      cardTheme: CardThemeData(color: white, elevation: 0, margin: EdgeInsets.zero, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: border))),
+      navigationBarTheme: const NavigationBarThemeData(backgroundColor: white, surfaceTintColor: white, indicatorColor: Color(0xFFEAF2FF), labelTextStyle: WidgetStatePropertyAll(TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: ink))),
     );
   }
 }
