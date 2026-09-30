@@ -12,7 +12,8 @@ class BundlesScreen extends StatelessWidget {
       title: const Text('Student bundles', style: TextStyle(fontWeight: FontWeight.w900)),
     ),
     body: StreamBuilder<List<Map<String, dynamic>>>(
-    stream:FirestoreDatabase.instance.watchBundles(),builder:(context,snapshot){
+      stream: FirestoreDatabase.instance.watchBundles(),
+      builder: (context, snapshot) {
       if(snapshot.hasError)return const Center(child:Text('Unable to load bundles.'));
       if(!snapshot.hasData)return const Center(child:CircularProgressIndicator());
       final bundles=snapshot.data!;
