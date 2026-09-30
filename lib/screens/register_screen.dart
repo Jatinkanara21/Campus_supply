@@ -10,14 +10,14 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  static const forest = Color(0xFF0B2E20);
-  static const darkEmerald = Color(0xFF124D36);
-  static const emerald = Color(0xFF1F7A5A);
-  static const sage = Color(0xFF5F8F7A);
-  static const mint = Color(0xFFA7D7C5);
-  static const gold = Color(0xFFD8B76A);
-  static const taupe = Color(0xFF8A7B68);
-  static const espresso = Color(0xFF2A211B);
+  static const forest = Color(0xFFFAF8F3);
+  static const darkEmerald = Colors.white;
+  static const emerald = Color(0xFF2563EB);
+  static const sage = Color(0xFF9AA0AA);
+  static const mint = Color(0xFF172033);
+  static const gold = Color(0xFFFACC15);
+  static const taupe = Color(0xFF707681);
+  static const espresso = Color(0xFFFFFFFF);
 
   final nameController = TextEditingController();
   final emailController = TextEditingController();
