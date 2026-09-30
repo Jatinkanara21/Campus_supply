@@ -194,6 +194,7 @@ class HomeScreen extends StatelessWidget {
                       title: 'What students say',
                       subtitle: 'Real campus energy',
                       action: '',
+                      onTap: () {},
                     ),
                   ),
                 ),
