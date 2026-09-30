@@ -10,7 +10,7 @@ class _ProfileScreenState extends State<ProfileScreen>{
   String name='Student';
   bool admin=false;
   @override void initState(){super.initState();_load();}
-  Future<void> _load() async{final n=await AuthService.userName();final a=await AuthService.isAdmin();if(mounted)setState(()=>{name=n,admin=a});}
+  Future<void> _load() async{final n=await AuthService.userName();final a=await AuthService.isAdmin();if(mounted)setState((){name=n;admin=a;});}
   @override Widget build(BuildContext context)=>Scaffold(backgroundColor:cream,appBar:AppBar(title:const Text('My Profile')),body:ListView(padding:const EdgeInsets.all(18),children:[
     Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:blue,borderRadius:BorderRadius.circular(24)),child:Row(children:[
       Container(width:64,height:64,decoration:const BoxDecoration(color:yellow,shape:BoxShape.circle),child:const Icon(Icons.person_rounded,color:ink,size:34)),
