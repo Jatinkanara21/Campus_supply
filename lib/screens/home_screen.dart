@@ -539,6 +539,7 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
         onDestinationSelected: (i) {
+          if (i == 1) Navigator.pushNamed(context, '/shop');
           if (i == 2) Navigator.pushNamed(context, '/cart');
           if (i == 3) Navigator.pushNamed(context, '/wishlist');
           if (i == 4) Navigator.pushNamed(context, '/profile');
