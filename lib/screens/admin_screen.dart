@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../database/firestore_seed.dart';
 import '../services/auth_service.dart';
 import 'admin_management_screen.dart';
 
@@ -143,6 +144,42 @@ class _AdminScreenState extends State<AdminScreen> {
                         ],
                       ),
                       const SizedBox(height: 22),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFE7E2D9)),
+                        ),
+                        child: Row(
+                          children: [
+                            const CircleAvatar(
+                              backgroundColor: Color(0xFFFFF4C7),
+                              child: Icon(Icons.auto_awesome_rounded, color: ink),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Starter catalog', style: TextStyle(color: ink, fontWeight: FontWeight.w900)),
+                                  SizedBox(height: 3),
+                                  Text(
+                                    'Add ready-to-use products, categories and bundles. Existing records are never overwritten.',
+                                    style: TextStyle(color: muted, fontSize: 11.5, height: 1.3),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton(
+                              onPressed: _seedCatalog,
+                              child: const Text('Seed'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 22),
                       const Text('Management', style: TextStyle(color: ink, fontSize: 20, fontWeight: FontWeight.w900)),
                       const SizedBox(height: 12),
                       _menu(context, Icons.inventory_2_outlined, 'Products', 'Add, edit and remove products', AdminSection.products),
@@ -169,6 +206,27 @@ class _AdminScreenState extends State<AdminScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _seedCatalog() async {
+    try {
+      final added = await seedStarterCatalog();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            added == 0
+                ? 'Starter catalog is already set up. No existing data was changed.'
+                : 'Starter catalog added: $added new records.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not seed catalog: $e')),
+      );
+    }
   }
 
   Widget _metric(String value, String label, IconData icon) => Container(
