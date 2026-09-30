@@ -5,7 +5,13 @@ class BundlesScreen extends StatelessWidget {
   const BundlesScreen({super.key});
   static const cream=Color(0xFFFAF8F3), ink=Color(0xFF172033), blue=Color(0xFF2563EB), yellow=Color(0xFFFACC15), muted=Color(0xFF6B7280), border=Color(0xFFE7E2D9);
 
-  @override Widget build(BuildContext context)=>Scaffold(backgroundColor:cream,appBar:AppBar(title:const Text('Student bundles',style:TextStyle(fontWeight:FontWeight.w900))),body:StreamBuilder<List<Map<String,dynamic>>>(
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: cream,
+    appBar: AppBar(
+      title: const Text('Student bundles', style: TextStyle(fontWeight: FontWeight.w900)),
+    ),
+    body: StreamBuilder<List<Map<String, dynamic>>>(
     stream:FirestoreDatabase.instance.watchBundles(),builder:(context,snapshot){
       if(snapshot.hasError)return const Center(child:Text('Unable to load bundles.'));
       if(!snapshot.hasData)return const Center(child:CircularProgressIndicator());
@@ -21,7 +27,7 @@ class BundlesScreen extends StatelessWidget {
               Text((b['badge']??'Student bundle').toString().toUpperCase(),style:const TextStyle(color:Color(0xFF9A7600),fontSize:9,fontWeight:FontWeight.w900,letterSpacing:.7)),
               const SizedBox(height:6),Text((b['name']??b['title']??'Bundle').toString(),style:const TextStyle(color:ink,fontSize:17,fontWeight:FontWeight.w900)),const SizedBox(height:5),
               Text((b['description']??'Curated campus essentials.').toString(),maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:muted,fontSize:11.5,height:1.3)),
-              if(price!=null)Padding(padding:const EdgeInsets.only(top:7),child:Text('₹${price}',style:const TextStyle(color:blue,fontWeight:FontWeight.w900,fontSize:17))),
+              if(price!=null)Padding(padding:const EdgeInsets.only(top:7),child:Text('₹$price',style:const TextStyle(color:blue,fontWeight:FontWeight.w900,fontSize:17))),
             ])),
           ]));
         }),
