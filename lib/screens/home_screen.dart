@@ -50,7 +50,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 _iconButton(Icons.favorite_border_rounded, () => Navigator.pushNamed(context, '/wishlist')),
                 const SizedBox(width: 8),
-                _iconButton(Icons.shopping_bag_outlined, () => Navigator.pushNamed(context, '/product')),
+                _iconButton(Icons.shopping_bag_outlined, () => Navigator.pushNamed(context, '/cart')),
               ],
             ),
             const SizedBox(height: 16),
@@ -256,7 +256,7 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            _sectionTitle('Student Bundles', 'Explore'),
+            GestureDetector(onTap: () => Navigator.pushNamed(context, '/bundles'), child: _sectionTitle('Student Bundles', 'Explore')),
             const SizedBox(height: 12),
             _bundleCard(
               title: 'Architecture Starter Kit',
@@ -304,7 +304,7 @@ class HomeScreen extends StatelessWidget {
         onDestinationSelected: (i) {
           if (i == 3) Navigator.pushNamed(context, '/wishlist');
           if (i == 4) Navigator.pushNamed(context, '/profile');
-          if (i == 2) Navigator.pushNamed(context, '/product');
+          if (i == 2) Navigator.pushNamed(context, '/cart');
         },
       ),
     );
