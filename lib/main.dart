@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 
 import 'database/seed_data.dart';
 import 'firebase_options.dart';
+import 'screens/admin_management_screen.dart';
+import 'screens/admin_screen.dart';
 import 'screens/bundles_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/home_screen.dart';
@@ -45,6 +47,7 @@ class CampusSupplyApp extends StatelessWidget {
       initialRoute: '/splash',
       routes: {
         '/splash': (context) => const SplashScreen(),
+        '/admin': (context) => const AdminScreen(),
         '/home': (context) => const HomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
