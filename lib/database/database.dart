@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:path/path.dart';
 
 class AppDatabase {
@@ -12,51 +14,56 @@ class AppDatabase {
   }
 
   Future<Database> _open() async {
-    final path = join(await getDatabasesPath(), 'campus_supply.db');
-    return openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'user'
-          )
-        ''');
-        await db.execute('''
-          CREATE TABLE products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            description TEXT NOT NULL,
-            price REAL NOT NULL,
-            category TEXT NOT NULL,
-            image TEXT,
-            color INTEGER,
-            stock INTEGER NOT NULL DEFAULT 0
-          )
-        ''');
-        await db.execute('''
-          CREATE TABLE wishlist (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            userId INTEGER NOT NULL,
-            productId INTEGER NOT NULL,
-            UNIQUE(userId, productId)
-          )
-        ''');
-        await db.execute('''
-          CREATE TABLE cart (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            userId INTEGER NOT NULL,
-            productId INTEGER NOT NULL,
-            quantity INTEGER NOT NULL DEFAULT 1,
-            UNIQUE(userId, productId)
-          )
-        ''');
-      },
-    );
+    final onCreate = (Database db, int version) async {
+      await db.execute('''
+        CREATE TABLE users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL UNIQUE,
+          password TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'user'
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE products (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL,
+          price REAL NOT NULL,
+          category TEXT NOT NULL,
+          image TEXT,
+          color INTEGER,
+          stock INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE wishlist (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId INTEGER NOT NULL,
+          productId INTEGER NOT NULL,
+          UNIQUE(userId, productId)
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE cart (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId INTEGER NOT NULL,
+          productId INTEGER NOT NULL,
+          quantity INTEGER NOT NULL DEFAULT 1,
+          UNIQUE(userId, productId)
+        )
+      ''');
+    };
+
+    if (kIsWeb) {
+      return databaseFactoryFfiWeb.openDatabase(
+        'campus_supply_web.db',
+        options: OpenDatabaseOptions(version: 1, onCreate: onCreate),
+      );
+    }
+
+    final dbPath = join(await getDatabasesPath(), 'campus_supply.db');
+    return openDatabase(dbPath, version: 1, onCreate: onCreate);
   }
 
   Future<int> createUser({required String name, required String email, required String password, String role = 'user'}) async {
