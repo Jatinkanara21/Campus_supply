@@ -37,9 +37,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _register() async {
     if (!formKey.currentState!.validate()) return;
     setState(() => loading = true);
-    await AuthService.register(name: nameController.text.trim(), email: emailController.text.trim(), password: passwordController.text);
+    final success = await AuthService.register(
+      name: nameController.text.trim(),
+      email: emailController.text.trim(),
+      password: passwordController.text,
+    );
     if (!mounted) return;
     setState(() => loading = false);
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to create account. The email may already be registered.')),
+      );
+      return;
+    }
     Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
   }
 
