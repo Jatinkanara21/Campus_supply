@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/campus_logo.dart';
@@ -35,7 +36,15 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (!formKey.currentState!.validate()) return;
     setState(() => loading = true);
-    final success = await AuthService.login(email: emailController.text.trim(), password: passwordController.text);
+    bool success = false;
+    try {
+      success = await AuthService.login(
+        email: emailController.text.trim(),
+        password: passwordController.text,
+      );
+    } catch (_) {
+      success = false;
+    }
     if (!mounted) return;
     setState(() => loading = false);
     if (success) {
@@ -106,7 +115,33 @@ class _LoginScreenState extends State<LoginScreen> {
                             validator: (v) => v == null || v.length < 6 ? 'Password must be at least 6 characters' : null,
                           ),
                           const SizedBox(height: 6),
-                          Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () {}, child: const Text('Forgot password?'))),
+                          Align(
+      alignment: Alignment.centerRight,
+      child: TextButton(
+        onPressed: () async {
+          final email = emailController.text.trim();
+          if (!email.contains('@')) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Enter your email address first.')),
+            );
+            return;
+          }
+          try {
+            await AuthService.sendPasswordResetEmail(email);
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Password reset email sent. Check your inbox.')),
+            );
+          } on FirebaseAuthException catch (e) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(e.message ?? 'Unable to send reset email.')),
+            );
+          }
+        },
+        child: const Text('Forgot password?'),
+      ),
+    ),
                           const SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
