@@ -32,6 +32,12 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Public homepage configuration. Only admins can change it.
+    match /settings/{settingId} {
+      allow read: if settingId == 'home';
+      allow create, update, delete: if isAdmin();
+    }
+
     // User profile. Users can manage only their own profile.
     match /users/{userId} {
       allow create: if isOwner(userId)
