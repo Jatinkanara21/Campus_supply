@@ -58,7 +58,7 @@ class HomeScreen extends StatelessWidget {
                       stream: FirestoreDatabase.instance.watchCategories(),
                       builder: (context, snapshot) {
                         if (snapshot.hasError) {
-                          return const _CategoryMessage(message: 'Could not load categories.');
+                          return _CategoryMessage(message: 'Could not load categories.');
                         }
                         if (!snapshot.hasData) {
                           return const SizedBox(
@@ -69,7 +69,7 @@ class HomeScreen extends StatelessWidget {
 
                         final categories = snapshot.data!;
                         if (categories.isEmpty) {
-                          return const _CategoryMessage(
+                          return _CategoryMessage(
                             message: 'No categories yet. Add categories from Admin Dashboard.',
                           );
                         }
