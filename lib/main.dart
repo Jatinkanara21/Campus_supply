@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'database/seed_data.dart';
 import 'screens/splash_screen.dart';
@@ -14,11 +15,14 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const CampusSupplyApp());
 
-  // Start non-critical database seeding after the first frame.
-  // This prevents SQLite initialization from blocking the splash screen.
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    unawaited(seedInitialData());
-  });
+  // Native platforms can seed SQLite after the first frame.
+  // Web startup must stay independent of database initialization so that
+  // GitHub Pages can render the UI immediately.
+  if (!kIsWeb) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(seedInitialData());
+    });
+  }
 }
 
 class CampusSupplyApp extends StatelessWidget {
