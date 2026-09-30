@@ -7,9 +7,26 @@ class ShopScreen extends StatefulWidget {
 }
 
 class _ShopScreenState extends State<ShopScreen> {
+  bool _routeArgsRead = false;
   static const cream = Color(0xFFFAF8F3), ink = Color(0xFF172033), blue = Color(0xFF2563EB), coral = Color(0xFFF97368), muted = Color(0xFF707681), border = Color(0xFFE7E2D9);
   String category = 'All';
   String query = '';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_routeArgsRead) return;
+    _routeArgsRead = true;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) {
+      final initialQuery = (args['query'] ?? '').toString();
+      final initialCategory = (args['category'] ?? 'All').toString();
+      if (initialQuery.isNotEmpty || initialCategory != 'All') {
+        query = initialQuery;
+        category = initialCategory;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
