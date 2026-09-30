@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-enum AdminSection { products, catalog, orders, users, reviews }
+enum AdminSection { products, categories, bundles, orders, users, reviews }
 
 class AdminManagementScreen extends StatelessWidget {
   const AdminManagementScreen({super.key, required this.section});
@@ -10,7 +10,8 @@ class AdminManagementScreen extends StatelessWidget {
   String get title {
     switch (section) {
       case AdminSection.products: return 'Products';
-      case AdminSection.catalog: return 'Categories & Bundles';
+      case AdminSection.categories: return 'Categories';
+      case AdminSection.bundles: return 'Bundles';
       case AdminSection.orders: return 'Orders';
       case AdminSection.users: return 'Users';
       case AdminSection.reviews: return 'Reviews';
@@ -20,7 +21,8 @@ class AdminManagementScreen extends StatelessWidget {
   String get collection {
     switch (section) {
       case AdminSection.products: return 'products';
-      case AdminSection.catalog: return 'categories';
+      case AdminSection.categories: return 'categories';
+      case AdminSection.bundles: return 'bundles';
       case AdminSection.orders: return 'orders';
       case AdminSection.users: return 'users';
       case AdminSection.reviews: return 'reviews';
@@ -30,7 +32,8 @@ class AdminManagementScreen extends StatelessWidget {
   IconData get icon {
     switch (section) {
       case AdminSection.products: return Icons.inventory_2_outlined;
-      case AdminSection.catalog: return Icons.category_outlined;
+      case AdminSection.categories: return Icons.category_outlined;
+      case AdminSection.bundles: return Icons.auto_awesome_outlined;
       case AdminSection.orders: return Icons.receipt_long_outlined;
       case AdminSection.users: return Icons.people_outline_rounded;
       case AdminSection.reviews: return Icons.rate_review_outlined;
@@ -39,14 +42,14 @@ class AdminManagementScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canAdd = section == AdminSection.products || section == AdminSection.catalog;
+    final canAdd = section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles;
     return Scaffold(
       appBar: AppBar(title: Text(title)),
       floatingActionButton: canAdd
           ? FloatingActionButton.extended(
               onPressed: () => _add(context),
               icon: const Icon(Icons.add_rounded),
-              label: Text(section == AdminSection.products ? 'Product' : 'Category'),
+              label: Text(section == AdminSection.products ? 'Product' : section == AdminSection.categories ? 'Category' : 'Bundle'),
             )
           : null,
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -102,7 +105,7 @@ class AdminManagementScreen extends StatelessWidget {
             if (value.startsWith('role:')) _setRole(doc.id, value.substring(5));
           },
           itemBuilder: (_) {
-            if (section == AdminSection.products || section == AdminSection.catalog) {
+            if (section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles) {
               return const [
                 PopupMenuItem(value: 'edit', child: Text('Edit')),
                 PopupMenuItem(value: 'delete', child: Text('Delete')),
@@ -137,11 +140,11 @@ class AdminManagementScreen extends StatelessWidget {
     final saved = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(section == AdminSection.products ? 'Add product' : 'Add category'),
+        title: Text(section == AdminSection.products ? 'Add product' : section == AdminSection.categories ? 'Add category' : 'Add bundle'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
           TextField(controller: description, decoration: const InputDecoration(labelText: 'Description')),
-          if (section == AdminSection.products)
+          if (section == AdminSection.products || section == AdminSection.bundles)
             TextField(controller: price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price')),
         ]),
         actions: [
@@ -157,7 +160,7 @@ class AdminManagementScreen extends StatelessWidget {
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
-    if (section == AdminSection.products) {
+    if (section == AdminSection.products || section == AdminSection.bundles) {
       data['price'] = double.tryParse(price.text.trim()) ?? 0;
       data['category'] = 'General';
       data['stock'] = 0;
@@ -192,7 +195,7 @@ class AdminManagementScreen extends StatelessWidget {
       'description': description.text.trim(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
-    if (section == AdminSection.products) update['price'] = double.tryParse(price.text.trim()) ?? 0;
+    if (section == AdminSection.products || section == AdminSection.bundles) update['price'] = double.tryParse(price.text.trim()) ?? 0;
     await doc.reference.update(update);
   }
 
