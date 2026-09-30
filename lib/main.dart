@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'database/seed_data.dart';
 import 'screens/splash_screen.dart';
@@ -11,8 +12,13 @@ import 'screens/admin_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await seedInitialData();
   runApp(const CampusSupplyApp());
+
+  // Start non-critical database seeding after the first frame.
+  // This prevents SQLite initialization from blocking the splash screen.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(seedInitialData());
+  });
 }
 
 class CampusSupplyApp extends StatelessWidget {
