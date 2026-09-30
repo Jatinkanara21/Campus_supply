@@ -6,11 +6,10 @@ class CampusLogo extends StatelessWidget {
 
   const CampusLogo({super.key, this.size = 56, this.showWordmark = false});
 
-  static const deepForest = Color(0xFF0B2E20);
-  static const emerald = Color(0xFF1F7A5A);
-  static const mint = Color(0xFFA7D7C5);
-  static const warmGold = Color(0xFFD8B76A);
-  static const warmTaupe = Color(0xFF8A7B68);
+  static const blue = Color(0xFF2563EB);
+  static const cream = Color(0xFFFAF8F3);
+  static const yellow = Color(0xFFFACC15);
+  static const ink = Color(0xFF172033);
 
   @override
   Widget build(BuildContext context) {
@@ -18,44 +17,38 @@ class CampusLogo extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [deepForest, emerald],
-        ),
-        borderRadius: BorderRadius.circular(size * .28),
-        border: Border.all(color: warmGold.withValues(alpha: .55)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x553F8F70), blurRadius: 18, offset: Offset(0, 8)),
-        ],
+        color: blue,
+        borderRadius: BorderRadius.circular(size * .24),
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
           Positioned(
-            top: size * .08,
-            child: Icon(Icons.school_rounded, color: mint, size: size * .46),
+            top: size * .16,
+            child: Icon(Icons.school_rounded, color: cream, size: size * .43),
           ),
           Positioned(
-            bottom: size * .08,
+            bottom: size * .11,
             child: Container(
               width: size * .48,
-              height: size * .28,
+              height: size * .25,
               decoration: BoxDecoration(
-                color: warmTaupe,
-                borderRadius: BorderRadius.circular(size * .08),
-                border: Border.all(color: warmGold, width: 1),
+                color: cream,
+                borderRadius: BorderRadius.circular(size * .07),
               ),
-              child: Icon(Icons.shopping_bag_rounded, color: deepForest, size: size * .23),
+              child: Icon(Icons.shopping_bag_rounded, color: ink, size: size * .21),
             ),
           ),
           Positioned(
-            right: size * .08,
-            top: size * .32,
+            right: size * .11,
+            top: size * .25,
             child: Container(
-              width: size * .11,
-              height: size * .11,
-              decoration: const BoxDecoration(color: warmGold, shape: BoxShape.circle),
+              width: size * .12,
+              height: size * .12,
+              decoration: const BoxDecoration(
+                color: yellow,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
         ],
@@ -68,14 +61,24 @@ class CampusLogo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         mark,
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         const Text(
           'Campus',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.7, color: mint),
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.7,
+            color: ink,
+          ),
         ),
         const Text(
           ' Supply',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.7, color: warmGold),
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.7,
+            color: blue,
+          ),
         ),
       ],
     );
