@@ -58,6 +58,21 @@ class FirestoreDatabase {
         .toList());
   }
 
+  Stream<Map<String, dynamic>> watchHomeSettings() {
+    return _db.collection('settings').doc('home').snapshots().map(
+      (snapshot) => snapshot.data() ?? <String, dynamic>{},
+    );
+  }
+
+  Future<void> saveHomeSettings({
+    required String heroImageUrl,
+  }) {
+    return _db.collection('settings').doc('home').set({
+      'heroImageUrl': heroImageUrl.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Stream<List<Map<String, dynamic>>> watchBundles() {
     return bundles.snapshots().map((snapshot) => snapshot.docs
         .map((doc) => {'id': doc.id, ...doc.data()})
