@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Prepare SQLite Web files
+        run: dart run sqflite_common_ffi_web:setup --force
+
       - name: Build Flutter Web
         run: flutter build web --release --base-href "/Campus_supply/"
 
