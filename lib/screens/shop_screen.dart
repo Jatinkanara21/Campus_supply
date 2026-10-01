@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../database/firestore_database.dart';
 
 class ShopScreen extends StatefulWidget {
@@ -213,7 +214,7 @@ class _ShopScreenState extends State<ShopScreen> {
     final imageUrl = (p['imageUrl'] ?? '').toString().trim();
     final fallbackAsset = _fallbackAsset(p);
 
-    Widget fallbackImage() => Image.asset(
+    Widget fallbackImage() => SvgPicture.asset(
           fallbackAsset,
           fit: BoxFit.cover,
           width: double.infinity,
