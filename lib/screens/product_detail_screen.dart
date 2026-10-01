@@ -50,16 +50,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final value = '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
 
     if (value.contains('backpack') || value.contains('bag')) {
-      return 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=1000&q=80';
+      return 'https://images.unsplash.com/photo-1650500426868-27a68714a4a4?auto=format&fit=crop&w=1000&q=80';
     }
     if (value.contains('headphone')) {
-      return 'https://images.unsplash.com/photo-1557256080-c76847e4e52a?auto=format&fit=crop&w=1000&q=80';
+      return 'https://images.unsplash.com/photo-1628116709703-c1c9ad550d36?auto=format&fit=crop&w=1000&q=80';
     }
     if (value.contains('bottle') || value.contains('tumbler')) {
-      return 'https://images.unsplash.com/photo-1627496596114-1ea8ef3463ba?auto=format&fit=crop&w=1000&q=80';
+      return 'https://images.unsplash.com/photo-1666537071963-18f5ded98ac8?auto=format&fit=crop&w=1000&q=80';
     }
     if (value.contains('notebook') || value.contains('stationery') || value.contains('pen')) {
-      return 'https://images.unsplash.com/photo-1784798455842-3a0be501172c?auto=format&fit=crop&w=1000&q=80';
+      return 'https://images.unsplash.com/photo-1711843250800-270a113cb06b?auto=format&fit=crop&w=1000&q=80';
     }
     return '';
   }
