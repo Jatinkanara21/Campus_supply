@@ -262,7 +262,6 @@ class _ShopScreenState extends State<ShopScreen> {
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
-        webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
         loadingBuilder: (context, child, progress) {
           if (progress == null) return child;
           return const Center(
@@ -360,30 +359,30 @@ String _realPhotoUrl(Map<String, dynamic> product) {
   final value = name + ' ' + category;
 
   if (value.contains('backpack') || value.contains('bag')) {
-    return 'https://www.jemapub.fr/content/uploads/2026/01/92375_104-a.jpg';
+    return 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80';
   }
   if (value.contains('pen')) {
-    return 'https://i5.walmartimages.com/seo/Pen-Gear-Retractable-Gel-Pen-7mm-Medium-Point-Assorted-Colors-12-Count_f4f9f129-261c-45c4-8ddf-416ed5b0397c.347cf4aaaf7c4e962aa19fe075e75d66.jpeg?odnBg=FFFFFF&odnHeight=768&odnWidth=768';
+    return 'https://images.unsplash.com/photo-1784798455842-3a0be501172c?auto=format&fit=crop&w=800&q=80';
   }
   if (value.contains('sleeve')) {
-    return 'https://images.unsplash.com/photo-1675668409245-955188b96bf6?auto=format&fit=crop&w=700&q=75';
+    return 'https://images.unsplash.com/photo-1675668409245-955188b96bf6?auto=format&fit=crop&w=800&q=80';
   }
   if (value.contains('notebook') || value.contains('stationery')) {
-    return 'https://kalendarzefirmowe24.pl/img/notesy/notes-a5-w-kropki-vivella-z-gumka-granatowy-l.jpg';
+    return 'https://images.unsplash.com/photo-1784798455842-3a0be501172c?auto=format&fit=crop&w=800&q=80';
   }
   if (value.contains('calculator')) {
-    return 'https://www.casio.com/content/dam/casio/product-info/locales/us/en/calc/product/scientific/F/FX/FX9/fx-991EX/us-assets/fx-991EX%20Front%20On.png.transform/main-visual-sp/image.png';
+    return 'https://images.unsplash.com/photo-1746221331496-a87689fc8eb9?auto=format&fit=crop&w=800&q=80';
   }
   if (value.contains('bottle') || value.contains('tumbler')) {
-    return 'https://fashionpyramid.co/cdn/shop/files/53a5bfc8c3f83b7863cc7e9800976150.jpg?v=1730559762&width=600';
+    return 'https://images.unsplash.com/photo-1627496596114-1ea8ef3463ba?auto=format&fit=crop&w=800&q=80';
   }
   if (value.contains('lamp')) {
-    return 'https://images.unsplash.com/photo-1570974802254-4b0ad1a755f5?auto=format&fit=crop&w=700&q=75';
+    return 'https://images.unsplash.com/photo-1780140765084-88e4e0d75528?auto=format&fit=crop&w=800&q=80';
   }
   if (value.contains('headphone')) {
-    return 'https://images.unsplash.com/photo-1547932087-59a8f2be576e?auto=format&fit=crop&w=700&q=75';
+    return 'https://images.unsplash.com/photo-1557256080-c76847e4e52a?auto=format&fit=crop&w=800&q=80';
   }
-  return 'https://images.unsplash.com/photo-1652466380685-c552233a941a?auto=format&fit=crop&w=700&q=75';
+  return 'https://images.unsplash.com/photo-1784798455842-3a0be501172c?auto=format&fit=crop&w=800&q=80';
 }
 
 String _productSvg({
