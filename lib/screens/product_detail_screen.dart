@@ -19,6 +19,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final name = (product['name'] ?? 'Product').toString();
     final description = (product['description'] ?? 'Campus essential for everyday student life.').toString();
     final imageUrl = (product['imageUrl'] ?? '').toString().trim();
+    final displayImageUrl = imageUrl.isNotEmpty ? imageUrl : _fallbackImageUrl(product);
     final price = (product['price'] as num?)?.toDouble() ?? 0;
     final rating = (product['rating'] ?? 'New').toString();
     final category = (product['category'] ?? 'Campus essential').toString();
@@ -30,7 +31,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ]),
       body: LayoutBuilder(builder: (context, constraints) {
         final wide = constraints.maxWidth >= 850;
-        final image = _image(imageUrl);
+        final image = _image(displayImageUrl);
         final details = _details(context, product, name, description, price, rating, category);
         return SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(wide ? 34 : 18, 8, wide ? 34 : 18, 36),
@@ -43,6 +44,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         );
       }),
     );
+  }
+
+  String _fallbackImageUrl(Map<String, dynamic> product) {
+    final value = '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
+
+    if (value.contains('backpack') || value.contains('bag')) {
+      return 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=1200&q=85';
+    }
+    if (value.contains('headphone')) {
+      return 'https://images.unsplash.com/photo-1558365916-848463c5d803?auto=format&fit=crop&w=1200&q=85';
+    }
+    if (value.contains('bottle') || value.contains('tumbler')) {
+      return 'https://images.unsplash.com/photo-1561180796-dbaa5caf76e0?auto=format&fit=crop&w=1200&q=85';
+    }
+    if (value.contains('notebook') || value.contains('stationery') || value.contains('pen')) {
+      return 'https://images.unsplash.com/photo-1743760521201-ddb298df18cd?auto=format&fit=crop&w=1200&q=85';
+    }
+    return '';
   }
 
   Widget _image(String url) => Container(
