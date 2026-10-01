@@ -351,7 +351,12 @@ class HomeScreen extends StatelessWidget {
 
         return Container(
           constraints: const BoxConstraints(minHeight: 235),
-          padding: EdgeInsets.fromLTRB(wide ? 30 : 22, 25, wide ? 24 : 16, 22),
+          padding: EdgeInsets.fromLTRB(
+            wide ? 30 : 22,
+            25,
+            wide ? 24 : 16,
+            22,
+          ),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [blue, Color(0xFF4A80EF)],
@@ -376,7 +381,10 @@ class HomeScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: .15),
                         borderRadius: BorderRadius.circular(20),
@@ -415,7 +423,10 @@ class HomeScreen extends StatelessWidget {
                     GestureDetector(
                       onTap: () => Navigator.pushNamed(context, '/shop'),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 17,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: yellow,
                           borderRadius: BorderRadius.circular(14),
@@ -432,7 +443,11 @@ class HomeScreen extends StatelessWidget {
                               ),
                             ),
                             SizedBox(width: 7),
-                            Icon(Icons.arrow_forward_rounded, color: ink, size: 17),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              color: ink,
+                              size: 17,
+                            ),
                           ],
                         ),
                       ),
@@ -444,45 +459,28 @@ class HomeScreen extends StatelessWidget {
               Expanded(
                 flex: 3,
                 child: Container(
-                  constraints: const BoxConstraints(maxWidth: 300, minHeight: 165),
+                  constraints: const BoxConstraints(
+                    maxWidth: 300,
+                    minHeight: 165,
+                  ),
                   clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: .09),
                     borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: Colors.white.withValues(alpha: .14)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: .14),
+                    ),
                   ),
-                  child: imageUrl.isEmpty
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(18),
-                            child: Text(
-                              'Add a hero image from Admin Dashboard',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Color(0xFFEAF2FF),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        )
-                      : Image.network(
+                  child: imageUrl.isNotEmpty
+                      ? Image.network(
                           imageUrl,
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: double.infinity,
-                          errorBuilder: (_, __, ___) => const Center(
-                            child: Text(
-                              'Hero image could not be loaded.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Color(0xFFEAF2FF),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
+                          errorBuilder: (_, __, ___) =>
+                              const _HeroFallbackVisual(),
+                        )
+                      : const _HeroFallbackVisual(),
                 ),
               ),
             ],
