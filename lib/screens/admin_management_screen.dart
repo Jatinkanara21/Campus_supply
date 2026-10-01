@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:async';
@@ -218,6 +219,7 @@ class AdminManagementScreen extends StatelessWidget {
     required TextEditingController price,
     required TextEditingController imageUrl,
   }) {
+    var selectingImage = false;
     var uploading = false;
     var uploadProgress = 0.0;
     return showDialog<bool>(
@@ -225,34 +227,69 @@ class AdminManagementScreen extends StatelessWidget {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
           Future<void> uploadImage() async {
-            setDialogState(() => uploading = true);
+            if (selectingImage || uploading) return;
+
+            setDialogState(() => selectingImage = true);
+            FilePickerResult? result;
+
             try {
-              final result = await FilePicker.platform.pickFiles(
+              result = await FilePicker.platform.pickFiles(
                 type: FileType.image,
+                allowMultiple: false,
                 withData: true,
               );
-
-              if (result == null || result.files.isEmpty) {
-                return;
+            } catch (e) {
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text('Could not open image picker: ' + e.toString())),
+                );
               }
-
-              final file = result.files.single;
-              final bytes = file.bytes;
-              if (bytes == null || bytes.isEmpty) {
-                throw StateError('The selected image could not be read. Please choose the image again.');
+            } finally {
+              if (dialogContext.mounted) {
+                setDialogState(() => selectingImage = false);
               }
+            }
 
-              const maxBytes = 8 * 1024 * 1024;
-              if (bytes.length > maxBytes) {
-                throw StateError('Image is larger than 8 MB. Please choose a smaller image for faster upload.');
+            if (result == null || result.files.isEmpty || !dialogContext.mounted) {
+              return;
+            }
+
+            final file = result.files.single;
+            final bytes = file.bytes;
+            if (bytes == null || bytes.isEmpty) {
+              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                const SnackBar(content: Text('The selected image could not be read. Please choose it again.')),
+              );
+              return;
+            }
+
+            const maxBytes = 8 * 1024 * 1024;
+            if (bytes.length > maxBytes) {
+              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                const SnackBar(content: Text('Image is larger than 8 MB. Please choose a smaller image.')),
+              );
+              return;
+            }
+
+            setDialogState(() {
+              uploading = true;
+              uploadProgress = 0;
+            });
+
+            try {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null) {
+                throw FirebaseException(
+                  plugin: 'firebase_storage',
+                  code: 'unauthenticated',
+                  message: 'Please sign in before uploading an image.',
+                );
               }
 
               final extension = (file.extension ?? 'jpg').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
               final safeExtension = extension.isEmpty ? 'jpg' : extension;
               final fileName = 'image_' + DateTime.now().millisecondsSinceEpoch.toString() + '.' + safeExtension;
-              final ref = FirebaseStorage.instance.ref().child(
-                    'public/' + collection + '/' + fileName,
-                  );
+              final ref = FirebaseStorage.instance.ref().child('public/' + collection + '/' + fileName);
 
               final uploadTask = ref.putData(
                 bytes,
@@ -272,23 +309,15 @@ class AdminManagementScreen extends StatelessWidget {
               });
 
               try {
-                await uploadTask.timeout(
-                  const Duration(seconds: 60),
-                  onTimeout: () async {
-                    await uploadTask.cancel();
-                    throw TimeoutException('Upload timed out after 60 seconds.');
-                  },
-                );
+                await uploadTask;
               } finally {
                 await progressSubscription.cancel();
               }
 
               final downloadUrl = await ref.getDownloadURL();
               imageUrl.text = downloadUrl;
-              setDialogState(() {
-                uploadProgress = 1;
-              });
               if (dialogContext.mounted) {
+                setDialogState(() => uploadProgress = 1);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(content: Text('Image uploaded successfully.')),
                 );
@@ -296,8 +325,10 @@ class AdminManagementScreen extends StatelessWidget {
             } on FirebaseException catch (e) {
               if (dialogContext.mounted) {
                 final message = e.code == 'permission-denied'
-                    ? 'Upload denied. Make sure you are signed in as an admin and Firebase Storage rules are deployed.'
-                    : 'Image upload failed: ${e.message ?? e.code}';
+                    ? 'Upload denied. Your account must have the admin role in Firestore.'
+                    : e.code == 'unauthenticated'
+                        ? 'Please sign in again before uploading.'
+                        : 'Image upload failed: ' + (e.message ?? e.code);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   SnackBar(content: Text(message)),
                 );
@@ -305,7 +336,7 @@ class AdminManagementScreen extends StatelessWidget {
             } catch (e) {
               if (dialogContext.mounted) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text('Image upload failed: $e')),
+                  SnackBar(content: Text('Image upload failed: ' + e.toString())),
                 );
               }
             } finally {
@@ -358,15 +389,24 @@ class AdminManagementScreen extends StatelessWidget {
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: uploading ? null : uploadImage,
+                              onPressed: selectingImage || uploading ? null : uploadImage,
                               icon: const Icon(Icons.upload_file_rounded),
-                              label: Text(uploading ? 'Uploading ' + (uploadProgress * 100).round().toString() + '%' : 'Upload image file'),
+                              label: Text(
+                                selectingImage
+                                    ? 'Choose image...'
+                                    : uploading
+                                        ? 'Uploading ' + (uploadProgress * 100).round().toString() + '%'
+                                        : 'Upload image file',
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
                           IconButton(
                             tooltip: 'Clear image',
-                            onPressed: uploading ? null : imageUrl.clear,
+                            onPressed: selectingImage || uploading ? null : () {
+                              imageUrl.clear();
+                              setDialogState(() {});
+                            },
                             icon: const Icon(Icons.clear_rounded),
                           ),
                         ],
