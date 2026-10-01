@@ -44,7 +44,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    _navigationTimer = Timer(const Duration(milliseconds: 1500), () {
+    _navigationTimer = Timer(const Duration(milliseconds: 3500), () {
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/home');
       }
