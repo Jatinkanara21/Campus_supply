@@ -138,21 +138,18 @@ class AdminManagementScreen extends StatelessWidget {
     final name = TextEditingController();
     final description = TextEditingController();
     final price = TextEditingController();
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(section == AdminSection.products ? 'Add product' : section == AdminSection.categories ? 'Add category' : 'Add bundle'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
-          TextField(controller: description, decoration: const InputDecoration(labelText: 'Description')),
-          if (section == AdminSection.products || section == AdminSection.bundles)
-            TextField(controller: price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price')),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
-        ],
-      ),
+    final imageUrl = TextEditingController();
+    final saved = await _showItemDialog(
+      context,
+      title: section == AdminSection.products
+          ? 'Add product'
+          : section == AdminSection.categories
+              ? 'Add category'
+              : 'Add bundle',
+      name: name,
+      description: description,
+      price: price,
+      imageUrl: imageUrl,
     );
     if (saved != true || name.text.trim().isEmpty) return;
     final data = <String, dynamic>{
@@ -166,7 +163,12 @@ class AdminManagementScreen extends StatelessWidget {
       data['category'] = 'General';
       data['stock'] = 0;
     }
+    if (section == AdminSection.products) data['imageUrl'] = imageUrl.text.trim();
     await FirebaseFirestore.instance.collection(collection).add(data);
+    name.dispose();
+    description.dispose();
+    price.dispose();
+    imageUrl.dispose();
   }
 
   Future<void> _edit(BuildContext context, QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
@@ -174,21 +176,14 @@ class AdminManagementScreen extends StatelessWidget {
     final name = TextEditingController(text: (data['name'] ?? data['title'] ?? '').toString());
     final description = TextEditingController(text: (data['description'] ?? '').toString());
     final price = TextEditingController(text: (data['price'] ?? '').toString());
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Edit item'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
-          TextField(controller: description, decoration: const InputDecoration(labelText: 'Description')),
-          if (section == AdminSection.products)
-            TextField(controller: price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price')),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
-        ],
-      ),
+    final imageUrl = TextEditingController(text: (data['imageUrl'] ?? '').toString());
+    final saved = await _showItemDialog(
+      context,
+      title: 'Edit item',
+      name: name,
+      description: description,
+      price: price,
+      imageUrl: imageUrl,
     );
     if (saved != true) return;
     final update = <String, dynamic>{
@@ -196,8 +191,179 @@ class AdminManagementScreen extends StatelessWidget {
       'description': description.text.trim(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
-    if (section == AdminSection.products || section == AdminSection.bundles) update['price'] = double.tryParse(price.text.trim()) ?? 0;
+    if (section == AdminSection.products || section == AdminSection.bundles) {
+      update['price'] = double.tryParse(price.text.trim()) ?? 0;
+    }
+    if (section == AdminSection.products) update['imageUrl'] = imageUrl.text.trim();
     await doc.reference.update(update);
+    name.dispose();
+    description.dispose();
+    price.dispose();
+    imageUrl.dispose();
+  }
+
+  Future<bool?> _showItemDialog(
+    BuildContext context, {
+    required String title,
+    required TextEditingController name,
+    required TextEditingController description,
+    required TextEditingController price,
+    required TextEditingController imageUrl,
+  }) {
+    var uploading = false;
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          Future<void> uploadImage() async {
+            setDialogState(() => uploading = true);
+            try {
+              final result = await FilePicker.platform.pickFiles(
+                type: FileType.image,
+                withData: true,
+              );
+              if (result == null || result.files.single.bytes == null) return;
+              final file = result.files.single;
+              final extension = (file.extension ?? 'jpg').toLowerCase();
+              final ref = FirebaseStorage.instance.ref(
+                'public/products/product_\${DateTime.now().millisecondsSinceEpoch}.$extension',
+              );
+              await ref.putData(
+                file.bytes!,
+                SettableMetadata(
+                  contentType: _contentTypeForExtension(extension),
+                  cacheControl: 'public,max-age=3600',
+                ),
+              );
+              imageUrl.text = await ref.getDownloadURL();
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Product image uploaded.')),
+                );
+              }
+            } catch (e) {
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text('Image upload failed: $e')),
+                );
+              }
+            } finally {
+              if (dialogContext.mounted) setDialogState(() => uploading = false);
+            }
+          }
+
+          return AlertDialog(
+            title: Text(title),
+            content: SizedBox(
+              width: 520,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: name,
+                      decoration: const InputDecoration(labelText: 'Name'),
+                    ),
+                    TextField(
+                      controller: description,
+                      decoration: const InputDecoration(labelText: 'Description'),
+                    ),
+                    if (section == AdminSection.products || section == AdminSection.bundles)
+                      TextField(
+                        controller: price,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Price'),
+                      ),
+                    if (section == AdminSection.products) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: imageUrl,
+                        keyboardType: TextInputType.url,
+                        decoration: const InputDecoration(
+                          labelText: 'Product image URL',
+                          hintText: 'https://example.com/product.jpg',
+                          prefixIcon: Icon(Icons.link_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: uploading ? null : uploadImage,
+                              icon: const Icon(Icons.upload_file_rounded),
+                              label: Text(uploading ? 'Uploading...' : 'Upload image file'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            tooltip: 'Clear image',
+                            onPressed: uploading ? null : imageUrl.clear,
+                            icon: const Icon(Icons.clear_rounded),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (imageUrl.text.trim().isNotEmpty)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            imageUrl.text.trim(),
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              height: 120,
+                              alignment: Alignment.center,
+                              color: const Color(0xFFEAF2FF),
+                              child: const Text('Image preview unavailable'),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 6),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Paste a URL or upload a file. If both are used, the uploaded file replaces the URL.',
+                          style: TextStyle(fontSize: 11, color: Color(0xFF707681)),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: uploading ? null : () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: uploading ? null : () => Navigator.pop(dialogContext, true),
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  String _contentTypeForExtension(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'gif':
+        return 'image/gif';
+      case 'avif':
+        return 'image/avif';
+      case 'jpg':
+      case 'jpeg':
+      default:
+        return 'image/jpeg';
+    }
   }
 
   Future<void> _delete(BuildContext context, QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
