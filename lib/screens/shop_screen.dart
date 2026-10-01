@@ -211,8 +211,14 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget _card(BuildContext context, Map<String, dynamic> p) {
     final price = p['price'];
     final imageUrl = (p['imageUrl'] ?? '').toString().trim();
-    final displayImageUrl =
-        imageUrl.isNotEmpty ? imageUrl : _fallbackImageUrl(p);
+    final fallbackAsset = _fallbackAsset(p);
+
+    Widget fallbackImage() => Image.asset(
+          fallbackAsset,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+        );
 
     return InkWell(
       borderRadius: BorderRadius.circular(22),
@@ -235,25 +241,13 @@ class _ShopScreenState extends State<ShopScreen> {
                   borderRadius: BorderRadius.circular(17),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: displayImageUrl.isNotEmpty
+                child: imageUrl.isNotEmpty
                     ? Image.network(
-                        displayImageUrl,
+                        imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Center(
-                          child: Icon(
-                            Icons.image_not_supported_outlined,
-                            color: blue,
-                            size: 50,
-                          ),
-                        ),
+                        errorBuilder: (_, __, ___) => fallbackImage(),
                       )
-                    : const Center(
-                        child: Icon(
-                          Icons.inventory_2_rounded,
-                          color: blue,
-                          size: 58,
-                        ),
-                      ),
+                    : fallbackImage(),
               ),
             ),
             const SizedBox(height: 10),
@@ -322,23 +316,34 @@ class _ShopScreenState extends State<ShopScreen> {
       );
 }
 
-String _fallbackImageUrl(Map<String, dynamic> product) {
+String _fallbackAsset(Map<String, dynamic> product) {
   final value =
       '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
 
   if (value.contains('backpack') || value.contains('bag')) {
-    return 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=900&q=85';
+    return 'assets/images/products/backpack.svg';
   }
   if (value.contains('headphone')) {
-    return 'https://images.unsplash.com/photo-1558365916-848463c5d803?auto=format&fit=crop&w=900&q=85';
+    return 'assets/images/products/headphones.svg';
   }
   if (value.contains('bottle') || value.contains('tumbler')) {
-    return 'https://images.unsplash.com/photo-1561180796-dbaa5caf76e0?auto=format&fit=crop&w=900&q=85';
+    return 'assets/images/products/bottle.svg';
   }
   if (value.contains('notebook') ||
-      value.contains('stationery') ||
-      value.contains('pen')) {
-    return 'https://images.unsplash.com/photo-1743760521201-ddb298df18cd?auto=format&fit=crop&w=900&q=85';
+      value.contains('stationery')) {
+    return 'assets/images/products/notebook.svg';
   }
-  return '';
+  if (value.contains('pen')) {
+    return 'assets/images/products/pen.svg';
+  }
+  if (value.contains('calculator')) {
+    return 'assets/images/products/calculator.svg';
+  }
+  if (value.contains('lamp')) {
+    return 'assets/images/products/lamp.svg';
+  }
+  if (value.contains('sleeve')) {
+    return 'assets/images/products/sleeve.svg';
+  }
+  return 'assets/images/products/notebook.svg';
 }
