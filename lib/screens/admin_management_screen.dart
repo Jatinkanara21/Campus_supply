@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 enum AdminSection { products, categories, bundles, orders, users, reviews }
@@ -217,6 +219,7 @@ class AdminManagementScreen extends StatelessWidget {
     required TextEditingController imageUrl,
   }) {
     var uploading = false;
+    var uploadProgress = 0.0;
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -239,19 +242,19 @@ class AdminManagementScreen extends StatelessWidget {
                 throw StateError('The selected image could not be read. Please choose the image again.');
               }
 
-              const maxBytes = 10 * 1024 * 1024;
+              const maxBytes = 8 * 1024 * 1024;
               if (bytes.length > maxBytes) {
-                throw StateError('Image is larger than 10 MB. Please choose a smaller image.');
+                throw StateError('Image is larger than 8 MB. Please choose a smaller image for faster upload.');
               }
 
               final extension = (file.extension ?? 'jpg').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
               final safeExtension = extension.isEmpty ? 'jpg' : extension;
-              final fileName = 'image_${DateTime.now().millisecondsSinceEpoch}.$safeExtension';
+              final fileName = 'image_' + DateTime.now().millisecondsSinceEpoch.toString() + '.' + safeExtension;
               final ref = FirebaseStorage.instance.ref().child(
-                    'public/$collection/$fileName',
+                    'public/' + collection + '/' + fileName,
                   );
 
-              await ref.putData(
+              final uploadTask = ref.putData(
                 bytes,
                 SettableMetadata(
                   contentType: _contentTypeForExtension(safeExtension),
@@ -259,10 +262,32 @@ class AdminManagementScreen extends StatelessWidget {
                 ),
               );
 
+              final progressSubscription = uploadTask.snapshotEvents.listen((snapshot) {
+                if (!dialogContext.mounted) return;
+                final total = snapshot.totalBytes;
+                final transferred = snapshot.bytesTransferred;
+                setDialogState(() {
+                  uploadProgress = total > 0 ? transferred / total : 0;
+                });
+              });
+
+              try {
+                await uploadTask.timeout(
+                  const Duration(seconds: 60),
+                  onTimeout: () async {
+                    await uploadTask.cancel();
+                    throw TimeoutException('Upload timed out after 60 seconds.');
+                  },
+                );
+              } finally {
+                await progressSubscription.cancel();
+              }
+
               final downloadUrl = await ref.getDownloadURL();
               imageUrl.text = downloadUrl;
-              setDialogState(() {});
-
+              setDialogState(() {
+                uploadProgress = 1;
+              });
               if (dialogContext.mounted) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(content: Text('Image uploaded successfully.')),
@@ -335,7 +360,7 @@ class AdminManagementScreen extends StatelessWidget {
                             child: OutlinedButton.icon(
                               onPressed: uploading ? null : uploadImage,
                               icon: const Icon(Icons.upload_file_rounded),
-                              label: Text(uploading ? 'Uploading...' : 'Upload image file'),
+                              label: Text(uploading ? 'Uploading ' + (uploadProgress * 100).round().toString() + '%' : 'Upload image file'),
                             ),
                           ),
                           const SizedBox(width: 8),
