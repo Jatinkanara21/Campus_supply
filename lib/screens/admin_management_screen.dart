@@ -226,7 +226,7 @@ class AdminManagementScreen extends StatelessWidget {
               final file = result.files.single;
               final extension = (file.extension ?? 'jpg').toLowerCase();
               final ref = FirebaseStorage.instance.ref(
-                'public/products/product_\${DateTime.now().millisecondsSinceEpoch}.$extension',
+                'public/products/product_${DateTime.now().millisecondsSinceEpoch}.$extension',
               );
               await ref.putData(
                 file.bytes!,
