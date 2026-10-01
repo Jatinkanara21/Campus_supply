@@ -1005,6 +1005,112 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+
+class _HeroFallbackVisual extends StatelessWidget {
+  const _HeroFallbackVisual();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Positioned(
+          top: 15,
+          right: 18,
+          child: Container(
+            width: 11,
+            height: 11,
+            decoration: const BoxDecoration(
+              color: HomeScreen.yellow,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 17,
+          left: 16,
+          child: Transform.rotate(
+            angle: -0.12,
+            child: Container(
+              width: 62,
+              height: 78,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.edit_rounded,
+                    color: HomeScreen.blue,
+                    size: 28,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'IDEAS',
+                    style: TextStyle(
+                      color: HomeScreen.ink,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 28,
+          left: 18,
+          child: Transform.rotate(
+            angle: 0.12,
+            child: Container(
+              width: 57,
+              height: 73,
+              decoration: BoxDecoration(
+                color: HomeScreen.yellow,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.menu_book_rounded,
+                color: HomeScreen.ink,
+                size: 29,
+              ),
+            ),
+          ),
+        ),
+        Container(
+          width: 76,
+          height: 82,
+          decoration: BoxDecoration(
+            color: HomeScreen.ink,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Icon(
+            Icons.backpack_rounded,
+            color: HomeScreen.yellow,
+            size: 48,
+          ),
+        ),
+        const Positioned(
+          bottom: 13,
+          child: Text(
+            'CREATE.',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _FirebaseProductCard extends StatelessWidget {
   final Map<String, dynamic> product;
   final VoidCallback onTap;
