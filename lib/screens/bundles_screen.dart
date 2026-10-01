@@ -114,15 +114,26 @@ class BundlesScreen extends StatelessWidget {
                         Container(
                           width: 82,
                           height: 92,
+                          clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF7CC),
                             borderRadius: BorderRadius.circular(18),
                           ),
-                          child: const Icon(
-                            Icons.auto_awesome_rounded,
-                            color: Color(0xFF9A7600),
-                            size: 40,
-                          ),
+                          child: (bundle['imageUrl'] ?? '').toString().trim().isNotEmpty
+                              ? Image.network(
+                                  (bundle['imageUrl'] ?? '').toString().trim(),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.auto_awesome_rounded,
+                                    color: Color(0xFF9A7600),
+                                    size: 40,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.auto_awesome_rounded,
+                                  color: Color(0xFF9A7600),
+                                  size: 40,
+                                ),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
