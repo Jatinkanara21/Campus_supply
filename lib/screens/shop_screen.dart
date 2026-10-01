@@ -11,6 +11,7 @@ class ShopScreen extends StatefulWidget {
 
 class _ShopScreenState extends State<ShopScreen> {
   bool _routeArgsRead = false;
+
   static const cream = Color(0xFFFAF8F3);
   static const ink = Color(0xFF172033);
   static const blue = Color(0xFF2563EB);
@@ -54,7 +55,10 @@ class _ShopScreenState extends State<ShopScreen> {
         stream: FirestoreDatabase.instance.watchCategories(),
         builder: (context, categorySnapshot) {
           if (categorySnapshot.hasError) {
-            return _message('Could not load categories.\n\n${categorySnapshot.error}');
+            return _message(
+              'Could not load categories.\n\n' +
+                  categorySnapshot.error.toString(),
+            );
           }
           if (!categorySnapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -77,8 +81,9 @@ class _ShopScreenState extends State<ShopScreen> {
             builder: (context, productSnapshot) {
               if (productSnapshot.hasError) {
                 return _message(
-                  'Could not load products.\n\n${productSnapshot.error}\n\n'
-                  'Check Firestore and deployed security rules.',
+                  'Could not load products.\n\n' +
+                      productSnapshot.error.toString() +
+                      '\n\nCheck Firestore and deployed security rules.',
                 );
               }
               if (!productSnapshot.hasData) {
@@ -88,13 +93,15 @@ class _ShopScreenState extends State<ShopScreen> {
               final products = productSnapshot.data!;
               final normalizedQuery = query.trim().toLowerCase();
               final filtered = products.where((p) {
-                final productCategory = (p['category'] ?? '').toString().trim();
-                final matchesCategory =
-                    category == 'All' ||
+                final productCategory =
+                    (p['category'] ?? '').toString().trim();
+                final matchesCategory = category == 'All' ||
                     productCategory.toLowerCase() == category.toLowerCase();
-                final text =
-                    '${p['name'] ?? ''} ${p['description'] ?? ''}'.toLowerCase();
-                return matchesCategory && text.contains(normalizedQuery);
+                final text = (p['name'] ?? '').toString() +
+                    ' ' +
+                    (p['description'] ?? '').toString();
+                return matchesCategory &&
+                    text.toLowerCase().contains(normalizedQuery);
               }).toList();
 
               return LayoutBuilder(
@@ -140,10 +147,8 @@ class _ShopScreenState extends State<ShopScreen> {
                         onChanged: (value) => setState(() => query = value),
                         decoration: InputDecoration(
                           hintText: query.isEmpty ? 'Search products...' : query,
-                          prefixIcon: const Icon(
-                            Icons.search_rounded,
-                            color: blue,
-                          ),
+                          prefixIcon:
+                              const Icon(Icons.search_rounded, color: blue),
                           suffixIcon: query.isEmpty
                               ? null
                               : IconButton(
@@ -158,7 +163,8 @@ class _ShopScreenState extends State<ShopScreen> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: categoryNames.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 8),
                           itemBuilder: (_, i) {
                             final name = categoryNames[i];
                             final selected = name == category;
@@ -209,6 +215,32 @@ class _ShopScreenState extends State<ShopScreen> {
     );
   }
 
+  Widget _message(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 520),
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: border),
+          ),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: ink,
+              fontWeight: FontWeight.w600,
+              height: 1.45,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _card(BuildContext context, Map<String, dynamic> p) {
     final price = p['price'];
     final imageUrl = (p['imageUrl'] ?? '').toString().trim();
@@ -224,7 +256,7 @@ class _ShopScreenState extends State<ShopScreen> {
 
     Widget photo() => Image.network(
           realPhotoUrl,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
           width: double.infinity,
           height: double.infinity,
           filterQuality: FilterQuality.low,
@@ -264,10 +296,7 @@ class _ShopScreenState extends State<ShopScreen> {
               (p['name'] ?? 'Product').toString(),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: ink,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(color: ink, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 5),
             Row(
@@ -307,9 +336,12 @@ class _ShopScreenState extends State<ShopScreen> {
       ),
     );
   }
+}
+
 String _realPhotoUrl(Map<String, dynamic> product) {
-  final value =
-      '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
+  final name = (product['name'] ?? '').toString().toLowerCase();
+  final category = (product['category'] ?? '').toString().toLowerCase();
+  final value = name + ' ' + category;
 
   if (value.contains('backpack') || value.contains('bag')) {
     return 'https://www.jemapub.fr/content/uploads/2026/01/92375_104-a.jpg';
@@ -338,7 +370,42 @@ String _realPhotoUrl(Map<String, dynamic> product) {
   return 'https://images.unsplash.com/photo-1652466380685-c552233a941a?auto=format&fit=crop&w=700&q=75';
 }
 
+String _fallbackSvg(Map<String, dynamic> product) {
+  final name = (product['name'] ?? '').toString().toLowerCase();
+  final category = (product['category'] ?? '').toString().toLowerCase();
+  final value = name + ' ' + category;
 
+  String shape = 'notebook';
+  String body = '#2563EB';
+  const accent = '#FACC15';
+
+  if (value.contains('backpack') || value.contains('bag')) {
+    shape = 'bag';
+  } else if (value.contains('headphone')) {
+    shape = 'headphones';
+    body = '#172033';
+  } else if (value.contains('bottle') || value.contains('tumbler')) {
+    shape = 'bottle';
+    body = '#172033';
+  } else if (value.contains('pen')) {
+    shape = 'pen';
+  } else if (value.contains('calculator')) {
+    shape = 'calculator';
+    body = '#172033';
+  } else if (value.contains('lamp')) {
+    shape = 'lamp';
+    body = '#F97368';
+  } else if (value.contains('sleeve')) {
+    shape = 'sleeve';
+  }
+
+  return _productSvg(
+    bg: '#EEF4FF',
+    body: body,
+    accent: accent,
+    shape: shape,
+  );
+}
 
 String _productSvg({
   required String bg,
@@ -347,30 +414,61 @@ String _productSvg({
   required String shape,
 }) {
   String art;
+
   switch (shape) {
     case 'bag':
-      art = '<path d="M210 175c0-68 40-105 90-105s90 37 90 105v45h-48v-43c0-34-14-55-42-55s-42 21-42 55v43h-48z" fill="$body"/><rect x="155" y="150" width="290" height="265" rx="48" fill="$body"/><rect x="205" y="225" width="190" height="125" rx="24" fill="#1D4ED8"/><rect x="250" y="245" width="100" height="18" rx="9" fill="$accent"/>';
+      art =
+          '<path d="M210 175c0-68 40-105 90-105s90 37 90 105v45h-48v-43c0-34-14-55-42-55s-42 21-42 55v43h-48z" fill="$body"/>'
+          '<rect x="155" y="150" width="290" height="265" rx="48" fill="$body"/>'
+          '<rect x="205" y="225" width="190" height="125" rx="24" fill="#1D4ED8"/>'
+          '<rect x="250" y="245" width="100" height="18" rx="9" fill="$accent"/>';
       break;
     case 'headphones':
-      art = '<path d="M170 275v-45c0-78 58-140 130-140s130 62 130 140v45" fill="none" stroke="#172033" stroke-width="42" stroke-linecap="round"/><rect x="135" y="250" width="95" height="150" rx="38" fill="$body"/><rect x="370" y="250" width="95" height="150" rx="38" fill="$body"/><rect x="160" y="278" width="45" height="80" rx="18" fill="$accent"/><rect x="395" y="278" width="45" height="80" rx="18" fill="$accent"/>';
+      art =
+          '<path d="M170 275v-45c0-78 58-140 130-140s130 62 130 140v45" fill="none" stroke="#172033" stroke-width="42" stroke-linecap="round"/>'
+          '<rect x="135" y="250" width="95" height="150" rx="38" fill="$body"/>'
+          '<rect x="370" y="250" width="95" height="150" rx="38" fill="$body"/>'
+          '<rect x="160" y="278" width="45" height="80" rx="18" fill="$accent"/>'
+          '<rect x="395" y="278" width="45" height="80" rx="18" fill="$accent"/>';
       break;
     case 'bottle':
-      art = '<rect x="245" y="70" width="110" height="55" rx="16" fill="#172033"/><path d="M225 115h150l38 60v205c0 36-29 65-65 65H252c-36 0-65-29-65-65V175z" fill="$body"/><rect x="225" y="205" width="150" height="70" rx="18" fill="$accent"/>';
+      art =
+          '<rect x="245" y="70" width="110" height="55" rx="16" fill="#172033"/>'
+          '<path d="M225 115h150l38 60v205c0 36-29 65-65 65H252c-36 0-65-29-65-65V175z" fill="$body"/>'
+          '<rect x="225" y="205" width="150" height="70" rx="18" fill="$accent"/>';
       break;
     case 'pen':
-      art = '<g transform="rotate(-25 300 250)"><rect x="150" y="220" width="300" height="58" rx="20" fill="$body"/><rect x="210" y="220" width="145" height="58" fill="$accent"/><path d="M450 220l70 29-70 29z" fill="#172033"/></g>';
+      art =
+          '<g transform="rotate(-25 300 250)"><rect x="150" y="220" width="300" height="58" rx="20" fill="$body"/><rect x="210" y="220" width="145" height="58" fill="$accent"/><path d="M450 220l70 29-70 29z" fill="#172033"/></g>';
       break;
     case 'calculator':
-      art = '<rect x="170" y="55" width="260" height="390" rx="34" fill="$body"/><rect x="205" y="90" width="190" height="95" rx="16" fill="#EAF2FF"/><rect x="205" y="215" width="45" height="45" rx="10" fill="$accent"/><rect x="275" y="215" width="45" height="45" rx="10" fill="$accent"/><rect x="345" y="215" width="45" height="45" rx="10" fill="$accent"/>';
+      art =
+          '<rect x="170" y="55" width="260" height="390" rx="34" fill="$body"/>'
+          '<rect x="205" y="90" width="190" height="95" rx="16" fill="#EAF2FF"/>'
+          '<rect x="205" y="215" width="45" height="45" rx="10" fill="$accent"/>'
+          '<rect x="275" y="215" width="45" height="45" rx="10" fill="$accent"/>'
+          '<rect x="345" y="215" width="45" height="45" rx="10" fill="$accent"/>';
       break;
     case 'lamp':
-      art = '<path d="M200 120h190l65 120H135z" fill="$body"/><path d="M300 240v155" stroke="#172033" stroke-width="20" stroke-linecap="round"/><path d="M220 410h160" stroke="#172033" stroke-width="25" stroke-linecap="round"/><circle cx="300" cy="225" r="28" fill="$accent"/>';
+      art =
+          '<path d="M200 120h190l65 120H135z" fill="$body"/>'
+          '<path d="M300 240v155" stroke="#172033" stroke-width="20" stroke-linecap="round"/>'
+          '<path d="M220 410h160" stroke="#172033" stroke-width="25" stroke-linecap="round"/>'
+          '<circle cx="300" cy="225" r="28" fill="$accent"/>';
       break;
     case 'sleeve':
-      art = '<rect x="105" y="100" width="390" height="300" rx="30" fill="$body"/><rect x="135" y="130" width="330" height="235" rx="18" fill="$accent"/><rect x="205" y="165" width="190" height="135" rx="12" fill="#EAF2FF"/>';
+      art =
+          '<rect x="105" y="100" width="390" height="300" rx="30" fill="$body"/>'
+          '<rect x="135" y="130" width="330" height="235" rx="18" fill="$accent"/>'
+          '<rect x="205" y="165" width="190" height="135" rx="12" fill="#EAF2FF"/>';
       break;
     default:
-      art = '<rect x="150" y="75" width="300" height="350" rx="24" fill="#172033"/><rect x="175" y="55" width="300" height="350" rx="24" fill="#fff"/><rect x="215" y="120" width="190" height="18" rx="9" fill="$accent"/><rect x="215" y="170" width="150" height="12" rx="6" fill="#CBD5E1"/><rect x="215" y="205" width="175" height="12" rx="6" fill="#CBD5E1"/>';
+      art =
+          '<rect x="150" y="75" width="300" height="350" rx="24" fill="#172033"/>'
+          '<rect x="175" y="55" width="300" height="350" rx="24" fill="#fff"/>'
+          '<rect x="215" y="120" width="190" height="18" rx="9" fill="$accent"/>'
+          '<rect x="215" y="170" width="150" height="12" rx="6" fill="#CBD5E1"/>'
+          '<rect x="215" y="205" width="175" height="12" rx="6" fill="#CBD5E1"/>';
   }
 
   return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 500"><rect width="600" height="500" rx="48" fill="$bg"/>$art</svg>';
