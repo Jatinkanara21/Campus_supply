@@ -315,7 +315,12 @@ class AdminManagementScreen extends StatelessWidget {
               }
 
               final downloadUrl = await ref.getDownloadURL();
-              imageUrl.text = downloadUrl;
+              // Firebase Storage is the secure staging area. The deployed
+              // Cloud Function copies the same bytes into GitHub under
+              // assets/images/<collection>/. Use the GitHub raw URL in the
+              // catalog so the app ultimately reads the repository asset.
+              final githubUrl = 'https://raw.githubusercontent.com/Jatinkanara21/Campus_supply/main/assets/images/' + collection + '/' + fileName;
+              imageUrl.text = githubUrl;
               if (dialogContext.mounted) {
                 setDialogState(() => uploadProgress = 1);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
