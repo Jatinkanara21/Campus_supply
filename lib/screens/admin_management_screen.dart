@@ -286,10 +286,14 @@ class AdminManagementScreen extends StatelessWidget {
                         controller: imageUrl,
                         onChanged: (_) => setDialogState(() {}),
                         keyboardType: TextInputType.url,
-                        decoration: const InputDecoration(
-                          labelText: section == AdminSection.products ? 'Product image URL' : section == AdminSection.categories ? 'Category image URL' : 'Bundle image URL',
+                        decoration: InputDecoration(
+                          labelText: section == AdminSection.products
+                              ? 'Product image URL'
+                              : section == AdminSection.categories
+                                  ? 'Category image URL'
+                                  : 'Bundle image URL',
                           hintText: 'https://example.com/image.jpg',
-                          prefixIcon: Icon(Icons.link_rounded),
+                          prefixIcon: const Icon(Icons.link_rounded),
                         ),
                       ),
                       const SizedBox(height: 8),
