@@ -84,6 +84,7 @@ class HomeScreen extends StatelessWidget {
                               final category = categories[i];
                               final name = (category['name'] ?? category['slug'] ?? 'Category').toString();
                               return _CategoryCard(
+                                imageUrl: (category['imageUrl'] ?? '').toString().trim(),
                                 icon: _categoryIcon(name),
                                 title: name,
                                 background: _categoryBackground(i),
@@ -678,6 +679,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _CategoryCard({
+    required String imageUrl,
     required IconData icon,
     required String title,
     required Color background,
@@ -705,7 +707,17 @@ class HomeScreen extends StatelessWidget {
                 color: background,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: accent, size: 22),
+              child: imageUrl.isNotEmpty
+                  ? ClipOval(
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        width: 45,
+                        height: 45,
+                        errorBuilder: (_, __, ___) => Icon(icon, color: accent, size: 22),
+                      ),
+                    )
+                  : Icon(icon, color: accent, size: 22),
             ),
             const SizedBox(height: 8),
             Text(
