@@ -212,10 +212,10 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget _card(BuildContext context, Map<String, dynamic> p) {
     final price = p['price'];
     final imageUrl = (p['imageUrl'] ?? '').toString().trim();
-    final fallbackAsset = _fallbackAsset(p);
+    final fallbackSvg = _fallbackSvg(p);
 
-    Widget fallbackImage() => SvgPicture.asset(
-          fallbackAsset,
+    Widget fallbackImage() => SvgPicture.string(
+          fallbackSvg,
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
@@ -246,6 +246,11 @@ class _ShopScreenState extends State<ShopScreen> {
                     ? Image.network(
                         imageUrl,
                         fit: BoxFit.cover,
+                        filterQuality: FilterQuality.low,
+                        frameBuilder: (context, child, frame, wasSync) {
+                          if (wasSync || frame != null) return child;
+                          return fallbackImage();
+                        },
                         errorBuilder: (_, __, ___) => fallbackImage(),
                       )
                     : fallbackImage(),
@@ -299,52 +304,106 @@ class _ShopScreenState extends State<ShopScreen> {
       ),
     );
   }
-
-  Widget _message(String text) => Container(
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: border),
-        ),
-        child: Center(
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: muted, height: 1.4),
-          ),
-        ),
-      );
-}
-
-String _fallbackAsset(Map<String, dynamic> product) {
+String _fallbackSvg(Map<String, dynamic> product) {
   final value =
       '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
 
   if (value.contains('backpack') || value.contains('bag')) {
-    return 'assets/images/products/backpack.svg';
+    return _productSvg(
+      bg: '#EAF2FF',
+      body: '#2563EB',
+      accent: '#FACC15',
+      shape: 'bag',
+    );
   }
   if (value.contains('headphone')) {
-    return 'assets/images/products/headphones.svg';
+    return _productSvg(
+      bg: '#EAF2FF',
+      body: '#2563EB',
+      accent: '#FACC15',
+      shape: 'headphones',
+    );
   }
   if (value.contains('bottle') || value.contains('tumbler')) {
-    return 'assets/images/products/bottle.svg';
-  }
-  if (value.contains('notebook') ||
-      value.contains('stationery')) {
-    return 'assets/images/products/notebook.svg';
+    return _productSvg(
+      bg: '#E8F7F0',
+      body: '#2563EB',
+      accent: '#FACC15',
+      shape: 'bottle',
+    );
   }
   if (value.contains('pen')) {
-    return 'assets/images/products/pen.svg';
+    return _productSvg(
+      bg: '#FFE9E6',
+      body: '#2563EB',
+      accent: '#FACC15',
+      shape: 'pen',
+    );
   }
   if (value.contains('calculator')) {
-    return 'assets/images/products/calculator.svg';
+    return _productSvg(
+      bg: '#F1F5F9',
+      body: '#172033',
+      accent: '#2563EB',
+      shape: 'calculator',
+    );
   }
   if (value.contains('lamp')) {
-    return 'assets/images/products/lamp.svg';
+    return _productSvg(
+      bg: '#FFF7CC',
+      body: '#2563EB',
+      accent: '#FACC15',
+      shape: 'lamp',
+    );
   }
   if (value.contains('sleeve')) {
-    return 'assets/images/products/sleeve.svg';
+    return _productSvg(
+      bg: '#EAF2FF',
+      body: '#172033',
+      accent: '#2563EB',
+      shape: 'sleeve',
+    );
   }
-  return 'assets/images/products/notebook.svg';
+  return _productSvg(
+    bg: '#FFF7CC',
+    body: '#172033',
+    accent: '#2563EB',
+    shape: 'notebook',
+  );
+}
+
+String _productSvg({
+  required String bg,
+  required String body,
+  required String accent,
+  required String shape,
+}) {
+  String art;
+  switch (shape) {
+    case 'bag':
+      art = '<path d="M210 175c0-68 40-105 90-105s90 37 90 105v45h-48v-43c0-34-14-55-42-55s-42 21-42 55v43h-48z" fill="$body"/><rect x="155" y="150" width="290" height="265" rx="48" fill="$body"/><rect x="205" y="225" width="190" height="125" rx="24" fill="#1D4ED8"/><rect x="250" y="245" width="100" height="18" rx="9" fill="$accent"/>';
+      break;
+    case 'headphones':
+      art = '<path d="M170 275v-45c0-78 58-140 130-140s130 62 130 140v45" fill="none" stroke="#172033" stroke-width="42" stroke-linecap="round"/><rect x="135" y="250" width="95" height="150" rx="38" fill="$body"/><rect x="370" y="250" width="95" height="150" rx="38" fill="$body"/><rect x="160" y="278" width="45" height="80" rx="18" fill="$accent"/><rect x="395" y="278" width="45" height="80" rx="18" fill="$accent"/>';
+      break;
+    case 'bottle':
+      art = '<rect x="245" y="70" width="110" height="55" rx="16" fill="#172033"/><path d="M225 115h150l38 60v205c0 36-29 65-65 65H252c-36 0-65-29-65-65V175z" fill="$body"/><rect x="225" y="205" width="150" height="70" rx="18" fill="$accent"/>';
+      break;
+    case 'pen':
+      art = '<g transform="rotate(-25 300 250)"><rect x="150" y="220" width="300" height="58" rx="20" fill="$body"/><rect x="210" y="220" width="145" height="58" fill="$accent"/><path d="M450 220l70 29-70 29z" fill="#172033"/></g>';
+      break;
+    case 'calculator':
+      art = '<rect x="170" y="55" width="260" height="390" rx="34" fill="$body"/><rect x="205" y="90" width="190" height="95" rx="16" fill="#EAF2FF"/><rect x="205" y="215" width="45" height="45" rx="10" fill="$accent"/><rect x="275" y="215" width="45" height="45" rx="10" fill="$accent"/><rect x="345" y="215" width="45" height="45" rx="10" fill="$accent"/>';
+      break;
+    case 'lamp':
+      art = '<path d="M200 120h190l65 120H135z" fill="$body"/><path d="M300 240v155" stroke="#172033" stroke-width="20" stroke-linecap="round"/><path d="M220 410h160" stroke="#172033" stroke-width="25" stroke-linecap="round"/><circle cx="300" cy="225" r="28" fill="$accent"/>';
+      break;
+    case 'sleeve':
+      art = '<rect x="105" y="100" width="390" height="300" rx="30" fill="$body"/><rect x="135" y="130" width="330" height="235" rx="18" fill="$accent"/><rect x="205" y="165" width="190" height="135" rx="12" fill="#EAF2FF"/>';
+      break;
+    default:
+      art = '<rect x="150" y="75" width="300" height="350" rx="24" fill="#172033"/><rect x="175" y="55" width="300" height="350" rx="24" fill="#fff"/><rect x="215" y="120" width="190" height="18" rx="9" fill="$accent"/><rect x="215" y="170" width="150" height="12" rx="6" fill="#CBD5E1"/><rect x="215" y="205" width="175" height="12" rx="6" fill="#CBD5E1"/>';
+  }
+
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 500"><rect width="600" height="500" rx="48" fill="$bg"/>$art</svg>';
 }
