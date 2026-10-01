@@ -228,23 +228,53 @@ class AdminManagementScreen extends StatelessWidget {
                 type: FileType.image,
                 withData: true,
               );
-              if (result == null || result.files.single.bytes == null) return;
+
+              if (result == null || result.files.isEmpty) {
+                return;
+              }
+
               final file = result.files.single;
-              final extension = (file.extension ?? 'jpg').toLowerCase();
-              final ref = FirebaseStorage.instance.ref(
-                'public/${collection}/${DateTime.now().millisecondsSinceEpoch}.$extension',
-              );
+              final bytes = file.bytes;
+              if (bytes == null || bytes.isEmpty) {
+                throw StateError('The selected image could not be read. Please choose the image again.');
+              }
+
+              const maxBytes = 10 * 1024 * 1024;
+              if (bytes.length > maxBytes) {
+                throw StateError('Image is larger than 10 MB. Please choose a smaller image.');
+              }
+
+              final extension = (file.extension ?? 'jpg').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+              final safeExtension = extension.isEmpty ? 'jpg' : extension;
+              final fileName = 'image_${DateTime.now().millisecondsSinceEpoch}.$safeExtension';
+              final ref = FirebaseStorage.instance.ref().child(
+                    'public/$collection/$fileName',
+                  );
+
               await ref.putData(
-                file.bytes!,
+                bytes,
                 SettableMetadata(
-                  contentType: _contentTypeForExtension(extension),
+                  contentType: _contentTypeForExtension(safeExtension),
                   cacheControl: 'public,max-age=3600',
                 ),
               );
-              imageUrl.text = await ref.getDownloadURL();
+
+              final downloadUrl = await ref.getDownloadURL();
+              imageUrl.text = downloadUrl;
+              setDialogState(() {});
+
               if (dialogContext.mounted) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text('${title.replaceAll('Edit ', '').replaceAll('Add ', '')} image uploaded.')),
+                  const SnackBar(content: Text('Image uploaded successfully.')),
+                );
+              }
+            } on FirebaseException catch (e) {
+              if (dialogContext.mounted) {
+                final message = e.code == 'permission-denied'
+                    ? 'Upload denied. Make sure you are signed in as an admin and Firebase Storage rules are deployed.'
+                    : 'Image upload failed: ${e.message ?? e.code}';
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text(message)),
                 );
               }
             } catch (e) {
@@ -254,7 +284,9 @@ class AdminManagementScreen extends StatelessWidget {
                 );
               }
             } finally {
-              if (dialogContext.mounted) setDialogState(() => uploading = false);
+              if (dialogContext.mounted) {
+                setDialogState(() => uploading = false);
+              }
             }
           }
 
