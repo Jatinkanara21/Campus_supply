@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../database/firestore_database.dart';
 
 class ShopScreen extends StatefulWidget {
@@ -245,27 +244,44 @@ class _ShopScreenState extends State<ShopScreen> {
     final price = p['price'];
     final imageUrl = (p['imageUrl'] ?? '').toString().trim();
     final realPhotoUrl = imageUrl.isNotEmpty ? imageUrl : _realPhotoUrl(p);
-    final fallbackSvg = _fallbackSvg(p);
 
-    Widget fallbackImage() => SvgPicture.string(
-          fallbackSvg,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
+    Widget photo() {
+      if (realPhotoUrl.isEmpty) {
+        return const Center(
+          child: Icon(
+            Icons.image_not_supported_outlined,
+            color: blue,
+            size: 54,
+          ),
         );
+      }
 
-    Widget photo() => Image.network(
-          realPhotoUrl,
-          fit: BoxFit.contain,
-          width: double.infinity,
-          height: double.infinity,
-          filterQuality: FilterQuality.low,
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) return child;
-            return fallbackImage();
-          },
-          errorBuilder: (_, __, ___) => fallbackImage(),
-        );
+      return Image.network(
+        realPhotoUrl,
+        fit: BoxFit.contain,
+        width: double.infinity,
+        height: double.infinity,
+        gaplessPlayback: true,
+        webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const Center(
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) => const Center(
+          child: Icon(
+            Icons.image_not_supported_outlined,
+            color: blue,
+            size: 54,
+          ),
+        ),
+      );
+    }
 
     return InkWell(
       borderRadius: BorderRadius.circular(22),
@@ -288,7 +304,7 @@ class _ShopScreenState extends State<ShopScreen> {
                   borderRadius: BorderRadius.circular(17),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: realPhotoUrl.isNotEmpty ? photo() : fallbackImage(),
+                child: photo(),
               ),
             ),
             const SizedBox(height: 10),
@@ -368,43 +384,6 @@ String _realPhotoUrl(Map<String, dynamic> product) {
     return 'https://images.unsplash.com/photo-1547932087-59a8f2be576e?auto=format&fit=crop&w=700&q=75';
   }
   return 'https://images.unsplash.com/photo-1652466380685-c552233a941a?auto=format&fit=crop&w=700&q=75';
-}
-
-String _fallbackSvg(Map<String, dynamic> product) {
-  final name = (product['name'] ?? '').toString().toLowerCase();
-  final category = (product['category'] ?? '').toString().toLowerCase();
-  final value = name + ' ' + category;
-
-  String shape = 'notebook';
-  String body = '#2563EB';
-  const accent = '#FACC15';
-
-  if (value.contains('backpack') || value.contains('bag')) {
-    shape = 'bag';
-  } else if (value.contains('headphone')) {
-    shape = 'headphones';
-    body = '#172033';
-  } else if (value.contains('bottle') || value.contains('tumbler')) {
-    shape = 'bottle';
-    body = '#172033';
-  } else if (value.contains('pen')) {
-    shape = 'pen';
-  } else if (value.contains('calculator')) {
-    shape = 'calculator';
-    body = '#172033';
-  } else if (value.contains('lamp')) {
-    shape = 'lamp';
-    body = '#F97368';
-  } else if (value.contains('sleeve')) {
-    shape = 'sleeve';
-  }
-
-  return _productSvg(
-    bg: '#EEF4FF',
-    body: body,
-    accent: accent,
-    shape: shape,
-  );
 }
 
 String _productSvg({
