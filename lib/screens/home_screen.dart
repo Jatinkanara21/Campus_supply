@@ -1118,14 +1118,29 @@ class _FirebaseProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl=(product['imageUrl']??'').toString();
+    final imageUrl = (product['imageUrl'] ?? '').toString().trim();
+    final displayImageUrl = imageUrl.isNotEmpty ? imageUrl : _fallbackImageUrl(product);
     return GestureDetector(
       onTap:onTap,
       child: Container(
         padding:const EdgeInsets.all(12),
         decoration:BoxDecoration(color:HomeScreen.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:HomeScreen.border)),
         child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          Expanded(child:Container(width:double.infinity,decoration:BoxDecoration(color:const Color(0xFFF5F3EE),borderRadius:BorderRadius.circular(16)),clipBehavior:Clip.antiAlias,child:imageUrl.isNotEmpty?Image.network(imageUrl,fit:BoxFit.cover,errorBuilder:(_,__,___)=>const Icon(Icons.inventory_2_rounded,color:HomeScreen.blue,size:62)):const Icon(Icons.inventory_2_rounded,color:HomeScreen.blue,size:62))),
+          Expanded(child:Container(width:double.infinity,decoration:BoxDecoration(color:const Color(0xFFF5F3EE),borderRadius:BorderRadius.circular(16)),clipBehavior:Clip.antiAlias,child:displayImageUrl.isNotEmpty
+              ? Image.network(
+                  displayImageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.inventory_2_rounded,
+                    color: HomeScreen.blue,
+                    size: 62,
+                  ),
+                )
+              : const Icon(
+                  Icons.inventory_2_rounded,
+                  color: HomeScreen.blue,
+                  size: 62,
+                ))),
           const SizedBox(height:9),
           Text((product['name']??'Product').toString(),maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:HomeScreen.ink,fontSize:13,fontWeight:FontWeight.w800)),
           const SizedBox(height:5),
@@ -1144,6 +1159,24 @@ class _CircleButton extends StatelessWidget {
     required this.icon,
     required this.onTap,
   });
+
+  String _fallbackImageUrl(Map<String, dynamic> product) {
+    final value = '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
+
+    if (value.contains('backpack') || value.contains('bag')) {
+      return 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=900&q=85';
+    }
+    if (value.contains('headphone')) {
+      return 'https://images.unsplash.com/photo-1558365916-848463c5d803?auto=format&fit=crop&w=900&q=85';
+    }
+    if (value.contains('bottle') || value.contains('tumbler')) {
+      return 'https://images.unsplash.com/photo-1561180796-dbaa5caf76e0?auto=format&fit=crop&w=900&q=85';
+    }
+    if (value.contains('notebook') || value.contains('stationery') || value.contains('pen')) {
+      return 'https://images.unsplash.com/photo-1743760521201-ddb298df18cd?auto=format&fit=crop&w=900&q=85';
+    }
+    return '';
+  }
 
   @override
   Widget build(BuildContext context) {
