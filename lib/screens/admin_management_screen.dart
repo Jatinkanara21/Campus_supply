@@ -165,7 +165,9 @@ class AdminManagementScreen extends StatelessWidget {
       data['category'] = 'General';
       data['stock'] = 0;
     }
-    if (section == AdminSection.products) data['imageUrl'] = imageUrl.text.trim();
+    if (section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles) {
+      data['imageUrl'] = imageUrl.text.trim();
+    }
     await FirebaseFirestore.instance.collection(collection).add(data);
     name.dispose();
     description.dispose();
@@ -196,7 +198,9 @@ class AdminManagementScreen extends StatelessWidget {
     if (section == AdminSection.products || section == AdminSection.bundles) {
       update['price'] = double.tryParse(price.text.trim()) ?? 0;
     }
-    if (section == AdminSection.products) update['imageUrl'] = imageUrl.text.trim();
+    if (section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles) {
+      update['imageUrl'] = imageUrl.text.trim();
+    }
     await doc.reference.update(update);
     name.dispose();
     description.dispose();
@@ -228,7 +232,7 @@ class AdminManagementScreen extends StatelessWidget {
               final file = result.files.single;
               final extension = (file.extension ?? 'jpg').toLowerCase();
               final ref = FirebaseStorage.instance.ref(
-                'public/products/product_${DateTime.now().millisecondsSinceEpoch}.$extension',
+                'public/${collection}/${DateTime.now().millisecondsSinceEpoch}.$extension',
               );
               await ref.putData(
                 file.bytes!,
@@ -240,7 +244,7 @@ class AdminManagementScreen extends StatelessWidget {
               imageUrl.text = await ref.getDownloadURL();
               if (dialogContext.mounted) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('Product image uploaded.')),
+                  SnackBar(content: Text('${title.replaceAll('Edit ', '').replaceAll('Add ', '')} image uploaded.')),
                 );
               }
             } catch (e) {
@@ -276,14 +280,15 @@ class AdminManagementScreen extends StatelessWidget {
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(labelText: 'Price'),
                       ),
-                    if (section == AdminSection.products) ...[
+                    if (section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles) ...[
                       const SizedBox(height: 12),
                       TextField(
                         controller: imageUrl,
+                        onChanged: (_) => setDialogState(() {}),
                         keyboardType: TextInputType.url,
                         decoration: const InputDecoration(
-                          labelText: 'Product image URL',
-                          hintText: 'https://example.com/product.jpg',
+                          labelText: section == AdminSection.products ? 'Product image URL' : section == AdminSection.categories ? 'Category image URL' : 'Bundle image URL',
+                          hintText: 'https://example.com/image.jpg',
                           prefixIcon: Icon(Icons.link_rounded),
                         ),
                       ),
