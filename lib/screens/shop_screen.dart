@@ -211,6 +211,8 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget _card(BuildContext context, Map<String, dynamic> p) {
     final price = p['price'];
     final imageUrl = (p['imageUrl'] ?? '').toString().trim();
+    final displayImageUrl =
+        imageUrl.isNotEmpty ? imageUrl : _fallbackImageUrl(p);
 
     return InkWell(
       borderRadius: BorderRadius.circular(22),
@@ -233,9 +235,9 @@ class _ShopScreenState extends State<ShopScreen> {
                   borderRadius: BorderRadius.circular(17),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: imageUrl.isNotEmpty
+                child: displayImageUrl.isNotEmpty
                     ? Image.network(
-                        imageUrl,
+                        displayImageUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => const Center(
                           child: Icon(
@@ -318,4 +320,25 @@ class _ShopScreenState extends State<ShopScreen> {
           ),
         ),
       );
+}
+
+String _fallbackImageUrl(Map<String, dynamic> product) {
+  final value =
+      '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
+
+  if (value.contains('backpack') || value.contains('bag')) {
+    return 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=900&q=85';
+  }
+  if (value.contains('headphone')) {
+    return 'https://images.unsplash.com/photo-1558365916-848463c5d803?auto=format&fit=crop&w=900&q=85';
+  }
+  if (value.contains('bottle') || value.contains('tumbler')) {
+    return 'https://images.unsplash.com/photo-1561180796-dbaa5caf76e0?auto=format&fit=crop&w=900&q=85';
+  }
+  if (value.contains('notebook') ||
+      value.contains('stationery') ||
+      value.contains('pen')) {
+    return 'https://images.unsplash.com/photo-1743760521201-ddb298df18cd?auto=format&fit=crop&w=900&q=85';
+  }
+  return '';
 }
