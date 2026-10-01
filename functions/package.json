@@ -1,0 +1,13 @@
+{
+  "name": "campus-supply-functions",
+  "description": "Campus Supply Firebase Functions",
+  "private": true,
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^13.5.0",
+    "firebase-functions": "^6.6.0"
+  }
+}
