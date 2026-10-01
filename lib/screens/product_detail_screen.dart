@@ -67,7 +67,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget _image(String url) => Container(
     height: 440, clipBehavior: Clip.antiAlias,
     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28), border: Border.all(color: border)),
-    child: url.isEmpty ? const Center(child: Icon(Icons.inventory_2_rounded, color: blue, size: 110)) : Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.image_not_supported_outlined, color: blue, size: 80))),
+    child: url.isEmpty ? const Center(child: Icon(Icons.inventory_2_rounded, color: blue, size: 110)) : Image.network(
+        url,
+        fit: BoxFit.contain,
+        gaplessPlayback: true,
+        webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const Center(
+            child: SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) => const Center(
+          child: Icon(
+            Icons.image_not_supported_outlined,
+            color: blue,
+            size: 80,
+          ),
+        ),
+      ),
   );
 
   Widget _details(BuildContext context, Map<String, dynamic> product, String name, String description, double price, String rating, String category) => Column(
