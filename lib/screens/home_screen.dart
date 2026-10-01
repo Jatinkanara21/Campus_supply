@@ -1130,6 +1130,18 @@ class _FirebaseProductCard extends StatelessWidget {
               ? Image.network(
                   displayImageUrl,
                   fit: BoxFit.cover,
+                  gaplessPlayback: true,
+                  webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return const Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      ),
+                    );
+                  },
                   errorBuilder: (_, __, ___) => const Icon(
                     Icons.inventory_2_rounded,
                     color: HomeScreen.blue,
