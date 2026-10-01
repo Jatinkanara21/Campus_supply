@@ -212,6 +212,7 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget _card(BuildContext context, Map<String, dynamic> p) {
     final price = p['price'];
     final imageUrl = (p['imageUrl'] ?? '').toString().trim();
+    final realPhotoUrl = imageUrl.isNotEmpty ? imageUrl : _realPhotoUrl(p);
     final fallbackSvg = _fallbackSvg(p);
 
     Widget fallbackImage() => SvgPicture.string(
@@ -219,6 +220,19 @@ class _ShopScreenState extends State<ShopScreen> {
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
+        );
+
+    Widget photo() => Image.network(
+          realPhotoUrl,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          filterQuality: FilterQuality.low,
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return fallbackImage();
+          },
+          errorBuilder: (_, __, ___) => fallbackImage(),
         );
 
     return InkWell(
@@ -242,18 +256,7 @@ class _ShopScreenState extends State<ShopScreen> {
                   borderRadius: BorderRadius.circular(17),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        filterQuality: FilterQuality.low,
-                        frameBuilder: (context, child, frame, wasSync) {
-                          if (wasSync || frame != null) return child;
-                          return fallbackImage();
-                        },
-                        errorBuilder: (_, __, ___) => fallbackImage(),
-                      )
-                    : fallbackImage(),
+                child: realPhotoUrl.isNotEmpty ? photo() : fallbackImage(),
               ),
             ),
             const SizedBox(height: 10),
@@ -304,91 +307,38 @@ class _ShopScreenState extends State<ShopScreen> {
       ),
     );
   }
-
-  Widget _message(String text) => Container(
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: border),
-        ),
-        child: Center(
-          child: Text(
-            text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: muted, height: 1.4),
-          ),
-        ),
-      );
-}
-
-String _fallbackSvg(Map<String, dynamic> product) {
+String _realPhotoUrl(Map<String, dynamic> product) {
   final value =
       '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
 
   if (value.contains('backpack') || value.contains('bag')) {
-    return _productSvg(
-      bg: '#EAF2FF',
-      body: '#2563EB',
-      accent: '#FACC15',
-      shape: 'bag',
-    );
-  }
-  if (value.contains('headphone')) {
-    return _productSvg(
-      bg: '#EAF2FF',
-      body: '#2563EB',
-      accent: '#FACC15',
-      shape: 'headphones',
-    );
-  }
-  if (value.contains('bottle') || value.contains('tumbler')) {
-    return _productSvg(
-      bg: '#E8F7F0',
-      body: '#2563EB',
-      accent: '#FACC15',
-      shape: 'bottle',
-    );
+    return 'https://www.jemapub.fr/content/uploads/2026/01/92375_104-a.jpg';
   }
   if (value.contains('pen')) {
-    return _productSvg(
-      bg: '#FFE9E6',
-      body: '#2563EB',
-      accent: '#FACC15',
-      shape: 'pen',
-    );
-  }
-  if (value.contains('calculator')) {
-    return _productSvg(
-      bg: '#F1F5F9',
-      body: '#172033',
-      accent: '#2563EB',
-      shape: 'calculator',
-    );
-  }
-  if (value.contains('lamp')) {
-    return _productSvg(
-      bg: '#FFF7CC',
-      body: '#2563EB',
-      accent: '#FACC15',
-      shape: 'lamp',
-    );
+    return 'https://i5.walmartimages.com/seo/Pen-Gear-Retractable-Gel-Pen-7mm-Medium-Point-Assorted-Colors-12-Count_f4f9f129-261c-45c4-8ddf-416ed5b0397c.347cf4aaaf7c4e962aa19fe075e75d66.jpeg?odnBg=FFFFFF&odnHeight=768&odnWidth=768';
   }
   if (value.contains('sleeve')) {
-    return _productSvg(
-      bg: '#EAF2FF',
-      body: '#172033',
-      accent: '#2563EB',
-      shape: 'sleeve',
-    );
+    return 'https://images.unsplash.com/photo-1675668409245-955188b96bf6?auto=format&fit=crop&w=700&q=75';
   }
-  return _productSvg(
-    bg: '#FFF7CC',
-    body: '#172033',
-    accent: '#2563EB',
-    shape: 'notebook',
-  );
+  if (value.contains('notebook') || value.contains('stationery')) {
+    return 'https://kalendarzefirmowe24.pl/img/notesy/notes-a5-w-kropki-vivella-z-gumka-granatowy-l.jpg';
+  }
+  if (value.contains('calculator')) {
+    return 'https://www.casio.com/content/dam/casio/product-info/locales/us/en/calc/product/scientific/F/FX/FX9/fx-991EX/us-assets/fx-991EX%20Front%20On.png.transform/main-visual-sp/image.png';
+  }
+  if (value.contains('bottle') || value.contains('tumbler')) {
+    return 'https://fashionpyramid.co/cdn/shop/files/53a5bfc8c3f83b7863cc7e9800976150.jpg?v=1730559762&width=600';
+  }
+  if (value.contains('lamp')) {
+    return 'https://images.unsplash.com/photo-1570974802254-4b0ad1a755f5?auto=format&fit=crop&w=700&q=75';
+  }
+  if (value.contains('headphone')) {
+    return 'https://images.unsplash.com/photo-1547932087-59a8f2be576e?auto=format&fit=crop&w=700&q=75';
+  }
+  return 'https://images.unsplash.com/photo-1652466380685-c552233a941a?auto=format&fit=crop&w=700&q=75';
 }
+
+
 
 String _productSvg({
   required String bg,
