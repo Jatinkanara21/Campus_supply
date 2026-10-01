@@ -304,6 +304,24 @@ class _ShopScreenState extends State<ShopScreen> {
       ),
     );
   }
+
+  Widget _message(String text) => Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: border),
+        ),
+        child: Center(
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: muted, height: 1.4),
+          ),
+        ),
+      );
+}
+
 String _fallbackSvg(Map<String, dynamic> product) {
   final value =
       '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
