@@ -1126,7 +1126,8 @@ class _FirebaseProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageUrl = (product['imageUrl'] ?? '').toString().trim();
-    final displayImageUrl = imageUrl.startsWith('assets/image/') ? imageUrl : _fallbackImageUrl(product);
+    // Firestore may contain either a bundled asset path or a Firebase Storage URL.
+    final displayImageUrl = imageUrl.isNotEmpty ? imageUrl : _fallbackImageUrl(product);
     return GestureDetector(
       onTap:onTap,
       child: Container(
@@ -1134,10 +1135,10 @@ class _FirebaseProductCard extends StatelessWidget {
         decoration:BoxDecoration(color:HomeScreen.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:HomeScreen.border)),
         child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Expanded(child:Container(width:double.infinity,decoration:BoxDecoration(color:const Color(0xFFF5F3EE),borderRadius:BorderRadius.circular(16)),clipBehavior:Clip.antiAlias,child:displayImageUrl.isNotEmpty
-              ? Image.asset(
-                  displayImageUrl,
+              ? AppImage(
+                  source: displayImageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(
+                  fallback: const Icon(
                     Icons.inventory_2_rounded,
                     color: HomeScreen.blue,
                     size: 62,
