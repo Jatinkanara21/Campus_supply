@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,7 +7,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 enum AdminSection { products, categories, bundles, orders, users, reviews }
 
@@ -417,21 +418,16 @@ class AdminManagementScreen extends StatelessWidget {
                                     ? 'categories'
                                     : 'bundles';
                             final fileName = imageUrl.text.split('/').last;
-                            final path = 'public/' + folder + '/' + fileName;
-                            final ref = FirebaseStorage.instance.ref().child(path);
-                            await ref
-                                .putData(
-                                  selectedImageBytes!,
-                                  SettableMetadata(
-                                    contentType: _contentTypeForPath(path),
-                                  ),
-                                )
-                                .timeout(
-                                  const Duration(seconds: 30),
-                                  onTimeout: () => throw TimeoutException(
-                                    'Firebase Storage upload timed out. Check Firebase Storage setup and rules.',
-                                  ),
-                                );
+                            final path = 'assets/image/' + folder + '/' + fileName;
+                            final callable = FirebaseFunctions.instanceFor(
+                              region: 'us-central1',
+                            ).httpsCallable('uploadImageToGitHub');
+                            await callable.call({
+                              'folder': folder,
+                              'fileName': fileName,
+                              'contentType': _contentTypeForPath(path),
+                              'base64': base64Encode(selectedImageBytes!),
+                            });
                           }
                           if (dialogContext.mounted) {
                             Navigator.pop(dialogContext, true);
