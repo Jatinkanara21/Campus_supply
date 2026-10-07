@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../database/firestore_database.dart';
 
 class BundlesScreen extends StatelessWidget {
@@ -199,6 +200,9 @@ class BundlesScreen extends StatelessWidget {
     }
 
     if (path.startsWith('assets/')) {
+      if (path.toLowerCase().endsWith('.svg')) {
+        return SvgPicture.asset(path, fit: BoxFit.cover);
+      }
       return Image.asset(
         path,
         fit: BoxFit.cover,
