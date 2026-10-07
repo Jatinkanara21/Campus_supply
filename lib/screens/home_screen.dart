@@ -709,13 +709,23 @@ class HomeScreen extends StatelessWidget {
               ),
               child: imageUrl.isNotEmpty
                   ? ClipOval(
-                      child: Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        width: 45,
-                        height: 45,
-                        errorBuilder: (_, __, ___) => Icon(icon, color: accent, size: 22),
-                      ),
+                      child: imageUrl.startsWith('assets/')
+                          ? Image.asset(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              width: 45,
+                              height: 45,
+                              errorBuilder: (_, __, ___) =>
+                                  Icon(icon, color: accent, size: 22),
+                            )
+                          : Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              width: 45,
+                              height: 45,
+                              errorBuilder: (_, __, ___) =>
+                                  Icon(icon, color: accent, size: 22),
+                            ),
                     )
                   : Icon(icon, color: accent, size: 22),
             ),
