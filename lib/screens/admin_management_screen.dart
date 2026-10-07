@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 enum AdminSection { products, categories, bundles, orders, users, reviews }
 
@@ -217,10 +220,39 @@ class AdminManagementScreen extends StatelessWidget {
     required TextEditingController price,
     required TextEditingController imageUrl,
   }) {
+    Uint8List? selectedImageBytes;
+    String? selectedFileName;
+
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
+          Future<void> pickImage() async {
+            final picker = ImagePicker();
+            final file = await picker.pickImage(
+              source: ImageSource.gallery,
+              imageQuality: 90,
+            );
+            if (file == null) return;
+
+            final bytes = await file.readAsBytes();
+            final filename = file.name;
+            final safeName = filename
+                .toLowerCase()
+                .replaceAll(RegExp(r'[^a-z0-9._-]'), '_');
+            final folder = section == AdminSection.products
+                ? 'products'
+                : section == AdminSection.categories
+                    ? 'categories'
+                    : 'bundles';
+
+            setDialogState(() {
+              selectedImageBytes = bytes;
+              selectedFileName = filename;
+              imageUrl.text = 'assets/image/' + folder + '/' + safeName;
+            });
+          }
+
           return AlertDialog(
             title: Text(title),
             content: SizedBox(
@@ -243,23 +275,91 @@ class AdminManagementScreen extends StatelessWidget {
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(labelText: 'Price'),
                       ),
-                    if (section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles) ...[
-                      const SizedBox(height: 12),
+                    if (section == AdminSection.products ||
+                        section == AdminSection.categories ||
+                        section == AdminSection.bundles) ...[
+                      const SizedBox(height: 16),
+                      InkWell(
+                        onTap: pickImage,
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: const Color(0xFFD6DCE5)),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            children: [
+                              if (selectedImageBytes != null)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.memory(
+                                    selectedImageBytes!,
+                                    width: 58,
+                                    height: 58,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              else
+                                Container(
+                                  width: 58,
+                                  height: 58,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEAF2FF),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.cloud_upload_outlined,
+                                    color: Color(0xFF2563EB),
+                                    size: 30,
+                                  ),
+                                ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      selectedFileName ?? 'Upload Image',
+                                      style: const TextStyle(fontWeight: FontWeight.w700),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      selectedFileName == null
+                                          ? 'Choose JPG, PNG, WEBP or SVG'
+                                          : 'Image selected',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF707681),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.add_photo_alternate_outlined),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       TextField(
                         controller: imageUrl,
+                        readOnly: true,
                         decoration: InputDecoration(
-                          labelText: section == AdminSection.products
-                              ? 'Product asset path'
-                              : section == AdminSection.categories
-                                  ? 'Category asset path'
-                                  : 'Bundle asset path',
-                          hintText: 'assets/image/products/backpack.svg',
+                          labelText: 'Asset path',
+                          hintText: 'assets/image/products/backpack.jpg',
                           prefixIcon: const Icon(Icons.image_outlined),
+                          suffixIcon: IconButton(
+                            tooltip: 'Choose another image',
+                            onPressed: pickImage,
+                            icon: const Icon(Icons.refresh),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Use a bundled asset path such as assets/image/products/backpack.svg. Images are packaged with the app and are not uploaded to Firebase.',
+                        'No Firebase Storage upload. The selected image is assigned an assets/image/ path. Add the selected file to that repository folder before building the app.',
                         style: TextStyle(fontSize: 11.5, color: Color(0xFF707681)),
                       ),
                     ],
@@ -282,7 +382,6 @@ class AdminManagementScreen extends StatelessWidget {
       ),
     );
   }
-
   Future<void> _delete(BuildContext context, QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
     final yes = await showDialog<bool>(
       context: context,
