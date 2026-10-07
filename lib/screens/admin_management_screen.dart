@@ -408,7 +408,6 @@ class AdminManagementScreen extends StatelessWidget {
                     : () async {
                         setDialogState(() => isSaving = true);
                         try {
-                          }
                           if (dialogContext.mounted) {
                             Navigator.pop(dialogContext, true);
                           }
