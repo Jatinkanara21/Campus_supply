@@ -1,7 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -219,138 +217,10 @@ class AdminManagementScreen extends StatelessWidget {
     required TextEditingController price,
     required TextEditingController imageUrl,
   }) {
-    var selectingImage = false;
-    var uploading = false;
-    var uploadProgress = 0.0;
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
-          Future<void> uploadImage() async {
-            if (selectingImage || uploading) return;
-
-            setDialogState(() => selectingImage = true);
-            FilePickerResult? result;
-
-            try {
-              result = await FilePicker.platform.pickFiles(
-                type: FileType.image,
-                allowMultiple: false,
-                withData: true,
-              );
-            } catch (e) {
-              if (dialogContext.mounted) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text('Could not open image picker: ' + e.toString())),
-                );
-              }
-            } finally {
-              if (dialogContext.mounted) {
-                setDialogState(() => selectingImage = false);
-              }
-            }
-
-            if (result == null || result.files.isEmpty || !dialogContext.mounted) {
-              return;
-            }
-
-            final file = result.files.single;
-            final bytes = file.bytes;
-            if (bytes == null || bytes.isEmpty) {
-              ScaffoldMessenger.of(dialogContext).showSnackBar(
-                const SnackBar(content: Text('The selected image could not be read. Please choose it again.')),
-              );
-              return;
-            }
-
-            const maxBytes = 8 * 1024 * 1024;
-            if (bytes.length > maxBytes) {
-              ScaffoldMessenger.of(dialogContext).showSnackBar(
-                const SnackBar(content: Text('Image is larger than 8 MB. Please choose a smaller image.')),
-              );
-              return;
-            }
-
-            setDialogState(() {
-              uploading = true;
-              uploadProgress = 0;
-            });
-
-            try {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user == null) {
-                throw FirebaseException(
-                  plugin: 'firebase_storage',
-                  code: 'unauthenticated',
-                  message: 'Please sign in before uploading an image.',
-                );
-              }
-
-              final extension = (file.extension ?? 'jpg').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-              final safeExtension = extension.isEmpty ? 'jpg' : extension;
-              final fileName = 'image_' + DateTime.now().millisecondsSinceEpoch.toString() + '.' + safeExtension;
-              final ref = FirebaseStorage.instance.ref().child('public/' + collection + '/' + fileName);
-
-              final uploadTask = ref.putData(
-                bytes,
-                SettableMetadata(
-                  contentType: _contentTypeForExtension(safeExtension),
-                  cacheControl: 'public,max-age=3600',
-                ),
-              );
-
-              final progressSubscription = uploadTask.snapshotEvents.listen((snapshot) {
-                if (!dialogContext.mounted) return;
-                final total = snapshot.totalBytes;
-                final transferred = snapshot.bytesTransferred;
-                setDialogState(() {
-                  uploadProgress = total > 0 ? transferred / total : 0;
-                });
-              });
-
-              try {
-                await uploadTask;
-              } finally {
-                await progressSubscription.cancel();
-              }
-
-              final downloadUrl = await ref.getDownloadURL();
-              // Firebase Storage is the secure staging area. The deployed
-              // Cloud Function copies the same bytes into GitHub under
-              // assets/images/<collection>/. Use the GitHub raw URL in the
-              // catalog so the app ultimately reads the repository asset.
-              final githubUrl = 'https://raw.githubusercontent.com/Jatinkanara21/Campus_supply/main/assets/images/' + collection + '/' + fileName;
-              imageUrl.text = githubUrl;
-              if (dialogContext.mounted) {
-                setDialogState(() => uploadProgress = 1);
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('Image uploaded successfully.')),
-                );
-              }
-            } on FirebaseException catch (e) {
-              if (dialogContext.mounted) {
-                final message = e.code == 'permission-denied'
-                    ? 'Upload denied. Your account must have the admin role in Firestore.'
-                    : e.code == 'unauthenticated'
-                        ? 'Please sign in again before uploading.'
-                        : 'Image upload failed: ' + (e.message ?? e.code);
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text(message)),
-                );
-              }
-            } catch (e) {
-              if (dialogContext.mounted) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text('Image upload failed: ' + e.toString())),
-                );
-              }
-            } finally {
-              if (dialogContext.mounted) {
-                setDialogState(() => uploading = false);
-              }
-            }
-          }
-
           return AlertDialog(
             title: Text(title),
             content: SizedBox(
@@ -376,16 +246,14 @@ class AdminManagementScreen extends StatelessWidget {
                     if (section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles) ...[
                       const SizedBox(height: 12),
                       TextField(
-                        controller: imageUrl,
-                        onChanged: (_) => setDialogState(() {}),
-                        keyboardType: TextInputType.url,
+                        controller: imageUrl
                         decoration: InputDecoration(
                           labelText: section == AdminSection.products
-                              ? 'Product image URL'
+                              ? 'Product asset path'
                               : section == AdminSection.categories
-                                  ? 'Category image URL'
-                                  : 'Bundle image URL',
-                          hintText: 'https://example.com/image.jpg',
+                                  ? 'Category asset path'
+                                  : 'Bundle asset path',
+                          hintText: 'assets/image/products/backpack.svg',
                           prefixIcon: const Icon(Icons.link_rounded),
                         ),
                       ),
