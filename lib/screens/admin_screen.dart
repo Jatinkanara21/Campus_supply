@@ -1,10 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:typed_data';
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cloud_functions/cloud_functions.dart';
+import '../services/github_image_upload_service.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../database/firestore_database.dart';
 import '../database/firestore_seed.dart';
@@ -370,7 +368,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'The image is uploaded securely first, then a Firebase Function syncs it into assets/image/hero/ in GitHub.',
+                    'The image is uploaded securely through the Campus Supply image gateway and committed directly into assets/image/hero/ on GitHub.',
                     style: TextStyle(color: muted, fontSize: 11.5),
                   ),
                 ],
@@ -391,15 +389,12 @@ class _AdminScreenState extends State<AdminScreen> {
                 try {
                   if (selectedBytes != null) {
                     final fileName = controller.text.trim().split('/').last;
-                    final callable = FirebaseFunctions.instanceFor(
-                      region: 'us-central1',
-                    ).httpsCallable('uploadImageToGitHub');
-                    await callable.call({
-                      'folder': 'hero',
-                      'fileName': fileName,
-                      'contentType': _contentTypeForPath(fileName),
-                      'base64': base64Encode(selectedBytes!),
-                    });
+                    await GitHubImageUploadService.upload(
+                      folder: 'hero',
+                      fileName: fileName,
+                      contentType: _contentTypeForPath(fileName),
+                      imageBytes: selectedBytes!,
+                    );
                   }
                   await FirestoreDatabase.instance.saveHomeSettings(
                     heroImageUrl: controller.text.trim(),
