@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/image_storage_service.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -258,29 +259,50 @@ class AdminManagementScreen extends StatelessWidget {
 
           Future<void> pickImage() async {
             if (isSaving) return;
-            final picker = ImagePicker();
-            final file = await picker.pickImage(
-              source: ImageSource.gallery,
-              imageQuality: 90,
-            );
-            if (file == null) return;
 
-            final bytes = await file.readAsBytes();
-            final filename = file.name;
-            final safeName = filename
-                .toLowerCase()
-                .replaceAll(RegExp(r'[^a-z0-9._-]'), '_');
-            final folder = section == AdminSection.products
-                ? 'products'
-                : section == AdminSection.categories
-                    ? 'categories'
-                    : 'bundles';
+            try {
+              final picker = ImagePicker();
+              final file = await picker.pickImage(
+                source: ImageSource.gallery,
+                imageQuality: 90,
+                maxWidth: 1600,
+                maxHeight: 1600,
+              );
+              if (file == null) return;
 
-            setDialogState(() {
-              selectedImageBytes = bytes;
-              selectedFileName = filename;
-              imageUrl.text = 'assets/image/' + folder + '/' + safeName;
-            });
+              final bytes = await file.readAsBytes();
+              final filename = file.name;
+              final folder = section == AdminSection.products
+                  ? 'products'
+                  : section == AdminSection.categories
+                      ? 'categories'
+                      : 'bundles';
+
+              setDialogState(() {
+                selectedImageBytes = bytes;
+                selectedFileName = filename;
+              });
+
+              final downloadUrl = await ImageStorageService.upload(
+                bytes: bytes,
+                folder: folder,
+                fileName: filename,
+              );
+
+              imageUrl.text = downloadUrl;
+
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Image uploaded successfully')),
+                );
+              }
+            } catch (e) {
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text('Image upload failed: $e')),
+                );
+              }
+            }
           }
 
           return AlertDialog(
@@ -389,7 +411,7 @@ class AdminManagementScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Select an image asset that already exists in the selected assets/image/ folder. The selected path is saved with this catalog item.',
+                        'Choose an image from your device. It is uploaded to Firebase Storage and the saved download URL is stored with this catalog item.',
                         style: TextStyle(fontSize: 11.5, color: Color(0xFF707681)),
                       ),
                     ],
