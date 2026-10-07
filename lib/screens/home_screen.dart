@@ -473,7 +473,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   child: imageUrl.isNotEmpty
-                      ? Image.network(
+                      ? Image.asset(
                           imageUrl,
                           fit: BoxFit.cover,
                           width: double.infinity,
@@ -1131,7 +1131,7 @@ class _FirebaseProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageUrl = (product['imageUrl'] ?? '').toString().trim();
-    final displayImageUrl = imageUrl.isNotEmpty ? imageUrl : _fallbackImageUrl(product);
+    final displayImageUrl = imageUrl.startsWith('assets/image/') ? imageUrl : _fallbackImageUrl(product);
     return GestureDetector(
       onTap:onTap,
       child: Container(
@@ -1139,7 +1139,7 @@ class _FirebaseProductCard extends StatelessWidget {
         decoration:BoxDecoration(color:HomeScreen.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:HomeScreen.border)),
         child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Expanded(child:Container(width:double.infinity,decoration:BoxDecoration(color:const Color(0xFFF5F3EE),borderRadius:BorderRadius.circular(16)),clipBehavior:Clip.antiAlias,child:displayImageUrl.isNotEmpty
-              ? Image.network(
+              ? Image.asset(
                   displayImageUrl,
                   fit: BoxFit.cover,
                   gaplessPlayback: true,
