@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:typed_data';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../database/firestore_database.dart';
 import '../database/firestore_seed.dart';
@@ -390,12 +391,15 @@ class _AdminScreenState extends State<AdminScreen> {
                 try {
                   if (selectedBytes != null) {
                     final fileName = controller.text.trim().split('/').last;
-                    final path = 'public/hero/' + fileName;
-                    final ref = FirebaseStorage.instance.ref(path);
-                    await ref.putData(
-                      selectedBytes!,
-                      SettableMetadata(contentType: _contentTypeForPath(path)),
-                    );
+                    final callable = FirebaseFunctions.instanceFor(
+                      region: 'us-central1',
+                    ).httpsCallable('uploadImageToGitHub');
+                    await callable.call({
+                      'folder': 'hero',
+                      'fileName': fileName,
+                      'contentType': _contentTypeForPath(fileName),
+                      'base64': base64Encode(selectedBytes!),
+                    });
                   }
                   await FirestoreDatabase.instance.saveHomeSettings(
                     heroImageUrl: controller.text.trim(),
