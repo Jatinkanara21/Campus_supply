@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import '../database/firestore_database.dart';
 import '../database/firestore_seed.dart';
 import '../widgets/app_image.dart';
 import '../services/auth_service.dart';
+import '../services/image_storage_service.dart';
 import 'admin_management_screen.dart';
 
 class AdminScreen extends StatefulWidget {
@@ -278,65 +280,128 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Future<void> _editHeroSettings(String currentAsset) async {
     final controller = TextEditingController(text: currentAsset);
+    Uint8List? previewBytes;
+    bool uploading = false;
 
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Homepage hero image'),
-        content: SizedBox(
-          width: 520,
-          child: SingleChildScrollView(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Homepage hero image'),
+          content: SizedBox(
+            width: 520,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (previewBytes != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Image.memory(
+                      previewBytes!,
+                      width: double.infinity,
+                      height: 160,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                if (previewBytes != null) const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: uploading
+                      ? null
+                      : () async {
+                          try {
+                            final picker = ImagePicker();
+                            final file = await picker.pickImage(
+                              source: ImageSource.gallery,
+                              imageQuality: 90,
+                              maxWidth: 1800,
+                              maxHeight: 1000,
+                            );
+                            if (file == null) return;
+
+                            final bytes = await file.readAsBytes();
+                            setDialogState(() {
+                              previewBytes = bytes;
+                              uploading = true;
+                            });
+
+                            final url = await ImageStorageService.upload(
+                              bytes: bytes,
+                              folder: 'hero',
+                              fileName: file.name,
+                            );
+
+                            controller.text = url;
+                            setDialogState(() => uploading = false);
+                          } catch (e) {
+                            setDialogState(() => uploading = false);
+                            if (dialogContext.mounted) {
+                              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                SnackBar(content: Text('Hero image upload failed: $e')),
+                              );
+                            }
+                          }
+                        },
+                  icon: uploading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.cloud_upload_outlined),
+                  label: Text(uploading ? 'Uploading...' : 'Choose & upload image'),
+                ),
+                const SizedBox(height: 10),
                 TextField(
                   controller: controller,
                   decoration: const InputDecoration(
-                    labelText: 'Image asset path or URL',
-                    hintText: 'assets/images/campus_supply.jpeg',
+                    labelText: 'Image URL',
+                    hintText: 'https://...',
                     prefixIcon: Icon(Icons.image_outlined),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 const Text(
-                  'Use a file already committed under assets/ or a public image URL. '
-                  'The path or URL is saved to Firestore and rendered automatically.',
+                  'Uploaded images are stored in Firebase Storage. You can also paste a public image URL.',
                   style: TextStyle(color: muted, fontSize: 11.5),
                 ),
               ],
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: uploading
+                  ? null
+                  : () {
+                      controller.clear();
+                      Navigator.pop(dialogContext);
+                    },
+              child: const Text('Remove image'),
+            ),
+            TextButton(
+              onPressed: uploading ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: uploading
+                  ? null
+                  : () async {
+                      try {
+                        await FirestoreDatabase.instance.saveHomeSettings(
+                          heroImageUrl: controller.text.trim(),
+                        );
+                        if (dialogContext.mounted) Navigator.pop(dialogContext);
+                      } catch (e) {
+                        if (dialogContext.mounted) {
+                          ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            SnackBar(content: Text('Hero image save failed: $e')),
+                          );
+                        }
+                      }
+                    },
+              child: const Text('Save'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              controller.clear();
-              Navigator.pop(dialogContext);
-            },
-            child: const Text('Remove image'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              try {
-                await FirestoreDatabase.instance.saveHomeSettings(
-                  heroImageUrl: controller.text.trim(),
-                );
-                if (dialogContext.mounted) Navigator.pop(dialogContext);
-              } catch (e) {
-                if (dialogContext.mounted) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    SnackBar(content: Text('Hero image save failed: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
 
