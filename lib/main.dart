@@ -1,10 +1,7 @@
-import 'dart:async';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'database/seed_data.dart';
 import 'firebase_options.dart';
 import 'screens/about_screen.dart';
 import 'screens/admin_screen.dart';
@@ -32,12 +29,6 @@ Future<void> main() async {
   );
 
   runApp(const CampusSupplyApp());
-
-  if (!kIsWeb) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(seedInitialData());
-    });
-  }
 }
 
 class CampusSupplyApp extends StatelessWidget {
