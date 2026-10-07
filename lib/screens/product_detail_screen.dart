@@ -63,17 +63,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     child: url.isEmpty ? const Center(child: Icon(Icons.inventory_2_rounded, color: blue, size: 110)) : Image.asset(
         url,
         fit: BoxFit.contain,
-        gaplessPlayback: true,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return const Center(
-            child: SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
-            ),
-          );
-        },
         errorBuilder: (_, __, ___) => const Center(
           child: Icon(
             Icons.image_not_supported_outlined,
