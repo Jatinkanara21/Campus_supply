@@ -1,4 +1,5 @@
 const { onObjectFinalized } = require('firebase-functions/v2/storage');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 
@@ -58,6 +59,66 @@ async function syncFileToGitHub({ buffer, githubPath, message }) {
 
   return response.json();
 }
+
+exports.uploadImageToGitHub = onCall(
+  {
+    region: 'us-central1',
+    secrets: [githubToken],
+    timeoutSeconds: 120,
+    memory: '512MiB',
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'You must be signed in as an admin.');
+    }
+
+    const userSnap = await admin.firestore()
+      .collection('users')
+      .doc(request.auth.uid)
+      .get();
+    if (userSnap.data()?.role !== 'admin') {
+      throw new HttpsError('permission-denied', 'Admin access is required.');
+    }
+
+    const data = request.data || {};
+    const folder = String(data.folder || '');
+    const fileName = String(data.fileName || '');
+    const contentType = String(data.contentType || '');
+    const base64 = String(data.base64 || '');
+
+    if (!['products', 'categories', 'bundles', 'hero'].includes(folder)) {
+      throw new HttpsError('invalid-argument', 'Invalid image folder.');
+    }
+    if (!/^[a-zA-Z0-9._-]+$/.test(fileName)) {
+      throw new HttpsError('invalid-argument', 'Invalid image filename.');
+    }
+    if (!contentType.startsWith('image/')) {
+      throw new HttpsError('invalid-argument', 'Only image files are allowed.');
+    }
+    if (!base64) {
+      throw new HttpsError('invalid-argument', 'Image data is missing.');
+    }
+
+    const buffer = Buffer.from(base64, 'base64');
+    if (buffer.length > 6 * 1024 * 1024) {
+      throw new HttpsError('invalid-argument', 'Image must be smaller than 6 MB.');
+    }
+
+    const githubPath = 'assets/image/' + folder + '/' + fileName;
+    try {
+      await syncFileToGitHub({
+        buffer,
+        githubPath,
+        message: 'Add ' + folder + ' image: ' + fileName,
+      });
+    } catch (error) {
+      console.error('GitHub image upload failed:', error);
+      throw new HttpsError('internal', 'GitHub image upload failed. Check the GitHub token and repository permissions.');
+    }
+
+    return { imagePath: githubPath };
+  },
+);
 
 exports.syncImageToGitHub = onObjectFinalized(
   {
