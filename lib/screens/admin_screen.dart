@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../database/firestore_database.dart';
 import '../database/firestore_seed.dart';
 import '../services/auth_service.dart';
@@ -240,11 +241,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 ),
                 child: imageUrl.isEmpty
                     ? const Icon(Icons.image_outlined, color: blue, size: 30)
-                     : Image.asset(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            const Icon(Icons.broken_image_outlined, color: blue),
+                     : _adminAssetImage(imageUrl),
                       ),
               ),
               const SizedBox(width: 14),
@@ -271,6 +268,18 @@ class _AdminScreenState extends State<AdminScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _adminAssetImage(String path) {
+    if (path.toLowerCase().endsWith('.svg')) {
+      return SvgPicture.asset(path, fit: BoxFit.cover);
+    }
+    return Image.asset(
+      path,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) =>
+          const Icon(Icons.broken_image_outlined, color: blue),
     );
   }
 
