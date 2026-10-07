@@ -257,6 +257,53 @@ class AdminManagementScreen extends StatelessWidget {
         builder: (dialogContext, setDialogState) {
           bool isSaving = false;
 
+          Future<void> enterImageUrl() async {
+            if (isSaving) return;
+            final urlController = TextEditingController(text: imageUrl.text.trim());
+            final url = await showDialog<String>(
+              context: dialogContext,
+              builder: (urlContext) => AlertDialog(
+                title: const Text('Use image URL'),
+                content: TextField(
+                  controller: urlController,
+                  autofocus: true,
+                  keyboardType: TextInputType.url,
+                  decoration: const InputDecoration(
+                    labelText: 'Image URL',
+                    hintText: 'https://example.com/image.jpg',
+                    prefixIcon: Icon(Icons.link_rounded),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(urlContext),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      final value = urlController.text.trim();
+                      if (!value.startsWith('http://') && !value.startsWith('https://')) {
+                        ScaffoldMessenger.of(urlContext).showSnackBar(
+                          const SnackBar(content: Text('Enter a valid http:// or https:// image URL')),
+                        );
+                        return;
+                      }
+                      Navigator.pop(urlContext, value);
+                    },
+                    child: const Text('Use URL'),
+                  ),
+                ],
+              ),
+            );
+            urlController.dispose();
+            if (url == null || url.isEmpty) return;
+            setDialogState(() {
+              imageUrl.text = url;
+              selectedImageBytes = null;
+              selectedFileName = 'Image URL';
+            });
+          }
+
           Future<void> pickImage() async {
             if (isSaving) return;
 
@@ -397,21 +444,43 @@ class AdminManagementScreen extends StatelessWidget {
                       const SizedBox(height: 10),
                       TextField(
                         controller: imageUrl,
-                        readOnly: true,
                         decoration: InputDecoration(
-                          labelText: 'Asset path',
-                          hintText: 'assets/image/products/backpack.jpg',
-                          prefixIcon: const Icon(Icons.image_outlined),
-                          suffixIcon: IconButton(
-                            tooltip: 'Choose another image',
-                            onPressed: pickImage,
-                            icon: const Icon(Icons.refresh),
-                          ),
+                          labelText: 'Image URL',
+                          hintText: 'https://example.com/image.jpg',
+                          prefixIcon: const Icon(Icons.link_rounded),
+                          suffixIcon: imageUrl.text.trim().isNotEmpty
+                              ? IconButton(
+                                  tooltip: 'Clear image URL',
+                                  onPressed: () => setDialogState(() => imageUrl.clear()),
+                                  icon: const Icon(Icons.clear),
+                                )
+                              : null,
                         ),
+                        onChanged: (_) => setDialogState(() {}),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: pickImage,
+                              icon: const Icon(Icons.upload_file_rounded),
+                              label: const Text('Upload from device'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: enterImageUrl,
+                              icon: const Icon(Icons.link_rounded),
+                              label: const Text('Use image URL'),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Choose an image from your device. It is uploaded to Firebase Storage and the saved download URL is stored with this catalog item.',
+                        'Use a local image (uploaded to Firebase Storage) or paste a public direct image URL.',
                         style: TextStyle(fontSize: 11.5, color: Color(0xFF707681)),
                       ),
                     ],
