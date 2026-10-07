@@ -1,10 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../database/firestore_database.dart';
 import '../database/firestore_seed.dart';
+import '../widgets/app_image.dart';
 import '../services/auth_service.dart';
 import 'admin_management_screen.dart';
 
@@ -270,143 +269,80 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Widget _adminAssetImage(String path) {
-    if (path.toLowerCase().endsWith('.svg')) {
-      return SvgPicture.asset(path, fit: BoxFit.cover);
-    }
-    return Image.asset(
-      path,
+    return AppImage(
+      source: path,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) =>
-          const Icon(Icons.broken_image_outlined, color: blue),
+      fallback: const Icon(Icons.broken_image_outlined, color: blue),
     );
   }
 
   Future<void> _editHeroSettings(String currentAsset) async {
-  final controller = TextEditingController(text: currentAsset);
-  Uint8List? selectedBytes;
-  String? selectedName;
+    final controller = TextEditingController(text: currentAsset);
 
-  await showDialog<void>(
-    context: context,
-    builder: (dialogContext) => StatefulBuilder(
-      builder: (dialogContext, setState) {
-        Future<void> pickImage() async {
-          final picker = ImagePicker();
-          final file = await picker.pickImage(
-            source: ImageSource.gallery,
-            imageQuality: 90,
-          );
-          if (file == null) return;
-          final bytes = await file.readAsBytes();
-          final safeName = file.name
-              .toLowerCase()
-              .replaceAll(RegExp(r'[^a-z0-9._-]'), '_');
-          setState(() {
-            selectedBytes = bytes;
-            selectedName = file.name;
-            controller.text = 'assets/image/hero/$safeName';
-          });
-        }
-
-        return AlertDialog(
-          title: const Text('Homepage hero image'),
-          content: SizedBox(
-            width: 520,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  InkWell(
-                    onTap: pickImage,
-                    borderRadius: BorderRadius.circular(14),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFFD6DCE5)),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        children: [
-                          if (selectedBytes != null)
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.memory(selectedBytes!, width: 78, height: 58, fit: BoxFit.cover),
-                            )
-                          else
-                            Container(
-                              width: 78,
-                              height: 58,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEAF2FF),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.image_outlined, color: blue, size: 30),
-                            ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Text(
-                              selectedName ?? 'Upload Hero Image',
-                              style: const TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                          ),
-                          const Icon(Icons.add_photo_alternate_outlined),
-                        ],
-                      ),
-                    ),
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Homepage hero image'),
+        content: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    labelText: 'Image asset path or URL',
+                    hintText: 'assets/images/campus_supply.jpeg',
+                    prefixIcon: Icon(Icons.image_outlined),
                   ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: controller,
-                    readOnly: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Asset path',
-                      hintText: 'assets/image/hero/hero.jpg',
-                      prefixIcon: Icon(Icons.image_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Select an image asset that already exists in assets/image/hero/. The selected path is saved to Firestore.',
-                    style: TextStyle(color: muted, fontSize: 11.5),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Use a file already committed under assets/ or a public image URL. '
+                  'The path or URL is saved to Firestore and rendered automatically.',
+                  style: TextStyle(color: muted, fontSize: 11.5),
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () { controller.clear(); Navigator.pop(dialogContext); },
-              child: const Text('Remove image'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                try {
-                                    await FirestoreDatabase.instance.saveHomeSettings(
-                    heroImageUrl: controller.text.trim(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              controller.clear();
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Remove image'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              try {
+                await FirestoreDatabase.instance.saveHomeSettings(
+                  heroImageUrl: controller.text.trim(),
+                );
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              } catch (e) {
+                if (dialogContext.mounted) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(content: Text('Hero image save failed: $e')),
                   );
-                  if (dialogContext.mounted) Navigator.pop(dialogContext);
-                } catch (e) {
-                  if (dialogContext.mounted) {
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(content: Text('Hero image save failed: $e')),
-                    );
-                  }
                 }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-  controller.dispose();
-}
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+  }
+
   Future<void> _seedCatalog() async {
     try {
       final added = await seedStarterCatalog();
