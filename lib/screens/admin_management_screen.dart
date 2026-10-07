@@ -5,7 +5,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../services/github_image_upload_service.dart';
 
 enum AdminSection { products, categories, bundles, orders, users, reviews }
 
@@ -390,7 +389,7 @@ class AdminManagementScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'The image is uploaded securely through the Campus Supply image gateway and committed directly into assets/image/ on GitHub.',
+                        'Select an image asset that already exists in the selected assets/image/ folder. The selected path is saved with this catalog item.',
                         style: TextStyle(fontSize: 11.5, color: Color(0xFF707681)),
                       ),
                     ],
@@ -409,19 +408,6 @@ class AdminManagementScreen extends StatelessWidget {
                     : () async {
                         setDialogState(() => isSaving = true);
                         try {
-                          if (selectedImageBytes != null) {
-                            final folder = section == AdminSection.products
-                                ? 'products'
-                                : section == AdminSection.categories
-                                    ? 'categories'
-                                    : 'bundles';
-                            final fileName = imageUrl.text.split('/').last;
-                            await GitHubImageUploadService.upload(
-                              folder: folder,
-                              fileName: fileName,
-                              contentType: _contentTypeForPath(fileName),
-                              imageBytes: selectedImageBytes!,
-                            );
                           }
                           if (dialogContext.mounted) {
                             Navigator.pop(dialogContext, true);
@@ -446,7 +432,7 @@ class AdminManagementScreen extends StatelessWidget {
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Upload & Save'),
+                    : const Text('Save'),
               ),
             ],
           );
@@ -454,14 +440,6 @@ class AdminManagementScreen extends StatelessWidget {
       ),
     );
   }
-  String _contentTypeForPath(String path) {
-    final lower = path.toLowerCase();
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    if (lower.endsWith('.svg')) return 'image/svg+xml';
-    return 'image/jpeg';
-  }
-
   Future<void> _delete(BuildContext context, QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
     final yes = await showDialog<bool>(
       context: context,
