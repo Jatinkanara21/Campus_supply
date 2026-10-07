@@ -113,7 +113,15 @@ exports.uploadImageToGitHub = onCall(
       });
     } catch (error) {
       console.error('GitHub image upload failed:', error);
-      throw new HttpsError('internal', 'GitHub image upload failed. Check the GitHub token and repository permissions.');
+
+      const message = error instanceof Error ? error.message : String(error);
+      // Return a useful but safe diagnostic to the admin UI. Never include the token.
+      throw new HttpsError(
+        'internal',
+        message.includes('GitHub upload failed')
+            ? message
+            : 'GitHub upload failed. Make sure GITHUB_CONTENTS_TOKEN is configured and the function is deployed.',
+      );
     }
 
     return { imagePath: githubPath };
