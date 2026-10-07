@@ -1005,9 +1005,24 @@ class HomeScreen extends StatelessWidget {
 
 
 Widget _homeAssetImage(String path) {
-  if (path.toLowerCase().endsWith('.svg')) {
-    return SvgPicture.asset(path, fit: BoxFit.cover);
+  if (!path.startsWith('assets/')) {
+    return Image.network(
+      path,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const _HeroFallbackVisual(),
+    );
   }
+
+  if (path.toLowerCase().endsWith('.svg')) {
+    return SvgPicture.asset(
+      path,
+      fit: BoxFit.cover,
+      placeholderBuilder: (_) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
   return Image.asset(
     path,
     fit: BoxFit.cover,
