@@ -22,14 +22,7 @@ class AppImage extends StatelessWidget {
   }
 
   String get _normalizedAssetPath {
-    var value = (source ?? '').trim().replaceAll('\\', '/');
-
-    // Keep the canonical asset folder used by pubspec.yaml.
-    if (value.startsWith('assets/images/')) {
-      value = 'assets/' + value.substring('assets/images/'.length);
-    }
-
-    return value;
+    return (source ?? '').trim().replaceAll('\\', '/');
   }
 
   Widget _fallback(BuildContext context) {
