@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../widgets/app_image.dart';
 import '../database/firestore_database.dart';
 import '../widgets/campus_logo.dart';
 
@@ -1005,28 +1006,10 @@ class HomeScreen extends StatelessWidget {
 
 
 Widget _homeAssetImage(String path) {
-  if (!path.startsWith('assets/')) {
-    return Image.network(
-      path,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const _HeroFallbackVisual(),
-    );
-  }
-
-  if (path.toLowerCase().endsWith('.svg')) {
-    return SvgPicture.asset(
-      path,
-      fit: BoxFit.cover,
-      placeholderBuilder: (_) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-  }
-
-  return Image.asset(
-    path,
+  return AppImage(
+    source: path,
     fit: BoxFit.cover,
-    errorBuilder: (_, __, ___) => const _HeroFallbackVisual(),
+    fallback: const _HeroFallbackVisual(),
   );
 }
 
