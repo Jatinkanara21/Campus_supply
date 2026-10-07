@@ -1,13 +1,11 @@
 import 'dart:typed_data';
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cloud_functions/cloud_functions.dart';
+import '../services/github_image_upload_service.dart';
 
 enum AdminSection { products, categories, bundles, orders, users, reviews }
 
@@ -392,7 +390,7 @@ class AdminManagementScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'The image is uploaded securely first, then a Firebase Function syncs it into assets/image/ in GitHub.',
+                        'The image is uploaded securely through the Campus Supply image gateway and committed directly into assets/image/ on GitHub.',
                         style: TextStyle(fontSize: 11.5, color: Color(0xFF707681)),
                       ),
                     ],
@@ -418,16 +416,12 @@ class AdminManagementScreen extends StatelessWidget {
                                     ? 'categories'
                                     : 'bundles';
                             final fileName = imageUrl.text.split('/').last;
-                            final path = 'assets/image/' + folder + '/' + fileName;
-                            final callable = FirebaseFunctions.instanceFor(
-                              region: 'us-central1',
-                            ).httpsCallable('uploadImageToGitHub');
-                            await callable.call({
-                              'folder': folder,
-                              'fileName': fileName,
-                              'contentType': _contentTypeForPath(path),
-                              'base64': base64Encode(selectedImageBytes!),
-                            });
+                            await GitHubImageUploadService.upload(
+                              folder: folder,
+                              fileName: fileName,
+                              contentType: _contentTypeForPath(fileName),
+                              imageBytes: selectedImageBytes!,
+                            );
                           }
                           if (dialogContext.mounted) {
                             Navigator.pop(dialogContext, true);
