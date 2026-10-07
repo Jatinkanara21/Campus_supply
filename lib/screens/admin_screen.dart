@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../services/github_image_upload_service.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../database/firestore_database.dart';
 import '../database/firestore_seed.dart';
@@ -368,7 +367,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'The image is uploaded securely through the Campus Supply image gateway and committed directly into assets/image/hero/ on GitHub.',
+                    'Select an image asset that already exists in assets/image/hero/. The selected path is saved to Firestore.',
                     style: TextStyle(color: muted, fontSize: 11.5),
                   ),
                 ],
@@ -387,28 +386,19 @@ class _AdminScreenState extends State<AdminScreen> {
             FilledButton(
               onPressed: () async {
                 try {
-                  if (selectedBytes != null) {
-                    final fileName = controller.text.trim().split('/').last;
-                    await GitHubImageUploadService.upload(
-                      folder: 'hero',
-                      fileName: fileName,
-                      contentType: _contentTypeForPath(fileName),
-                      imageBytes: selectedBytes!,
-                    );
-                  }
-                  await FirestoreDatabase.instance.saveHomeSettings(
+                                    await FirestoreDatabase.instance.saveHomeSettings(
                     heroImageUrl: controller.text.trim(),
                   );
                   if (dialogContext.mounted) Navigator.pop(dialogContext);
                 } catch (e) {
                   if (dialogContext.mounted) {
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(content: Text('Hero image upload failed: $e')),
+                      SnackBar(content: Text('Hero image save failed: $e')),
                     );
                   }
                 }
               },
-              child: const Text('Upload & Save'),
+              child: const Text('Save'),
             ),
           ],
         );
@@ -417,14 +407,6 @@ class _AdminScreenState extends State<AdminScreen> {
   );
   controller.dispose();
 }
-  String _contentTypeForPath(String path) {
-    final lower = path.toLowerCase();
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    if (lower.endsWith('.svg')) return 'image/svg+xml';
-    return 'image/jpeg';
-  }
-
   Future<void> _seedCatalog() async {
     try {
       final added = await seedStarterCatalog();
