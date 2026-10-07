@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../widgets/app_image.dart';
 import '../database/firestore_database.dart';
 
 class ShopScreen extends StatefulWidget {
@@ -246,37 +247,10 @@ class _ShopScreenState extends State<ShopScreen> {
     final realPhotoUrl = _realPhotoUrl(p);
 
     Widget photo() {
-      if (realPhotoUrl.isEmpty) {
-        return const Center(
-          child: Icon(
-            Icons.image_not_supported_outlined,
-            color: blue,
-            size: 54,
-          ),
-        );
-      }
-
-      final lowerPath = realPhotoUrl.toLowerCase();
-
-      if (lowerPath.endsWith('.svg')) {
-        return SvgPicture.asset(
-          realPhotoUrl,
-          fit: BoxFit.contain,
-          width: double.infinity,
-          height: double.infinity,
-          placeholderBuilder: (_) => const Center(
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        );
-      }
-
-      return Image.asset(
-        realPhotoUrl,
+      return AppImage(
+        source: realPhotoUrl,
         fit: BoxFit.contain,
-        width: double.infinity,
-        height: double.infinity,
-        gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => const Center(
+        fallback: const Center(
           child: Icon(
             Icons.image_not_supported_outlined,
             color: blue,
