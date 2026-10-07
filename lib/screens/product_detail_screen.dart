@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../database/firestore_database.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -18,7 +19,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final product = args is Map<String, dynamic> ? args : <String, dynamic>{};
     final name = (product['name'] ?? 'Product').toString();
     final description = (product['description'] ?? 'Campus essential for everyday student life.').toString();
-    final displayImageUrl = _fallbackImageUrl(product);
+    final storedImage = (product['imageUrl'] ?? '').toString().trim();
+    final displayImageUrl = storedImage.startsWith('assets/') ? storedImage : _fallbackImageUrl(product);
     final price = (product['price'] as num?)?.toDouble() ?? 0;
     final rating = (product['rating'] ?? 'New').toString();
     final category = (product['category'] ?? 'Campus essential').toString();
@@ -60,18 +62,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget _image(String url) => Container(
     height: 440, clipBehavior: Clip.antiAlias,
     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28), border: Border.all(color: border)),
-    child: url.isEmpty ? const Center(child: Icon(Icons.inventory_2_rounded, color: blue, size: 110)) : Image.asset(
-        url,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => const Center(
-          child: Icon(
-            Icons.image_not_supported_outlined,
-            color: blue,
-            size: 80,
-          ),
-        ),
-      ),
+    child: url.isEmpty
+        ? const Center(child: Icon(Icons.inventory_2_rounded, color: blue, size: 110))
+        : _assetImage(url),
   );
+
+  Widget _assetImage(String path) {
+    if (path.toLowerCase().endsWith('.svg')) {
+      return SvgPicture.asset(path, fit: BoxFit.contain);
+    }
+    return Image.asset(
+      path,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => const Center(
+        child: Icon(Icons.image_not_supported_outlined, color: blue, size: 80),
+      ),
+    );
+  }
 
   Widget _details(BuildContext context, Map<String, dynamic> product, String name, String description, double price, String rating, String category) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
