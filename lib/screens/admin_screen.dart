@@ -243,7 +243,6 @@ class _AdminScreenState extends State<AdminScreen> {
                     ? const Icon(Icons.image_outlined, color: blue, size: 30)
                     : _adminAssetImage(imageUrl),
               ),
-              );
               const SizedBox(width: 14),
               const Expanded(
                 child: Column(
