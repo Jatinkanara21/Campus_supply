@@ -119,21 +119,8 @@ class BundlesScreen extends StatelessWidget {
                             color: const Color(0xFFFFF7CC),
                             borderRadius: BorderRadius.circular(18),
                           ),
-                          child: (bundle['imageUrl'] ?? '').toString().trim().isNotEmpty
-                              ? Image.network(
-                                  (bundle['imageUrl'] ?? '').toString().trim(),
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(
-                                    Icons.auto_awesome_rounded,
-                                    color: Color(0xFF9A7600),
-                                    size: 40,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.auto_awesome_rounded,
-                                  color: Color(0xFF9A7600),
-                                  size: 40,
-                                ),
+                          child: _bundleImage(bundle['imageUrl']),
+
                         ),
                         const SizedBox(width: 14),
                         Expanded(
@@ -196,6 +183,40 @@ class BundlesScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _bundleImage(dynamic value) {
+    final path = (value ?? '').toString().trim();
+
+    if (path.isEmpty) {
+      return const Icon(
+        Icons.auto_awesome_rounded,
+        color: Color(0xFF9A7600),
+        size: 40,
+      );
+    }
+
+    if (path.startsWith('assets/')) {
+      return Image.asset(
+        path,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Icon(
+          Icons.broken_image_outlined,
+          color: Color(0xFF9A7600),
+          size: 40,
+        ),
+      );
+    }
+
+    return Image.network(
+      path,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const Icon(
+        Icons.broken_image_outlined,
+        color: Color(0xFF9A7600),
+        size: 40,
       ),
     );
   }
