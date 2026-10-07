@@ -237,7 +237,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 ),
                 child: imageUrl.isEmpty
                     ? const Icon(Icons.image_outlined, color: blue, size: 30)
-                    : Image.network(
+                     : Image.asset(
                         imageUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) =>
