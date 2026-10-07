@@ -1,6 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import '../database/firestore_database.dart';
 import '../database/firestore_seed.dart';
@@ -273,142 +271,61 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  Future<void> _editHeroSettings(String currentUrl) async {
-    final controller = TextEditingController(text: currentUrl);
-    var saving = false;
+  Future<void> _editHeroSettings(String currentAsset) async {
+    final controller = TextEditingController(text: currentAsset);
 
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            Future<void> upload() async {
-              setDialogState(() => saving = true);
-              try {
-                final result = await FilePicker.platform.pickFiles(
-                  type: FileType.image,
-                  withData: true,
-                );
-
-                if (result == null || result.files.single.bytes == null) {
-                  setDialogState(() => saving = false);
-                  return;
-                }
-
-                final file = result.files.single;
-                final extension = file.extension ?? 'jpg';
-                final contentType = _contentTypeForExtension(extension);
-                final ref = FirebaseStorage.instance.ref(
-                  'public/home/hero_${DateTime.now().millisecondsSinceEpoch}.$extension',
-                );
-
-                await ref.putData(
-                  file.bytes!,
-                  SettableMetadata(
-                    contentType: contentType,
-                    cacheControl: 'public,max-age=3600',
+        return AlertDialog(
+          title: const Text('Homepage hero image'),
+          content: SizedBox(
+            width: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    labelText: 'Local asset path',
+                    hintText: 'assets/image/campus_supply.jpg',
+                    prefixIcon: Icon(Icons.image_outlined),
                   ),
-                );
-
-                controller.text = await ref.getDownloadURL();
-                if (dialogContext.mounted) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('Image uploaded. Save to publish it.')),
-                  );
-                }
-              } catch (e) {
-                if (dialogContext.mounted) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    SnackBar(content: Text('Upload failed: $e')),
-                  );
-                }
-              } finally {
-                if (dialogContext.mounted) setDialogState(() => saving = false);
-              }
-            }
-
-            return AlertDialog(
-              title: const Text('Homepage hero image'),
-              content: SizedBox(
-                width: 520,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: controller,
-                      keyboardType: TextInputType.url,
-                      decoration: const InputDecoration(
-                        labelText: 'Image URL',
-                        hintText: 'https://example.com/hero.jpg',
-                        prefixIcon: Icon(Icons.link_rounded),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: saving ? null : upload,
-                        icon: const Icon(Icons.upload_file_rounded),
-                        label: Text(saving ? 'Uploading...' : 'Upload image'),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Recommended: landscape image, at least 1200px wide. Uploads are stored in Firebase Storage.',
-                      style: TextStyle(color: muted, fontSize: 11.5),
-                    ),
-                  ],
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: saving ? null : () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: saving
-                      ? null
-                      : () {
-                          controller.clear();
-                          Navigator.pop(dialogContext, true);
-                        },
-                  child: const Text('Remove image'),
-                ),
-                FilledButton(
-                  onPressed: saving
-                      ? null
-                      : () async {
-                          await FirestoreDatabase.instance.saveHomeSettings(
-                            heroImageUrl: controller.text,
-                          );
-                          if (dialogContext.mounted) Navigator.pop(dialogContext);
-                        },
-                  child: const Text('Save'),
+                const SizedBox(height: 10),
+                const Text(
+                  'Use an image already committed under assets/image/. The file is bundled with the Flutter app and is never uploaded to Firebase Storage.',
+                  style: TextStyle(color: muted, fontSize: 11.5),
                 ),
               ],
-            );
-          },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                controller.clear();
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Remove image'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                await FirestoreDatabase.instance.saveHomeSettings(
+                  heroImageUrl: controller.text.trim(),
+                );
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              },
+              child: const Text('Save'),
+            ),
+          ],
         );
       },
     );
     controller.dispose();
-  }
-
-  String _contentTypeForExtension(String extension) {
-    switch (extension.toLowerCase()) {
-      case 'png':
-        return 'image/png';
-      case 'webp':
-        return 'image/webp';
-      case 'gif':
-        return 'image/gif';
-      case 'avif':
-        return 'image/avif';
-      case 'jpg':
-      case 'jpeg':
-      default:
-        return 'image/jpeg';
-    }
   }
 
   Future<void> _seedCatalog() async {
