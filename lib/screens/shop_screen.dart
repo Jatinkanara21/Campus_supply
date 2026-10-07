@@ -334,7 +334,8 @@ class _ShopScreenState extends State<ShopScreen> {
 String _realPhotoUrl(Map<String, dynamic> product) {
   // Prefer the image path selected in the Admin panel.
   final storedPath = (product['imageUrl'] ?? '').toString().trim();
-  if (storedPath.isNotEmpty && storedPath.startsWith('assets/')) {
+  if (storedPath.isNotEmpty) {
+    // Supports both bundled assets and Firebase Storage download URLs.
     return storedPath;
   }
 
