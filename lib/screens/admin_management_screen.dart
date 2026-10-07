@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 enum AdminSection { products, categories, bundles, orders, users, reviews }
 
@@ -359,7 +360,7 @@ class AdminManagementScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'No Firebase Storage upload. The selected image is assigned an assets/image/ path. Add the selected file to that repository folder before building the app.',
+                        'The image is uploaded securely first, then a Firebase Function syncs it into assets/image/ in GitHub.',
                         style: TextStyle(fontSize: 11.5, color: Color(0xFF707681)),
                       ),
                     ],
@@ -373,8 +374,35 @@ class AdminManagementScreen extends StatelessWidget {
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('Save'),
+                onPressed: () async {
+                  if (selectedImageBytes != null) {
+                    try {
+                      final folder = section == AdminSection.products
+                          ? 'products'
+                          : section == AdminSection.categories
+                              ? 'categories'
+                              : 'bundles';
+                      final fileName = imageUrl.text.split('/').last;
+                      final path = 'public/' + folder + '/' + fileName;
+                      final ref = FirebaseStorage.instance.ref(path);
+                      await ref.putData(
+                        selectedImageBytes!,
+                        SettableMetadata(contentType: _contentTypeForPath(path)),
+                      );
+                    } catch (e) {
+                      if (dialogContext.mounted) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          SnackBar(content: Text('Image upload failed: $e')),
+                        );
+                      }
+                      return;
+                    }
+                  }
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext, true);
+                  }
+                },
+                child: const Text('Upload & Save'),
               ),
             ],
           );
@@ -382,6 +410,14 @@ class AdminManagementScreen extends StatelessWidget {
       ),
     );
   }
+  String _contentTypeForPath(String path) {
+    final lower = path.toLowerCase();
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    if (lower.endsWith('.svg')) return 'image/svg+xml';
+    return 'image/jpeg';
+  }
+
   Future<void> _delete(BuildContext context, QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
     final yes = await showDialog<bool>(
       context: context,
