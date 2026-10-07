@@ -21,7 +21,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final name = (product['name'] ?? 'Product').toString();
     final description = (product['description'] ?? 'Campus essential for everyday student life.').toString();
     final storedImage = (product['imageUrl'] ?? '').toString().trim();
-    final displayImageUrl = storedImage.startsWith('assets/') ? storedImage : _fallbackImageUrl(product);
+    // Use the saved image URL/path first; only use the generated asset fallback when empty.
+    final displayImageUrl = storedImage.isNotEmpty ? storedImage : _fallbackImageUrl(product);
     final price = (product['price'] as num?)?.toDouble() ?? 0;
     final rating = (product['rating'] ?? 'New').toString();
     final category = (product['category'] ?? 'Campus essential').toString();
