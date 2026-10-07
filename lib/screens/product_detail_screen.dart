@@ -18,8 +18,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final product = args is Map<String, dynamic> ? args : <String, dynamic>{};
     final name = (product['name'] ?? 'Product').toString();
     final description = (product['description'] ?? 'Campus essential for everyday student life.').toString();
-    final imageUrl = (product['imageUrl'] ?? '').toString().trim();
-    final displayImageUrl = imageUrl.isNotEmpty ? imageUrl : _fallbackImageUrl(product);
+    final displayImageUrl = _fallbackImageUrl(product);
     final price = (product['price'] as num?)?.toDouble() ?? 0;
     final rating = (product['rating'] ?? 'New').toString();
     final category = (product['category'] ?? 'Campus essential').toString();
@@ -48,26 +47,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   String _fallbackImageUrl(Map<String, dynamic> product) {
     final value = '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
-
-    if (value.contains('backpack') || value.contains('bag')) {
-      return 'https://images.unsplash.com/photo-1650500426868-27a68714a4a4?auto=format&fit=crop&w=1000&q=80';
-    }
-    if (value.contains('headphone')) {
-      return 'https://images.unsplash.com/photo-1628116709703-c1c9ad550d36?auto=format&fit=crop&w=1000&q=80';
-    }
-    if (value.contains('bottle') || value.contains('tumbler')) {
-      return 'https://images.unsplash.com/photo-1666537071963-18f5ded98ac8?auto=format&fit=crop&w=1000&q=80';
-    }
-    if (value.contains('notebook') || value.contains('stationery') || value.contains('pen')) {
-      return 'https://images.unsplash.com/photo-1711843250800-270a113cb06b?auto=format&fit=crop&w=1000&q=80';
-    }
-    return '';
+    if (value.contains('backpack') || value.contains('bag')) return 'assets/image/products/backpack.svg';
+    if (value.contains('headphone')) return 'assets/image/products/headphones.svg';
+    if (value.contains('bottle') || value.contains('tumbler')) return 'assets/image/products/bottle.svg';
+    if (value.contains('calculator')) return 'assets/image/products/calculator.svg';
+    if (value.contains('lamp')) return 'assets/image/products/lamp.svg';
+    if (value.contains('sleeve')) return 'assets/image/products/sleeve.svg';
+    if (value.contains('pen')) return 'assets/image/products/pen.svg';
+    return 'assets/image/products/notebook.svg';
   }
 
   Widget _image(String url) => Container(
     height: 440, clipBehavior: Clip.antiAlias,
     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28), border: Border.all(color: border)),
-    child: url.isEmpty ? const Center(child: Icon(Icons.inventory_2_rounded, color: blue, size: 110)) : Image.network(
+    child: url.isEmpty ? const Center(child: Icon(Icons.inventory_2_rounded, color: blue, size: 110)) : Image.asset(
         url,
         fit: BoxFit.contain,
         gaplessPlayback: true,
