@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../database/firestore_database.dart';
 import '../widgets/campus_logo.dart';
 
@@ -473,14 +474,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   child: imageUrl.isNotEmpty
-                      ? Image.asset(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          errorBuilder: (_, __, ___) =>
-                              const _HeroFallbackVisual(),
-                        )
+                      ? _homeAssetImage(imageUrl)
                       : const _HeroFallbackVisual(),
                 ),
               ),
@@ -708,25 +702,7 @@ class HomeScreen extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: imageUrl.isNotEmpty
-                  ? ClipOval(
-                      child: imageUrl.startsWith('assets/')
-                          ? Image.asset(
-                              imageUrl,
-                              fit: BoxFit.cover,
-                              width: 45,
-                              height: 45,
-                              errorBuilder: (_, __, ___) =>
-                                  Icon(icon, color: accent, size: 22),
-                            )
-                          : Image.network(
-                              imageUrl,
-                              fit: BoxFit.cover,
-                              width: 45,
-                              height: 45,
-                              errorBuilder: (_, __, ___) =>
-                                  Icon(icon, color: accent, size: 22),
-                            ),
-                    )
+                  ? ClipOval(child: _homeAssetImage(imageUrl))
                   : Icon(icon, color: accent, size: 22),
             ),
             const SizedBox(height: 8),
@@ -1027,6 +1003,17 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+
+Widget _homeAssetImage(String path) {
+  if (path.toLowerCase().endsWith('.svg')) {
+    return SvgPicture.asset(path, fit: BoxFit.cover);
+  }
+  return Image.asset(
+    path,
+    fit: BoxFit.cover,
+    errorBuilder: (_, __, ___) => const _HeroFallbackVisual(),
+  );
+}
 
 class _HeroFallbackVisual extends StatelessWidget {
   const _HeroFallbackVisual();
