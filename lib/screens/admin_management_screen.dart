@@ -246,7 +246,7 @@ class AdminManagementScreen extends StatelessWidget {
                     if (section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles) ...[
                       const SizedBox(height: 12),
                       TextField(
-                        controller: imageUrl
+                        controller: imageUrl,
                         decoration: InputDecoration(
                           labelText: section == AdminSection.products
                               ? 'Product asset path'
@@ -254,60 +254,13 @@ class AdminManagementScreen extends StatelessWidget {
                                   ? 'Category asset path'
                                   : 'Bundle asset path',
                           hintText: 'assets/image/products/backpack.svg',
-                          prefixIcon: const Icon(Icons.link_rounded),
+                          prefixIcon: const Icon(Icons.image_outlined),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: selectingImage || uploading ? null : uploadImage,
-                              icon: const Icon(Icons.upload_file_rounded),
-                              label: Text(
-                                selectingImage
-                                    ? 'Choose image...'
-                                    : uploading
-                                        ? 'Uploading ' + (uploadProgress * 100).round().toString() + '%'
-                                        : 'Upload image file',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            tooltip: 'Clear image',
-                            onPressed: selectingImage || uploading ? null : () {
-                              imageUrl.clear();
-                              setDialogState(() {});
-                            },
-                            icon: const Icon(Icons.clear_rounded),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      if (imageUrl.text.trim().isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            imageUrl.text.trim(),
-                            height: 120,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              height: 120,
-                              alignment: Alignment.center,
-                              color: const Color(0xFFEAF2FF),
-                              child: const Text('Image preview unavailable'),
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: 6),
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Paste a URL or upload a file. If both are used, the uploaded file replaces the URL.',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF707681)),
-                        ),
+                      const Text(
+                        'Use a bundled asset path such as assets/image/products/backpack.svg. Images are packaged with the app and are not uploaded to Firebase.',
+                        style: TextStyle(fontSize: 11.5, color: Color(0xFF707681)),
                       ),
                     ],
                   ],
@@ -316,11 +269,11 @@ class AdminManagementScreen extends StatelessWidget {
             ),
             actions: [
               TextButton(
-                onPressed: uploading ? null : () => Navigator.pop(dialogContext, false),
+                onPressed: () => Navigator.pop(dialogContext, false),
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                onPressed: uploading ? null : () => Navigator.pop(dialogContext, true),
+                onPressed: () => Navigator.pop(dialogContext, true),
                 child: const Text('Save'),
               ),
             ],
@@ -328,23 +281,6 @@ class AdminManagementScreen extends StatelessWidget {
         },
       ),
     );
-  }
-
-  String _contentTypeForExtension(String extension) {
-    switch (extension.toLowerCase()) {
-      case 'png':
-        return 'image/png';
-      case 'webp':
-        return 'image/webp';
-      case 'gif':
-        return 'image/gif';
-      case 'avif':
-        return 'image/avif';
-      case 'jpg':
-      case 'jpeg':
-      default:
-        return 'image/jpeg';
-    }
   }
 
   Future<void> _delete(BuildContext context, QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
