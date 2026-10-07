@@ -1142,18 +1142,6 @@ class _FirebaseProductCard extends StatelessWidget {
               ? Image.asset(
                   displayImageUrl,
                   fit: BoxFit.cover,
-                  gaplessPlayback: true,
-                  webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return const Center(
-                      child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2.5),
-                      ),
-                    );
-                  },
                   errorBuilder: (_, __, ___) => const Icon(
                     Icons.inventory_2_rounded,
                     color: HomeScreen.blue,
@@ -1219,22 +1207,4 @@ String _fallbackImageUrl(Map<String, dynamic> product) {
   if (value.contains('sleeve')) return 'assets/image/products/sleeve.svg';
   if (value.contains('pen')) return 'assets/image/products/pen.svg';
   return 'assets/image/products/notebook.svg';
-}
-
-String _fallbackImageUrl(Map<String, dynamic> product) {
-  final value = '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
-
-  if (value.contains('backpack') || value.contains('bag')) {
-    return 'assets/image/products/backpack.svg';
-  }
-  if (value.contains('headphone')) {
-    return 'assets/image/products/headphones.svg';
-  }
-  if (value.contains('bottle') || value.contains('tumbler')) {
-    return 'assets/image/products/bottle.svg';
-  }
-  if (value.contains('notebook') || value.contains('stationery') || value.contains('pen')) {
-    return 'assets/image/products/notebook.svg';
-  }
-  return '';
 }
