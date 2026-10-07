@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../widgets/app_image.dart';
 import '../database/firestore_database.dart';
 
 class WishlistScreen extends StatelessWidget {
@@ -24,7 +25,15 @@ class WishlistScreen extends StatelessWidget {
             return GridView.builder(padding:const EdgeInsets.all(18),itemCount:wishes.length,gridDelegate:SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount:columns,crossAxisSpacing:14,mainAxisSpacing:14,childAspectRatio:1.35),itemBuilder:(_,i){
               final id=wishes[i]['productId']?.toString();final p=byId[id];final image=(p?['imageUrl']??'').toString();
               return Container(padding:const EdgeInsets.all(12),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(22),border:Border.all(color:border)),child:Row(children:[
-                Container(width:90,height:110,clipBehavior:Clip.antiAlias,decoration:BoxDecoration(color:const Color(0xFFF4F2ED),borderRadius:BorderRadius.circular(16)),child:image.isEmpty?const Icon(Icons.inventory_2_rounded,color:blue,size:35):Image.network(image,fit:BoxFit.cover)),
+                Container(width:90,height:110,clipBehavior:Clip.antiAlias,decoration:BoxDecoration(color:const Color(0xFFF4F2ED),borderRadius:BorderRadius.circular(16)),child: AppImage(
+                  source: image,
+                  fit: BoxFit.cover,
+                  fallback: const Icon(
+                    Icons.inventory_2_rounded,
+                    color: blue,
+                    size: 35,
+                  ),
+                )),
                 const SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text((p?['name']??'Product').toString(),maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:ink,fontWeight:FontWeight.w900)),const Spacer(),Text('₹${((p?['price'] as num?)?.toDouble()??0).toStringAsFixed(0)}',style:const TextStyle(color:blue,fontSize:18,fontWeight:FontWeight.w900)),Row(children:[IconButton(onPressed:id==null?null:()=>FirestoreDatabase.instance.toggleWishlist(uid:uid,productId:id),icon:const Icon(Icons.favorite_rounded,color:coral)),IconButton(onPressed:id==null?null:()=>FirestoreDatabase.instance.addToCart(uid:uid,productId:id),icon:const Icon(Icons.shopping_bag_outlined,color:blue))])]))]));
             });
           });
