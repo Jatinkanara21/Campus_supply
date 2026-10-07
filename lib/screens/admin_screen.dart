@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../database/firestore_database.dart';
 import '../database/firestore_seed.dart';
 import '../services/auth_service.dart';
@@ -272,45 +275,106 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Future<void> _editHeroSettings(String currentAsset) async {
-    final controller = TextEditingController(text: currentAsset);
+  final controller = TextEditingController(text: currentAsset);
+  Uint8List? selectedBytes;
+  String? selectedName;
 
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, setState) {
+        Future<void> pickImage() async {
+          final picker = ImagePicker();
+          final file = await picker.pickImage(
+            source: ImageSource.gallery,
+            imageQuality: 90,
+          );
+          if (file == null) return;
+          final bytes = await file.readAsBytes();
+          final safeName = file.name
+              .toLowerCase()
+              .replaceAll(RegExp(r'[^a-z0-9._-]'), '_');
+          setState(() {
+            selectedBytes = bytes;
+            selectedName = file.name;
+            controller.text = 'assets/image/hero/$safeName';
+          });
+        }
+
         return AlertDialog(
           title: const Text('Homepage hero image'),
           content: SizedBox(
             width: 520,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: controller,
-                  decoration: const InputDecoration(
-                    labelText: 'Local asset path',
-                    hintText: 'assets/image/campus_supply.jpg',
-                    prefixIcon: Icon(Icons.image_outlined),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
+                    onTap: pickImage,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFD6DCE5)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: [
+                          if (selectedBytes != null)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.memory(selectedBytes!, width: 78, height: 58, fit: BoxFit.cover),
+                            )
+                          else
+                            Container(
+                              width: 78,
+                              height: 58,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF2FF),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.image_outlined, color: blue, size: 30),
+                            ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              selectedName ?? 'Upload Hero Image',
+                              style: const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                          const Icon(Icons.add_photo_alternate_outlined),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Use an image already committed under assets/image/. The file is bundled with the Flutter app and is never uploaded to Firebase Storage.',
-                  style: TextStyle(color: muted, fontSize: 11.5),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: controller,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Asset path',
+                      hintText: 'assets/image/hero/hero.jpg',
+                      prefixIcon: Icon(Icons.image_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'The image must be committed under assets/image/hero/ before rebuilding. It is not uploaded to Firebase Storage.',
+                    style: TextStyle(color: muted, fontSize: 11.5),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              onPressed: () { controller.clear(); Navigator.pop(dialogContext); },
+              child: const Text('Remove image'),
             ),
             TextButton(
-              onPressed: () {
-                controller.clear();
-                Navigator.pop(dialogContext, true);
-              },
-              child: const Text('Remove image'),
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () async {
@@ -324,10 +388,10 @@ class _AdminScreenState extends State<AdminScreen> {
           ],
         );
       },
-    );
-    controller.dispose();
-  }
-
+    ),
+  );
+  controller.dispose();
+}
   Future<void> _seedCatalog() async {
     try {
       final added = await seedStarterCatalog();
