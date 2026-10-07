@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../database/firestore_database.dart';
 
 class ShopScreen extends StatefulWidget {
@@ -251,6 +252,20 @@ class _ShopScreenState extends State<ShopScreen> {
             Icons.image_not_supported_outlined,
             color: blue,
             size: 54,
+          ),
+        );
+      }
+
+      final lowerPath = realPhotoUrl.toLowerCase();
+
+      if (lowerPath.endsWith('.svg')) {
+        return SvgPicture.asset(
+          realPhotoUrl,
+          fit: BoxFit.contain,
+          width: double.infinity,
+          height: double.infinity,
+          placeholderBuilder: (_) => const Center(
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
         );
       }
