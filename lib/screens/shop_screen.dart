@@ -343,6 +343,13 @@ class _ShopScreenState extends State<ShopScreen> {
 }
 
 String _realPhotoUrl(Map<String, dynamic> product) {
+  // Prefer the image path selected in the Admin panel.
+  final storedPath = (product['imageUrl'] ?? '').toString().trim();
+  if (storedPath.isNotEmpty && storedPath.startsWith('assets/')) {
+    return storedPath;
+  }
+
+  // Backward-compatible fallback for existing products.
   final value = '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
 
   if (value.contains('backpack') || value.contains('bag')) return 'assets/image/products/backpack.svg';
