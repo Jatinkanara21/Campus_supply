@@ -242,8 +242,7 @@ class _ShopScreenState extends State<ShopScreen> {
 
   Widget _card(BuildContext context, Map<String, dynamic> p) {
     final price = p['price'];
-    final imageUrl = (p['imageUrl'] ?? '').toString().trim();
-    final realPhotoUrl = imageUrl.isNotEmpty ? imageUrl : _realPhotoUrl(p);
+    final realPhotoUrl = _realPhotoUrl(p);
 
     Widget photo() {
       if (realPhotoUrl.isEmpty) {
@@ -256,22 +255,12 @@ class _ShopScreenState extends State<ShopScreen> {
         );
       }
 
-      return Image.network(
+      return Image.asset(
         realPhotoUrl,
         fit: BoxFit.contain,
         width: double.infinity,
         height: double.infinity,
         gaplessPlayback: true,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return const Center(
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
-            ),
-          );
-        },
         errorBuilder: (_, __, ___) => const Center(
           child: Icon(
             Icons.image_not_supported_outlined,
@@ -354,35 +343,16 @@ class _ShopScreenState extends State<ShopScreen> {
 }
 
 String _realPhotoUrl(Map<String, dynamic> product) {
-  final name = (product['name'] ?? '').toString().toLowerCase();
-  final category = (product['category'] ?? '').toString().toLowerCase();
-  final value = name + ' ' + category;
+  final value = '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
 
-  if (value.contains('backpack') || value.contains('bag')) {
-    return 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80';
-  }
-  if (value.contains('pen')) {
-    return 'https://images.unsplash.com/photo-1784798455842-3a0be501172c?auto=format&fit=crop&w=800&q=80';
-  }
-  if (value.contains('sleeve')) {
-    return 'https://images.unsplash.com/photo-1675668409245-955188b96bf6?auto=format&fit=crop&w=800&q=80';
-  }
-  if (value.contains('notebook') || value.contains('stationery')) {
-    return 'https://images.unsplash.com/photo-1784798455842-3a0be501172c?auto=format&fit=crop&w=800&q=80';
-  }
-  if (value.contains('calculator')) {
-    return 'https://images.unsplash.com/photo-1746221331496-a87689fc8eb9?auto=format&fit=crop&w=800&q=80';
-  }
-  if (value.contains('bottle') || value.contains('tumbler')) {
-    return 'https://images.unsplash.com/photo-1627496596114-1ea8ef3463ba?auto=format&fit=crop&w=800&q=80';
-  }
-  if (value.contains('lamp')) {
-    return 'https://images.unsplash.com/photo-1780140765084-88e4e0d75528?auto=format&fit=crop&w=800&q=80';
-  }
-  if (value.contains('headphone')) {
-    return 'https://images.unsplash.com/photo-1557256080-c76847e4e52a?auto=format&fit=crop&w=800&q=80';
-  }
-  return 'https://images.unsplash.com/photo-1784798455842-3a0be501172c?auto=format&fit=crop&w=800&q=80';
+  if (value.contains('backpack') || value.contains('bag')) return 'assets/image/products/backpack.svg';
+  if (value.contains('headphone')) return 'assets/image/products/headphones.svg';
+  if (value.contains('bottle') || value.contains('tumbler')) return 'assets/image/products/bottle.svg';
+  if (value.contains('calculator')) return 'assets/image/products/calculator.svg';
+  if (value.contains('lamp')) return 'assets/image/products/lamp.svg';
+  if (value.contains('sleeve')) return 'assets/image/products/sleeve.svg';
+  if (value.contains('pen')) return 'assets/image/products/pen.svg';
+  return 'assets/image/products/notebook.svg';
 }
 
 String _productSvg({
