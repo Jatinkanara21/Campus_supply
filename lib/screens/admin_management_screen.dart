@@ -173,11 +173,25 @@ class AdminManagementScreen extends StatelessWidget {
     if (section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles) {
       data['imageUrl'] = imageUrl.text.trim();
     }
-    await FirebaseFirestore.instance.collection(collection).add(data);
-    name.dispose();
-    description.dispose();
-    price.dispose();
-    imageUrl.dispose();
+    try {
+      await FirebaseFirestore.instance.collection(collection).add(data);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Item saved successfully')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Database save failed: $e')),
+        );
+      }
+    } finally {
+      name.dispose();
+      description.dispose();
+      price.dispose();
+      imageUrl.dispose();
+    }
   }
 
   Future<void> _edit(BuildContext context, QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
@@ -206,11 +220,25 @@ class AdminManagementScreen extends StatelessWidget {
     if (section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles) {
       update['imageUrl'] = imageUrl.text.trim();
     }
-    await doc.reference.update(update);
-    name.dispose();
-    description.dispose();
-    price.dispose();
-    imageUrl.dispose();
+    try {
+      await doc.reference.update(update);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product updated successfully')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Database update failed: $e')),
+        );
+      }
+    } finally {
+      name.dispose();
+      description.dispose();
+      price.dispose();
+      imageUrl.dispose();
+    }
   }
 
   Future<bool?> _showItemDialog(
@@ -228,7 +256,10 @@ class AdminManagementScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
+          bool isSaving = false;
+
           Future<void> pickImage() async {
+            if (isSaving) return;
             final picker = ImagePicker();
             final file = await picker.pickImage(
               source: ImageSource.gallery,
@@ -374,35 +405,58 @@ class AdminManagementScreen extends StatelessWidget {
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                onPressed: () async {
-                  if (selectedImageBytes != null) {
-                    try {
-                      final folder = section == AdminSection.products
-                          ? 'products'
-                          : section == AdminSection.categories
-                              ? 'categories'
-                              : 'bundles';
-                      final fileName = imageUrl.text.split('/').last;
-                      final path = 'public/' + folder + '/' + fileName;
-                      final ref = FirebaseStorage.instance.ref(path);
-                      await ref.putData(
-                        selectedImageBytes!,
-                        SettableMetadata(contentType: _contentTypeForPath(path)),
-                      );
-                    } catch (e) {
-                      if (dialogContext.mounted) {
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          SnackBar(content: Text('Image upload failed: $e')),
-                        );
-                      }
-                      return;
-                    }
-                  }
-                  if (dialogContext.mounted) {
-                    Navigator.pop(dialogContext, true);
-                  }
-                },
-                child: const Text('Upload & Save'),
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        setDialogState(() => isSaving = true);
+                        try {
+                          if (selectedImageBytes != null) {
+                            final folder = section == AdminSection.products
+                                ? 'products'
+                                : section == AdminSection.categories
+                                    ? 'categories'
+                                    : 'bundles';
+                            final fileName = imageUrl.text.split('/').last;
+                            final path = 'public/' + folder + '/' + fileName;
+                            final ref = FirebaseStorage.instance.ref().child(path);
+                            await ref
+                                .putData(
+                                  selectedImageBytes!,
+                                  SettableMetadata(
+                                    contentType: _contentTypeForPath(path),
+                                  ),
+                                )
+                                .timeout(
+                                  const Duration(seconds: 30),
+                                  onTimeout: () => throw TimeoutException(
+                                    'Firebase Storage upload timed out. Check Firebase Storage setup and rules.',
+                                  ),
+                                );
+                          }
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext, true);
+                          }
+                        } catch (e) {
+                          if (dialogContext.mounted) {
+                            setDialogState(() => isSaving = false);
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Save failed: ${e.toString().replaceFirst('Exception: ', '')}',
+                                ),
+                                duration: const Duration(seconds: 6),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                child: isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Upload & Save'),
               ),
             ],
           );
