@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../widgets/app_image.dart';
 import '../database/firestore_database.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -68,14 +69,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   );
 
   Widget _assetImage(String path) {
-    if (path.toLowerCase().endsWith('.svg')) {
-      return SvgPicture.asset(path, fit: BoxFit.contain);
-    }
-    return Image.asset(
-      path,
+    return AppImage(
+      source: path,
       fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => const Center(
-        child: Icon(Icons.image_not_supported_outlined, color: blue, size: 80),
+      fallback: const Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: blue,
+          size: 80,
+        ),
       ),
     );
   }
