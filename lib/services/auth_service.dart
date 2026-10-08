@@ -113,7 +113,8 @@ class AuthService {
 
     try {
       final snapshot = await _db.collection('users').doc(user.uid).get();
-      return snapshot.data()?['role'] == 'admin';
+      final data = snapshot.data();
+      return data?['role'] == 'admin' || data?['admin'] == true;
     } on FirebaseException {
       return false;
     }
@@ -125,7 +126,9 @@ class AuthService {
 
     try {
       final snapshot = await _db.collection('users').doc(user.uid).get();
-      return (snapshot.data()?['role'] as String?) ?? 'user';
+      final data = snapshot.data();
+      if (data?['admin'] == true) return 'admin';
+      return (data?['role'] as String?) ?? 'user';
     } on FirebaseException {
       return 'user';
     }
