@@ -292,7 +292,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'Create more. Spend less.',
+                    'Your campus. Your essentials.',
                     style: TextStyle(
                       color: muted,
                       fontSize: 11,
@@ -302,6 +302,18 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
+            if (MediaQuery.sizeOf(context).width >= 900) ...[
+              _HeaderLink(
+                label: 'Shop',
+                icon: Icons.grid_view_rounded,
+                onTap: () => Navigator.pushNamed(context, '/shop'),
+              ),
+              _HeaderLink(
+                label: 'Bundles',
+                icon: Icons.auto_awesome_rounded,
+                onTap: () => Navigator.pushNamed(context, '/bundles'),
+              ),
+            ],
             _CircleButton(
               icon: Icons.favorite_border_rounded,
               onTap: () => Navigator.pushNamed(context, '/wishlist'),
@@ -311,34 +323,40 @@ class HomeScreen extends StatelessWidget {
               icon: Icons.shopping_bag_outlined,
               onTap: () => Navigator.pushNamed(context, '/cart'),
             ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        Container(
-          height: 54,
-          decoration: BoxDecoration(
-            color: white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: border),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0C172033),
-                blurRadius: 16,
-                offset: Offset(0, 5),
+            if (MediaQuery.sizeOf(context).width >= 900) ...[
+              const SizedBox(width: 8),
+              _CircleButton(
+                icon: Icons.person_outline_rounded,
+                onTap: () => Navigator.pushNamed(context, '/profile'),
               ),
             ],
-          ),
-          child: TextField(onSubmitted: (value) { final query = value.trim(); if (query.isNotEmpty) Navigator.pushNamed(context, '/shop', arguments: {'query': query, 'category': 'All'}); },
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              prefixIcon: Icon(Icons.search_rounded, color: blue, size: 23),
-              hintText: 'Search stationery, art supplies, tech...',
-              hintStyle: TextStyle(
-                color: Color(0xFF969BA4),
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+          ],
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          onSubmitted: (value) {
+            final query = value.trim();
+            if (query.isNotEmpty) {
+              Navigator.pushNamed(
+                context,
+                '/shop',
+                arguments: {'query': query, 'category': 'All'},
+              );
+            }
+          },
+          decoration: InputDecoration(
+            hintText: 'Search stationery, art supplies, tech and more',
+            prefixIcon: const Icon(Icons.search_rounded, color: blue),
+            suffixIcon: Padding(
+              padding: const EdgeInsets.all(6),
+              child: FilledButton(
+                onPressed: () => Navigator.pushNamed(context, '/shop'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                child: const Text('Browse'),
               ),
-              contentPadding: EdgeInsets.symmetric(vertical: 16),
             ),
           ),
         ),
@@ -1154,6 +1172,34 @@ class _FirebaseProductCard extends StatelessWidget {
           const SizedBox(height:5),
           Row(children:[const Icon(Icons.star_rounded,color:Color(0xFFF4B400),size:15),const SizedBox(width:3),Text((product['rating']??'New').toString(),style:const TextStyle(color:HomeScreen.muted,fontSize:10.5,fontWeight:FontWeight.w700)),const Spacer(),Text('₹${product['price']??0}',style:const TextStyle(color:HomeScreen.blue,fontSize:15,fontWeight:FontWeight.w900))]),
         ]),
+      ),
+    );
+  }
+}
+
+class _HeaderLink extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _HeaderLink({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 17, color: HomeScreen.ink),
+      label: Text(
+        label,
+        style: const TextStyle(
+          color: HomeScreen.ink,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
