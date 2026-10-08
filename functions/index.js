@@ -12,18 +12,14 @@ const OWNER = "Jatinkanara21";
 const REPO = "Campus_supply";
 const BRANCH = "main";
 const MAX_BYTES = 8 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif"]);
 
 function sendError(res, status, message) {
-  res.status(status).json({ ok: false, error: message });
+  return res.status(status).json({ ok: false, error: message });
 }
 
 function detectImage(buffer) {
-  if (
-    buffer.length >= 3 &&
-    buffer[0] === 0xff &&
-    buffer[1] === 0xd8 &&
-    buffer[2] === 0xff
-  ) {
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
     return { extension: "jpg", contentType: "image/jpeg" };
   }
 
@@ -43,8 +39,8 @@ function detectImage(buffer) {
 
   if (
     buffer.length >= 6 &&
-    buffer.toString("ascii", 0, 6) === "GIF89a" ||
-    buffer.toString("ascii", 0, 6) === "GIF87a"
+    ((buffer.toString("ascii", 0, 6) === "GIF89a") ||
+      (buffer.toString("ascii", 0, 6) === "GIF87a"))
   ) {
     return { extension: "gif", contentType: "image/gif" };
   }
@@ -61,15 +57,42 @@ function detectImage(buffer) {
 }
 
 function safeBaseName(name) {
-  const withoutExtension = String(name || "image")
+  const cleaned = String(name || "image")
     .trim()
     .replace(/\.[^.]*$/, "")
     .toLowerCase()
-    .replace(/[^a-z0-9._-]/g, "_")
+    .replace(/[^a-z0-9._-]+/g, "_")
     .replace(/_+/g, "_")
     .replace(/^\.+|\.+$/g, "");
 
-  return withoutExtension || "image";
+  return cleaned || "image";
+}
+
+function sanitizeExtension(fileName, detected) {
+  const provided = String(fileName || "")
+    .trim()
+    .split(".")
+    .pop()
+    ?.toLowerCase();
+
+  if (provided && ALLOWED_EXTENSIONS.has(provided)) {
+    return provided;
+  }
+
+  return detected.extension;
+}
+
+function getRequestBody(req) {
+  if (!req.body) return {};
+  if (typeof req.body === "object") return req.body;
+  if (typeof req.body === "string") {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return {};
+    }
+  }
+  return {};
 }
 
 exports.uploadImageToGitHub = onRequest(
@@ -87,91 +110,81 @@ exports.uploadImageToGitHub = onRequest(
 
     try {
       const authHeader = req.get("authorization") || "";
-      const match = authHeader.match(/^Bearer (.+)$/i);
+      const match = authHeader.match(/^Bearer\s+(.+)$/i);
       if (!match) {
-        return sendError(res, 401, "Authentication required.");
+        return sendError(res, 401, "Unauthorized");
       }
 
       const decoded = await getAuth().verifyIdToken(match[1]);
       const userDoc = await getFirestore().collection("users").doc(decoded.uid).get();
+      const role = userDoc.exists ? userDoc.data()?.role : null;
 
-      if (!userDoc.exists || userDoc.data().role !== "admin") {
-        return sendError(res, 403, "Admin access required.");
+      if (role !== "admin") {
+        return sendError(res, 403, "Only administrators can upload catalog images.");
       }
 
-      const { fileName, base64 } = req.body || {};
+      const payload = getRequestBody(req);
+      const { fileName, base64, folder } = payload;
       if (!fileName || !base64) {
         return sendError(res, 400, "fileName and base64 are required.");
       }
 
-      const bytes = Buffer.from(String(base64), "base64");
-      if (!bytes.length) {
+      const decodedImage = Buffer.from(String(base64), "base64");
+      if (!decodedImage.length) {
         return sendError(res, 400, "The selected image is empty.");
       }
-
-      if (bytes.length > MAX_BYTES) {
+      if (decodedImage.length > MAX_BYTES) {
         return sendError(res, 413, "Image is larger than 8 MB.");
       }
 
-      const image = detectImage(bytes);
-      if (!image) {
-        return sendError(res, 400, "Unsupported image. Use JPG, PNG, GIF or WEBP.");
+      const detected = detectImage(decodedImage);
+      if (!detected) {
+        return sendError(res, 400, "Unsupported image. Use JPG, JPEG, PNG, WEBP or GIF.");
       }
 
       const safeName = safeBaseName(fileName);
+      const extension = sanitizeExtension(fileName, detected);
       const timestamp = Date.now();
-      const path = "assets/uploaded/" +
-        timestamp + "-" + safeName + "." + image.extension;
+      const path = `assets/uploaded/${timestamp}-${safeName}.${extension}`;
+      const targetUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURI(path)}`;
 
-      const githubUrl =
-        "https://api.github.com/repos/" +
-        OWNER + "/" + REPO + "/contents/" +
-        encodeURIComponent(path).replace(/%2F/g, "/");
-
-      const response = await fetch(githubUrl, {
+      const response = await fetch(targetUrl, {
         method: "PUT",
         headers: {
-          "Accept": "application/vnd.github+json",
-          "Authorization": "Bearer " + GITHUB_TOKEN.value(),
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${GITHUB_TOKEN.value()}`,
           "X-GitHub-Api-Version": "2022-11-28",
           "Content-Type": "application/json",
           "User-Agent": "Campus-Supply-Image-Uploader",
         },
         body: JSON.stringify({
-          message: "Upload catalog image: " + safeName,
-          content: bytes.toString("base64"),
+          message: `Upload catalog image: ${safeName}.${extension}`,
+          content: decodedImage.toString("base64"),
           branch: BRANCH,
         }),
       });
 
-      const data = await response.json();
-
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const message =
-          data && data.message
-            ? data.message
-            : "GitHub rejected the image upload.";
-        return sendError(res, 502, message);
+        const message = data && data.message ? data.message : "GitHub rejected the upload.";
+        return sendError(res, response.status === 403 ? 403 : 502, message);
       }
 
-      const rawUrl =
-        "https://raw.githubusercontent.com/" +
-        OWNER + "/" + REPO + "/" + BRANCH + "/" + path;
-
+      const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${path}`;
       return res.status(200).json({
         ok: true,
         path,
         url: rawUrl,
-        contentType: image.contentType,
         commitSha: data.commit && data.commit.sha ? data.commit.sha : null,
+        folder: typeof folder === "string" ? folder : null,
       });
     } catch (error) {
       console.error("uploadImageToGitHub failed", error);
       return sendError(
         res,
         500,
-        error && error.message ? error.message : "Image upload failed."
+        error && error.message ? error.message : "GitHub upload failed.",
       );
     }
-  }
+  },
 );
