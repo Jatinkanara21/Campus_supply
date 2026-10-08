@@ -361,28 +361,24 @@ class HomeScreen extends StatelessWidget {
     return StreamBuilder<Map<String, dynamic>>(
       stream: FirestoreDatabase.instance.watchHomeSettings(),
       builder: (context, snapshot) {
-        final imageUrl = (snapshot.data?['heroImageUrl'] ?? '').toString().trim();
+        final imageUrl =
+            (snapshot.data?['heroImageUrl'] ?? '').toString().trim();
 
-        return GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/shop'),
-          child: Container(
+        // Image-only hero: no text, buttons, gradient or split layout.
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: SizedBox(
             width: double.infinity,
             height: wide ? 235 : 200,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: blue,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x252563EB),
-                  blurRadius: 24,
-                  offset: Offset(0, 12),
-                ),
-              ],
+            child: AppImage(
+              source: imageUrl.isNotEmpty
+                  ? imageUrl
+                  : 'assets/image/products/backpack.svg',
+              fit: BoxFit.cover,
+              fallback: const SizedBox.expand(
+                child: ColoredBox(color: blue),
+              ),
             ),
-            child: imageUrl.isNotEmpty
-                ? _homeAssetImage(imageUrl)
-                : const _HeroFallbackVisual(),
           ),
         );
       },
