@@ -1177,6 +1177,34 @@ class _FirebaseProductCard extends StatelessWidget {
   }
 }
 
+class _HeaderLink extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _HeaderLink({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 17, color: HomeScreen.ink),
+      label: Text(
+        label,
+        style: const TextStyle(
+          color: HomeScreen.ink,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
 class _CircleButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
