@@ -1024,23 +1024,17 @@ class _HomeBundleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = (bundle['name'] ?? bundle['title'] ?? 'Student Bundle').toString();
-    final description =
-        (bundle['description'] ?? 'Curated campus essentials.').toString();
-    final price = (bundle['price'] as num?)?.toDouble();
+    final description = (bundle['description'] ?? 'Curated campus essentials.').toString();
+    final rawPrice = bundle['price'];
+    final price = rawPrice is num ? rawPrice.toDouble() : double.tryParse(rawPrice?.toString() ?? '');
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: HomeScreen.border),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08111827),
-            blurRadius: 16,
-            offset: Offset(0, 7),
-          ),
-        ],
+        boxShadow: const [BoxShadow(color: Color(0x08111827), blurRadius: 16, offset: Offset(0, 7))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1057,57 +1051,43 @@ class _HomeBundleCard extends StatelessWidget {
               child: _bundleVisual(),
             ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            (bundle['badge'] ?? 'STUDENT BUNDLE').toString().toUpperCase(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF8A6A00),
-              fontSize: 8.5,
-              fontWeight: FontWeight.w900,
-              letterSpacing: .6,
-            ),
+          const SizedBox(height: 9),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  (bundle['badge'] ?? 'STUDENT BUNDLE').toString().toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Color(0xFF8A6A00), fontSize: 8.5, fontWeight: FontWeight.w900, letterSpacing: .6),
+                ),
+              ),
+              if ((bundle['discount'] ?? '').toString().trim().isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                  decoration: BoxDecoration(color: HomeScreen.blue, borderRadius: BorderRadius.circular(7)),
+                  child: Text(bundle['discount'].toString(), style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900)),
+                ),
+            ],
           ),
           const SizedBox(height: 4),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: HomeScreen.ink,
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
+          Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: HomeScreen.ink, fontSize: 15, fontWeight: FontWeight.w900)),
           const SizedBox(height: 3),
-          Text(
-            description,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: HomeScreen.muted, fontSize: 10.5),
-          ),
+          Text(description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: HomeScreen.muted, fontSize: 10.5)),
           const SizedBox(height: 6),
           Row(
             children: [
               if (price != null)
-                Text(
-                  '₹' + price.toStringAsFixed(0),
-                  style: const TextStyle(
-                    color: HomeScreen.blue,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+                Text('₹${price.toStringAsFixed(0)}', style: const TextStyle(color: HomeScreen.blue, fontSize: 16, fontWeight: FontWeight.w900)),
               const Spacer(),
-              FilledButton(
-                onPressed: () => _buy(context),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 34),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+              SizedBox(
+                height: 34,
+                child: FilledButton.icon(
+                  onPressed: () => _buy(context),
+                  icon: const Icon(Icons.shopping_bag_outlined, size: 15),
+                  label: const Text('Buy'),
+                  style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 11), textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
                 ),
-                child: const Text('Buy bundle'),
               ),
             ],
           ),
@@ -1117,79 +1097,54 @@ class _HomeBundleCard extends StatelessWidget {
   }
 
   Widget _bundleVisual() {
+    final stored = (bundle['imageUrl'] ?? bundle['image'] ?? '').toString().trim();
     final name = (bundle['name'] ?? bundle['title'] ?? '').toString().toLowerCase();
-    final fallback = name.contains('exam')
-        ? 'assets/image/products/calculator.svg'
-        : name.contains('campus') || name.contains('daily')
-            ? 'assets/image/products/backpack.svg'
-            : name.contains('study')
-                ? 'assets/image/products/lamp.svg'
-                : 'assets/image/products/notebook.svg';
-
-    final stored = (bundle['imageUrl'] ?? '').toString().trim();
+    final fallback = name.contains('architecture')
+        ? 'assets/image/products/pen.svg'
+        : name.contains('first-year') || name.contains('essential')
+            ? 'assets/image/products/notebook.svg'
+            : name.contains('exam')
+                ? 'assets/image/products/calculator.svg'
+                : name.contains('campus') || name.contains('daily')
+                    ? 'assets/image/products/backpack.svg'
+                    : name.contains('study')
+                        ? 'assets/image/products/lamp.svg'
+                        : 'assets/image/products/notebook.svg';
     return AppImage(
       source: stored.isNotEmpty ? stored : fallback,
       fit: BoxFit.contain,
-      fallback: const Icon(
-        Icons.auto_awesome_rounded,
-        color: HomeScreen.blue,
-        size: 62,
-      ),
+      fallback: const Icon(Icons.auto_awesome_rounded, color: HomeScreen.blue, size: 62),
     );
   }
 
   Future<void> _buy(BuildContext context) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please sign in to buy a bundle.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please sign in to buy a bundle.')));
       Navigator.pushNamed(context, '/login');
       return;
     }
-
     final rawIds = bundle['productIds'];
-    final productIds = rawIds is List
-        ? rawIds.map((id) => id.toString()).toSet().toList()
-        : <String>[];
-
+    final productIds = rawIds is List ? rawIds.map((id) => id.toString()).where((id) => id.trim().isNotEmpty).toSet().toList() : <String>[];
     if (productIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This bundle has no products configured yet.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This bundle has no products configured yet.')));
       return;
     }
-
     try {
       for (final productId in productIds) {
-        await FirestoreDatabase.instance.addToCart(
-          uid: uid,
-          productId: productId,
-          quantity: 1,
-        );
+        await FirestoreDatabase.instance.addToCart(uid: uid, productId: productId, quantity: 1);
       }
-
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            productIds.length.toString() + ' bundle items added to your bag.',
-          ),
-          action: SnackBarAction(
-            label: 'VIEW BAG',
-            onPressed: () => Navigator.pushNamed(context, '/cart'),
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${productIds.length} bundle item(s) added to your bag.'),
+        action: SnackBarAction(label: 'VIEW BAG', onPressed: () => Navigator.pushNamed(context, '/cart')),
+      ));
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not add bundle: ' + e.toString())),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not add bundle: $e')));
     }
   }
 }
-
 class _HomeBundleEmpty extends StatelessWidget {
   const _HomeBundleEmpty();
 
