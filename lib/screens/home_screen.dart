@@ -1125,7 +1125,21 @@ class _HomeBundleCard extends StatelessWidget {
       return;
     }
     final rawIds = bundle['productIds'];
-    final productIds = rawIds is List ? rawIds.map((id) => id.toString()).where((id) => id.trim().isNotEmpty).toSet().toList() : <String>[];
+    var productIds = rawIds is List
+        ? rawIds.map((id) => id.toString()).where((id) => id.trim().isNotEmpty).toSet().toList()
+        : <String>[];
+
+    if (productIds.isEmpty) {
+      final bundleName = (bundle['name'] ?? bundle['title'] ?? '').toString().toLowerCase();
+      if (bundleName.contains('architecture')) {
+        productIds = ['premium_notebook', 'gel_pen_pack', 'laptop_sleeve'];
+      } else if (bundleName.contains('first-year') || bundleName.contains('first year') || bundleName.contains('essential')) {
+        productIds = ['premium_notebook', 'gel_pen_pack', 'campus_pro_backpack'];
+      } else if (bundleName.contains('exam')) {
+        productIds = ['premium_notebook', 'gel_pen_pack', 'scientific_calculator'];
+      }
+    }
+
     if (productIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This bundle has no products configured yet.')));
       return;
