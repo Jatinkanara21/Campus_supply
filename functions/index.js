@@ -63,7 +63,7 @@ function detectImage(buffer) {
 function safeBaseName(name) {
   const withoutExtension = String(name || "image")
     .trim()
-    .replace(/\\.[^.]*$/, "")
+    .replace(/\.[^.]*$/, "")
     .toLowerCase()
     .replace(/[^a-z0-9._-]/g, "_")
     .replace(/_+/g, "_")
