@@ -67,7 +67,10 @@ class AppImage extends StatelessWidget {
       url,
       fit: fit,
       gaplessPlayback: true,
-      webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+      // Use the normal Flutter web image pipeline for Firebase download URLs.
+      // The HTML-element strategy can stay in a perpetual loading state on
+      // some GitHub Pages/browser combinations even when the URL is valid.
+      webHtmlElementStrategy: WebHtmlElementStrategy.never,
       loadingBuilder: (context, child, progress) {
         if (progress == null) return child;
         return placeholder ??
