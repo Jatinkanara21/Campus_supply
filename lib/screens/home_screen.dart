@@ -363,134 +363,26 @@ class HomeScreen extends StatelessWidget {
       builder: (context, snapshot) {
         final imageUrl = (snapshot.data?['heroImageUrl'] ?? '').toString().trim();
 
-        return Container(
-          constraints: const BoxConstraints(minHeight: 235),
-          padding: EdgeInsets.fromLTRB(
-            wide ? 30 : 22,
-            25,
-            wide ? 24 : 16,
-            22,
-          ),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [blue, Color(0xFF4A80EF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        return GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/shop'),
+          child: Container(
+            width: double.infinity,
+            height: wide ? 235 : 200,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: blue,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x252563EB),
+                  blurRadius: 24,
+                  offset: Offset(0, 12),
+                ),
+              ],
             ),
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x252563EB),
-                blurRadius: 24,
-                offset: Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 7,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: .15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'BACK TO CAMPUS',
-                        style: TextStyle(
-                          color: white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 13),
-                    const Text(
-                      'Big ideas start\nwith small supplies.',
-                      style: TextStyle(
-                        color: white,
-                        fontSize: 30,
-                        height: 1.02,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 9),
-                    const Text(
-                      'Student-friendly prices. Creative-friendly supplies.',
-                      style: TextStyle(
-                        color: Color(0xFFEAF2FF),
-                        fontSize: 12.5,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 17),
-                    GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/shop'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 17,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: yellow,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Shop campus essentials',
-                              style: TextStyle(
-                                color: ink,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            SizedBox(width: 7),
-                            Icon(
-                              Icons.arrow_forward_rounded,
-                              color: ink,
-                              size: 17,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 3,
-                child: Container(
-                  constraints: const BoxConstraints(
-                    maxWidth: 300,
-                    minHeight: 165,
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: .09),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: .14),
-                    ),
-                  ),
-                  child: imageUrl.isNotEmpty
-                      ? _homeAssetImage(imageUrl)
-                      : const _HeroFallbackVisual(),
-                ),
-              ),
-            ],
+            child: imageUrl.isNotEmpty
+                ? _homeAssetImage(imageUrl)
+                : const _HeroFallbackVisual(),
           ),
         );
       },
