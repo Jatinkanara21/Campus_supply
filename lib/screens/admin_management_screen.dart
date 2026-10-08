@@ -359,7 +359,7 @@ class AdminManagementScreen extends StatelessWidget {
 
               if (dialogContext.mounted) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('Image uploaded to Firebase Storage successfully')),
+                  const SnackBar(content: Text('Image uploaded to GitHub Storage successfully')),
                 );
               }
             } catch (e) {
@@ -445,7 +445,7 @@ class AdminManagementScreen extends StatelessWidget {
                                     const SizedBox(height: 4),
                                     Text(
                                       selectedFileName == null
-                                          ? 'Choose JPG, PNG, WEBP or SVG'
+                                          ? 'Choose JPG, PNG, WEBP or GIF'
                                           : 'Image selected',
                                       style: const TextStyle(
                                         fontSize: 12,
@@ -499,7 +499,7 @@ class AdminManagementScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Use a local image (uploaded to Firebase Storage) or paste a public direct image URL.',
+                        'Use a local image (uploaded to GitHub Storage) or paste a public direct image URL.',
                         style: TextStyle(fontSize: 11.5, color: Color(0xFF707681)),
                       ),
                       if (isValidImageUrl(imageUrl.text)) ...[
