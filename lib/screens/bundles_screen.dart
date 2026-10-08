@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/app_image.dart';
@@ -133,7 +134,7 @@ class BundlesScreen extends StatelessWidget {
                             color: const Color(0xFFFFF7CC),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: _bundleImage(bundle['imageUrl']),
+                          child: _bundleImage(bundle),
 
                         ),
                         const SizedBox(width: 14),
@@ -187,6 +188,33 @@ class BundlesScreen extends StatelessWidget {
                                     ),
                                   ),
                                 ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () => _showBundleDetails(context, bundle),
+                                      style: OutlinedButton.styleFrom(
+                                        minimumSize: const Size(0, 40),
+                                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                                      ),
+                                      child: const Text('View details'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: FilledButton.icon(
+                                      onPressed: () => _buyBundle(context, bundle),
+                                      icon: const Icon(Icons.shopping_bag_outlined, size: 16),
+                                      label: const Text('Buy bundle'),
+                                      style: FilledButton.styleFrom(
+                                        minimumSize: const Size(0, 40),
+                                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
@@ -201,15 +229,131 @@ class BundlesScreen extends StatelessWidget {
     );
   }
 
-  Widget _bundleImage(dynamic value) {
-    final path = (value ?? '').toString().trim();
+  Widget _bundleImage(Map<String, dynamic> bundle) {
+    final stored = (bundle['imageUrl'] ?? '').toString().trim();
+    final name = (bundle['name'] ?? bundle['title'] ?? '').toString().toLowerCase();
+
+    final fallback = name.contains('exam')
+        ? 'assets/image/products/calculator.svg'
+        : name.contains('campus') || name.contains('daily')
+            ? 'assets/image/products/backpack.svg'
+            : name.contains('study')
+                ? 'assets/image/products/lamp.svg'
+                : 'assets/image/products/notebook.svg';
+
     return AppImage(
-      source: path,
-      fit: BoxFit.cover,
+      source: stored.isNotEmpty ? stored : fallback,
+      fit: BoxFit.contain,
       fallback: const Icon(
         Icons.auto_awesome_rounded,
         color: Color(0xFF9A7600),
         size: 40,
+      ),
+    );
+  }
+
+  Future<void> _buyBundle(
+    BuildContext context,
+    Map<String, dynamic> bundle,
+  ) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to buy a bundle.')),
+      );
+      Navigator.pushNamed(context, '/login');
+      return;
+    }
+
+    final rawIds = bundle['productIds'];
+    final productIds = rawIds is List
+        ? rawIds.map((id) => id.toString()).toSet().toList()
+        : <String>[];
+
+    if (productIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This bundle has no products configured yet.')),
+      );
+      return;
+    }
+
+    try {
+      for (final productId in productIds) {
+        await FirestoreDatabase.instance.addToCart(
+          uid: uid,
+          productId: productId,
+          quantity: 1,
+        );
+      }
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(productIds.length.toString() + ' bundle items added to your bag.'),
+          action: SnackBarAction(
+            label: 'VIEW BAG',
+            onPressed: () => Navigator.pushNamed(context, '/cart'),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not add bundle to bag: ' + e.toString())),
+      );
+    }
+  }
+
+  Future<void> _showBundleDetails(
+    BuildContext context,
+    Map<String, dynamic> bundle,
+  ) async {
+    final name = (bundle['name'] ?? bundle['title'] ?? 'Student Bundle').toString();
+    final description =
+        (bundle['description'] ?? 'Curated campus essentials.').toString();
+    final price = (bundle['price'] as num?)?.toDouble();
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(name),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(description),
+              const SizedBox(height: 14),
+              if (price != null)
+                Text(
+                  'Bundle price: ₹' + price.toStringAsFixed(0),
+                  style: const TextStyle(
+                    color: blue,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              const SizedBox(height: 12),
+              const Text(
+                'This bundle adds all configured products to your bag in one click.',
+                style: TextStyle(color: muted, height: 1.35),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _buyBundle(context, bundle);
+            },
+            icon: const Icon(Icons.shopping_bag_outlined),
+            label: const Text('Buy now'),
+          ),
+        ],
       ),
     );
   }
