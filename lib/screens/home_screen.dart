@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/app_image.dart';
@@ -183,49 +184,41 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 0),
-                  sliver: SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: 170,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          _BundleCard(
-                            title: 'Architecture Starter Kit',
-                            subtitle: 'Drafting tools + sketchbook + studio essentials.',
-                            price: '₹2,499',
-                            badge: 'Save 15%',
-                            icon: Icons.architecture_rounded,
-                            background: softBlue,
-                            accent: blue,
-                            onTap: () => Navigator.pushNamed(context, '/bundles'),
+                SliverToBoxAdapter(
+                  child: StreamBuilder<List<Map<String, dynamic>>>(
+                    stream: FirestoreDatabase.instance.watchBundles(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+
+                      final bundles = snapshot.data!;
+                      if (bundles.isEmpty) {
+                        return Padding(
+                          padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 0),
+                          child: const _HomeBundleEmpty(),
+                        );
+                      }
+
+                      return Padding(
+                        padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 0),
+                        child: SizedBox(
+                          height: 292,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: bundles.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 14),
+                            itemBuilder: (_, i) => SizedBox(
+                              width: constraints.maxWidth >= 760 ? 330 : 292,
+                              child: _HomeBundleCard(bundle: bundles[i]),
+                            ),
                           ),
-                          const SizedBox(width: 14),
-                          _BundleCard(
-                            title: 'First-Year Essentials',
-                            subtitle: 'A practical starter pack for your semester.',
-                            price: '₹999',
-                            badge: 'Save 15%',
-                            icon: Icons.auto_stories_rounded,
-                            background: softCoral,
-                            accent: coral,
-                            onTap: () => Navigator.pushNamed(context, '/bundles'),
-                          ),
-                          const SizedBox(width: 14),
-                          _BundleCard(
-                            title: 'Exam Survival Kit',
-                            subtitle: 'Notebooks, pens and everything for finals.',
-                            price: '₹799',
-                            badge: 'Student fave',
-                            icon: Icons.school_rounded,
-                            background: softYellow,
-                            accent: const Color(0xFF9A7600),
-                            onTap: () => Navigator.pushNamed(context, '/bundles'),
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 SliverPadding(
@@ -1022,6 +1015,201 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+
+class _HomeBundleCard extends StatelessWidget {
+  final Map<String, dynamic> bundle;
+
+  const _HomeBundleCard({required this.bundle});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (bundle['name'] ?? bundle['title'] ?? 'Student Bundle').toString();
+    final description =
+        (bundle['description'] ?? 'Curated campus essentials.').toString();
+    final price = (bundle['price'] as num?)?.toDouble();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: HomeScreen.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08111827),
+            blurRadius: 16,
+            offset: Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 5,
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F6FA),
+                borderRadius: BorderRadius.circular(17),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: _bundleVisual(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            (bundle['badge'] ?? 'STUDENT BUNDLE').toString().toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF8A6A00),
+              fontSize: 8.5,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .6,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: HomeScreen.ink,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            description,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: HomeScreen.muted, fontSize: 10.5),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              if (price != null)
+                Text(
+                  '₹' + price.toStringAsFixed(0),
+                  style: const TextStyle(
+                    color: HomeScreen.blue,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              const Spacer(),
+              FilledButton(
+                onPressed: () => _buy(context),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 34),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+                ),
+                child: const Text('Buy bundle'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bundleVisual() {
+    final name = (bundle['name'] ?? bundle['title'] ?? '').toString().toLowerCase();
+    final fallback = name.contains('exam')
+        ? 'assets/image/products/calculator.svg'
+        : name.contains('campus') || name.contains('daily')
+            ? 'assets/image/products/backpack.svg'
+            : name.contains('study')
+                ? 'assets/image/products/lamp.svg'
+                : 'assets/image/products/notebook.svg';
+
+    final stored = (bundle['imageUrl'] ?? '').toString().trim();
+    return AppImage(
+      source: stored.isNotEmpty ? stored : fallback,
+      fit: BoxFit.contain,
+      fallback: const Icon(
+        Icons.auto_awesome_rounded,
+        color: HomeScreen.blue,
+        size: 62,
+      ),
+    );
+  }
+
+  Future<void> _buy(BuildContext context) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to buy a bundle.')),
+      );
+      Navigator.pushNamed(context, '/login');
+      return;
+    }
+
+    final rawIds = bundle['productIds'];
+    final productIds = rawIds is List
+        ? rawIds.map((id) => id.toString()).toSet().toList()
+        : <String>[];
+
+    if (productIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This bundle has no products configured yet.')),
+      );
+      return;
+    }
+
+    try {
+      for (final productId in productIds) {
+        await FirestoreDatabase.instance.addToCart(
+          uid: uid,
+          productId: productId,
+          quantity: 1,
+        );
+      }
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            productIds.length.toString() + ' bundle items added to your bag.',
+          ),
+          action: SnackBarAction(
+            label: 'VIEW BAG',
+            onPressed: () => Navigator.pushNamed(context, '/cart'),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not add bundle: ' + e.toString())),
+      );
+    }
+  }
+}
+
+class _HomeBundleEmpty extends StatelessWidget {
+  const _HomeBundleEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: HomeScreen.border),
+      ),
+      child: const Text(
+        'No student bundles are available yet.',
+        textAlign: TextAlign.center,
+        style: TextStyle(color: HomeScreen.muted),
+      ),
+    );
+  }
+}
 
 Widget _homeAssetImage(String path) {
   return AppImage(
