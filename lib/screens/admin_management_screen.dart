@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../widgets/app_image.dart';
 
 enum AdminSection { products, categories, bundles, orders, users, reviews }
 
@@ -250,13 +251,19 @@ class AdminManagementScreen extends StatelessWidget {
   }) {
     Uint8List? selectedImageBytes;
     String? selectedFileName;
+    bool isSaving = false;
+
+    bool isValidImageUrl(String value) {
+      final uri = Uri.tryParse(value.trim());
+      return uri != null &&
+          (uri.scheme == 'http' || uri.scheme == 'https') &&
+          uri.host.isNotEmpty;
+    }
 
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
-          bool isSaving = false;
-
           Future<void> enterImageUrl() async {
             if (isSaving) return;
             final urlController = TextEditingController(text: imageUrl.text.trim());
@@ -282,7 +289,7 @@ class AdminManagementScreen extends StatelessWidget {
                   FilledButton(
                     onPressed: () {
                       final value = urlController.text.trim();
-                      if (!value.startsWith('http://') && !value.startsWith('https://')) {
+                      if (!isValidImageUrl(value)) {
                         ScaffoldMessenger.of(urlContext).showSnackBar(
                           const SnackBar(content: Text('Enter a valid http:// or https:// image URL')),
                         );
@@ -318,7 +325,16 @@ class AdminManagementScreen extends StatelessWidget {
               if (file == null) return;
 
               final bytes = await file.readAsBytes();
-              final filename = file.name;
+              final filename = file.name.trim();
+              final lowerName = filename.toLowerCase();
+              final supported = lowerName.endsWith('.jpg') ||
+                  lowerName.endsWith('.jpeg') ||
+                  lowerName.endsWith('.png') ||
+                  lowerName.endsWith('.webp') ||
+                  lowerName.endsWith('.gif');
+              if (!supported) {
+                throw Exception('Please choose JPG, JPEG, PNG, WEBP or GIF.');
+              }
               final folder = section == AdminSection.products
                   ? 'products'
                   : section == AdminSection.categories
@@ -336,11 +352,14 @@ class AdminManagementScreen extends StatelessWidget {
                 fileName: filename,
               );
 
-              imageUrl.text = downloadUrl;
+              setDialogState(() {
+                imageUrl.text = downloadUrl;
+                selectedFileName = '$filename • uploaded';
+              });
 
               if (dialogContext.mounted) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('Image uploaded successfully')),
+                  const SnackBar(content: Text('Image uploaded to Firebase Storage successfully')),
                 );
               }
             } catch (e) {
@@ -483,6 +502,41 @@ class AdminManagementScreen extends StatelessWidget {
                         'Use a local image (uploaded to Firebase Storage) or paste a public direct image URL.',
                         style: TextStyle(fontSize: 11.5, color: Color(0xFF707681)),
                       ),
+                      if (isValidImageUrl(imageUrl.text)) ...[
+                        const SizedBox(height: 12),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Image preview',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 150,
+                            child: AppImage(
+                              source: imageUrl.text.trim(),
+                              fit: BoxFit.cover,
+                              placeholder: const Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                              fallback: const Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.broken_image_outlined, size: 34),
+                                    SizedBox(height: 6),
+                                    Text('Image URL could not be loaded'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ],
                 ),
