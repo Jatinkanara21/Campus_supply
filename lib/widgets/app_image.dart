@@ -1,7 +1,8 @@
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-/// Renders both local Flutter assets and remote image URLs safely.
+/// Renders bundled assets, normal web URLs and Firebase Storage references.
 class AppImage extends StatelessWidget {
   final String? source;
   final BoxFit fit;
@@ -21,6 +22,21 @@ class AppImage extends StatelessWidget {
     return value.startsWith('assets/');
   }
 
+  bool get _isSvg {
+    final value = (source ?? '').trim().toLowerCase();
+    if (value.startsWith('assets/')) return value.endsWith('.svg');
+    final uri = Uri.tryParse(value);
+    return uri != null && uri.path.endsWith('.svg');
+  }
+
+  bool get _isFirebaseStorageReference {
+    final value = (source ?? '').trim();
+    return value.startsWith('gs://') ||
+        (!value.startsWith('http://') &&
+            !value.startsWith('https://') &&
+            value.startsWith('catalog/'));
+  }
+
   String get _normalizedAssetPath {
     return (source ?? '').trim().replaceAll('\\', '/');
   }
@@ -36,6 +52,31 @@ class AppImage extends StatelessWidget {
         );
   }
 
+  Widget _networkImage(String url, BuildContext context) {
+    if (_isSvg) {
+      return SvgPicture.network(
+        url,
+        fit: fit,
+        placeholderBuilder: (_) =>
+            placeholder ??
+            const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
+    return Image.network(
+      url,
+      fit: fit,
+      gaplessPlayback: true,
+      webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return placeholder ??
+            const Center(child: CircularProgressIndicator(strokeWidth: 2));
+      },
+      errorBuilder: (_, __, ___) => _fallback(context),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final raw = (source ?? '').trim();
@@ -44,12 +85,13 @@ class AppImage extends StatelessWidget {
     if (_isAsset) {
       final path = _normalizedAssetPath;
 
-      if (path.toLowerCase().endsWith('.svg')) {
+      if (_isSvg) {
         return SvgPicture.asset(
           path,
           fit: fit,
           placeholderBuilder: (_) =>
-              placeholder ?? const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              placeholder ??
+              const Center(child: CircularProgressIndicator(strokeWidth: 2)),
         );
       }
 
@@ -61,16 +103,31 @@ class AppImage extends StatelessWidget {
       );
     }
 
-    return Image.network(
-      raw,
-      fit: fit,
-      gaplessPlayback: true,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return placeholder ??
-            const Center(child: CircularProgressIndicator(strokeWidth: 2));
-      },
-      errorBuilder: (_, __, ___) => _fallback(context),
-    );
+    if (_isFirebaseStorageReference) {
+      final storageRef = raw.startsWith('gs://')
+          ? FirebaseStorage.instance.refFromURL(raw)
+          : FirebaseStorage.instance
+              .ref()
+              .child(raw);
+      return FutureBuilder<String>(
+        future: storageRef.getDownloadURL(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return placeholder ??
+                const Center(child: CircularProgressIndicator(strokeWidth: 2));
+          }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return _fallback(context);
+          }
+          return _networkImage(snapshot.data!, context);
+        },
+      );
+    }
+
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      return _networkImage(raw, context);
+    }
+
+    return _fallback(context);
   }
 }
