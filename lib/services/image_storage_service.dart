@@ -1,1 +1,85 @@
-import 'dart:convert';\nimport 'dart:typed_data';\n\nimport 'package:firebase_auth/firebase_auth.dart';\nimport 'package:http/http.dart' as http;\n\n/// Uploads catalog images into the GitHub repository through a secure\n/// Firebase Cloud Function. The GitHub token never reaches the Flutter app.\nclass ImageStorageService {\n  ImageStorageService._();\n\n  static const String _uploadEndpoint =\n      'https://us-central1-campus-supply-abcbf.cloudfunctions.net/uploadImageToGitHub';\n\n  static Future<String> upload({\n    required Uint8List bytes,\n    required String folder,\n    required String fileName,\n  }) async {\n    if (bytes.isEmpty) {\n      throw Exception('The selected image is empty.');\n    }\n\n    if (bytes.length > 8 * 1024 * 1024) {\n      throw Exception('Image is larger than 8 MB. Please choose a smaller image.');\n    }\n\n    final user = FirebaseAuth.instance.currentUser;\n    if (user == null) {\n      throw Exception('Please sign in as an admin before uploading an image.');\n    }\n\n    final token = await user.getIdToken();\n    if (token == null || token.isEmpty) {\n      throw Exception('Unable to authenticate the image upload.');\n    }\n\n    final response = await http\n        .post(\n          Uri.parse(_uploadEndpoint),\n          headers: {\n            'Authorization': 'Bearer ' + token,\n            'Content-Type': 'application/json',\n          },\n          body: jsonEncode({\n            'fileName': fileName,\n            'folder': folder,\n            'base64': base64Encode(bytes),\n          }),\n        )\n        .timeout(const Duration(seconds: 120));\n\n    Map<String, dynamic> payload = <String, dynamic>{};\n    try {\n      final decoded = jsonDecode(response.body);\n      if (decoded is Map<String, dynamic>) {\n        payload = decoded;\n      }\n    } catch (_) {\n      // Use the generic HTTP error below when the endpoint did not return JSON.\n    }\n\n    if (response.statusCode < 200 || response.statusCode >= 300) {\n      final message = (payload['error'] ?? '').toString().trim();\n      throw Exception(\n        message.isNotEmpty\n            ? message\n            : 'GitHub image upload failed (HTTP ' +\n                response.statusCode.toString() +\n                ').',\n      );\n    }\n\n    final url = (payload['url'] ?? '').toString().trim();\n    if (url.isEmpty) {\n      throw Exception('GitHub upload succeeded but no image URL was returned.');\n    }\n\n    return url;\n  }\n}\n
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+
+/// Uploads catalog images into the GitHub repository through a secure
+/// Firebase Cloud Function. The GitHub token never reaches the Flutter app.
+class ImageStorageService {
+  ImageStorageService._();
+
+  static const String _uploadEndpoint =
+      'https://us-central1-campus-supply-abcbf.cloudfunctions.net/uploadImageToGitHub';
+
+  static Future<String> upload({
+    required Uint8List bytes,
+    required String folder,
+    required String fileName,
+  }) async {
+    if (bytes.isEmpty) {
+      throw Exception('The selected image is empty.');
+    }
+
+    if (bytes.length > 8 * 1024 * 1024) {
+      throw Exception(
+        'Image is larger than 8 MB. Please choose a smaller image.',
+      );
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception(
+        'Please sign in as an admin before uploading an image.',
+      );
+    }
+
+    final token = await user.getIdToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('Unable to authenticate the image upload.');
+    }
+
+    final response = await http
+        .post(
+          Uri.parse(_uploadEndpoint),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'fileName': fileName,
+            'folder': folder,
+            'base64': base64Encode(bytes),
+          }),
+        )
+        .timeout(const Duration(seconds: 120));
+
+    Map<String, dynamic> payload = <String, dynamic>{};
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        payload = decoded;
+      }
+    } catch (_) {
+      // Fall through to the HTTP status handling below.
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = (payload['error'] ?? '').toString().trim();
+      throw Exception(
+        message.isNotEmpty
+            ? message
+            : 'GitHub image upload failed (HTTP ${response.statusCode}).',
+      );
+    }
+
+    final url = (payload['url'] ?? '').toString().trim();
+    if (url.isEmpty) {
+      throw Exception(
+        'GitHub upload succeeded but no image URL was returned.',
+      );
+    }
+
+    return url;
+  }
+}
