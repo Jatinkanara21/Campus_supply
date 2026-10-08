@@ -551,6 +551,16 @@ class AdminManagementScreen extends StatelessWidget {
                 onPressed: isSaving
                     ? null
                     : () async {
+                        final value = imageUrl.text.trim();
+                        if (value.isNotEmpty && !isValidImageUrl(value)) {
+                          ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter a valid public http:// or https:// image URL.'),
+                              duration: Duration(seconds: 4),
+                            ),
+                          );
+                          return;
+                        }
                         setDialogState(() => isSaving = true);
                         try {
                           if (dialogContext.mounted) {
