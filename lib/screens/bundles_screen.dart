@@ -6,25 +6,35 @@ import '../database/firestore_database.dart';
 class BundlesScreen extends StatelessWidget {
   const BundlesScreen({super.key});
 
-  static const cream = Color(0xFFFAF8F3);
+  static const cream = Color(0xFFF8F9FC);
   static const ink = Color(0xFF172033);
   static const blue = Color(0xFF2563EB);
   static const yellow = Color(0xFFFACC15);
   static const muted = Color(0xFF6B7280);
-  static const border = Color(0xFFE7E2D9);
+  static const border = Color(0xFFE4E7EC);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: cream,
+      extendBody: true,
       appBar: AppBar(
         title: const Text(
-          'Student bundles',
+          'Student Bundles',
           style: TextStyle(
             color: ink,
             fontWeight: FontWeight.w900,
+            letterSpacing: -.4,
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Shop',
+            onPressed: () => Navigator.pushNamed(context, '/shop'),
+            icon: const Icon(Icons.grid_view_rounded, color: ink),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: FirestoreDatabase.instance.watchBundles(),
@@ -47,7 +57,7 @@ class BundlesScreen extends StatelessWidget {
           final bundles = snapshot.data!;
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 32),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 36),
             children: [
               Container(
                 padding: const EdgeInsets.all(22),
@@ -57,7 +67,8 @@ class BundlesScreen extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(26),
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: const [BoxShadow(color: Color(0x252563EB), blurRadius: 26, offset: Offset(0, 12))],
                 ),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,14 +77,14 @@ class BundlesScreen extends StatelessWidget {
                       'Built for busy students.',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 28,
+                        fontSize: 30,
                         height: 1.05,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Curated kits that save time before your next class, project or exam.',
+                      'Smart kits for projects, classes and exam season — spend less time searching and more time creating.',
                       style: TextStyle(
                         color: Color(0xFFDDE8FF),
                         fontSize: 13,
@@ -110,16 +121,17 @@ class BundlesScreen extends StatelessWidget {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(22),
                       border: Border.all(color: border),
+                      boxShadow: const [BoxShadow(color: Color(0x08111827), blurRadius: 14, offset: Offset(0, 5))],
                     ),
                     child: Row(
                       children: [
                         Container(
-                          width: 82,
-                          height: 92,
+                          width: 96,
+                          height: 104,
                           clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF7CC),
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(20),
                           ),
                           child: _bundleImage(bundle['imageUrl']),
 
@@ -146,7 +158,7 @@ class BundlesScreen extends StatelessWidget {
                                     .toString(),
                                 style: const TextStyle(
                                   color: ink,
-                                  fontSize: 17,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
@@ -159,7 +171,7 @@ class BundlesScreen extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: muted,
-                                  fontSize: 11.5,
+                                  fontSize: 12,
                                   height: 1.3,
                                 ),
                               ),
