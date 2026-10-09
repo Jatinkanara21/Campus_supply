@@ -148,7 +148,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _liveStats() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      return Row(children: [_stat('—', 'Orders'), _stat('—', 'Wishlist')]);
+      return Row(
+        children: [
+          Expanded(child: _stat('—', 'Orders')),
+          Expanded(child: _stat('—', 'Wishlist')),
+        ],
+      );
     }
     return Row(
       children: [
