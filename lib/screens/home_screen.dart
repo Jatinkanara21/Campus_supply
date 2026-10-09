@@ -120,6 +120,24 @@ class HomeScreen extends StatelessWidget {
                   child: StreamBuilder<List<Map<String, dynamic>>>(
                     stream: FirestoreDatabase.instance.watchProducts(),
                     builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Padding(
+                          padding: EdgeInsets.fromLTRB(horizontal, 18, horizontal, 0),
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: border),
+                            ),
+                            child: const Text(
+                              'Popular products could not load. Please try again shortly.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: muted),
+                            ),
+                          ),
+                        );
+                      }
                       if (!snapshot.hasData) {
                         return const Padding(
                           padding: EdgeInsets.all(24),
