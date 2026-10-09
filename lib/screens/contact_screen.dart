@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 class ContactScreen extends StatelessWidget {
   const ContactScreen({super.key});
 
-  static const cream = Color(0xFFFAF8F3);
-  static const ink = Color(0xFF172033);
+  static const cream = Color(0xFFF5F7FB);
+  static const ink = Color(0xFF172554);
   static const blue = Color(0xFF2563EB);
-  static const muted = Color(0xFF707681);
+  static const muted = Color(0xFF64748B);
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +26,7 @@ class ContactScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFE7E2D9))),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFE2E8F0))),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('Send an enquiry', style: TextStyle(color: ink, fontSize: 18, fontWeight: FontWeight.w900)),
               const SizedBox(height: 12),
@@ -47,7 +47,7 @@ class ContactScreen extends StatelessWidget {
   static Widget _tile(IconData icon, String title, String text) => Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE7E2D9))),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
         child: Row(children: [
           Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFEAF2FF), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: blue)),
           const SizedBox(width: 12),
