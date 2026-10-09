@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../database/firestore_database.dart';
 import '../services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -59,7 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Text(name, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 4),
-                  const Text('Student account', style: TextStyle(color: Color(0xFFDDE8FF))),
+                  Text(admin ? 'Administrator account' : 'Student account', style: const TextStyle(color: Color(0xFFDDE8FF))),
                 ],
               ),
             ),
@@ -72,7 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
       const SizedBox(height: 16),
-      Row(children: [_stat('12', 'Orders'), _stat('5', 'Wishlist'), _stat('320', 'Points')]),
+      _liveStats(),
       const SizedBox(height: 18),
       if (admin)
         _action(context, Icons.admin_panel_settings_rounded, 'Admin dashboard', 'Manage your Campus Supply catalog', () => Navigator.pushNamed(context, '/admin'), true),
@@ -143,9 +145,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _liveStats() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return Row(
+        children: [
+          Expanded(child: _stat('—', 'Orders')),
+          Expanded(child: _stat('—', 'Wishlist')),
+        ],
+      );
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: StreamBuilder<List<Map<String, dynamic>>>(
+            stream: FirestoreDatabase.instance.watchOrders(uid),
+            builder: (context, snapshot) => _stat(
+              snapshot.hasError ? '—' : snapshot.hasData ? '${snapshot.data!.length}' : '…',
+              'Orders',
+            ),
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<List<Map<String, dynamic>>>(
+            stream: FirestoreDatabase.instance.watchWishlist(uid),
+            builder: (context, snapshot) => _stat(
+              snapshot.hasError ? '—' : snapshot.hasData ? '${snapshot.data!.length}' : '…',
+              'Wishlist',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _stat(String value, String label) {
-    return Expanded(
-      child: Container(
+    return Container(
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(vertical: 17),
         decoration: BoxDecoration(
@@ -160,7 +195,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text(label, style: const TextStyle(color: muted, fontSize: 11)),
           ],
         ),
-      ),
-    );
+      );
   }
 }

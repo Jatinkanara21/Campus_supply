@@ -124,101 +124,99 @@ class BundlesScreen extends StatelessWidget {
                       border: Border.all(color: border),
                       boxShadow: const [BoxShadow(color: Color(0x08111827), blurRadius: 14, offset: Offset(0, 5))],
                     ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 96,
-                          height: 104,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final compact = constraints.maxWidth < 520;
+                        final image = Container(
+                          width: compact ? double.infinity : 96,
+                          height: compact ? 156 : 104,
                           clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF7CC),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: _bundleImage(bundle),
-
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        );
+                        final details = Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              (bundle['badge'] ?? 'Student bundle').toString().toUpperCase(),
+                              style: const TextStyle(
+                                color: Color(0xFF9A7600),
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: .7,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              (bundle['name'] ?? bundle['title'] ?? 'Bundle').toString(),
+                              style: const TextStyle(color: ink, fontSize: 18, fontWeight: FontWeight.w900),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              (bundle['description'] ?? 'Curated campus essentials.').toString(),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: muted, fontSize: 12, height: 1.3),
+                            ),
+                            if (price != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 7),
+                                child: Text(
+                                  '₹$price',
+                                  style: const TextStyle(color: blue, fontWeight: FontWeight.w900, fontSize: 17),
+                                ),
+                              ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () => _showBundleDetails(context, bundle),
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize: const Size(0, 42),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    ),
+                                    child: const Text('View details', maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: () => _buyBundle(context, bundle),
+                                    icon: const Icon(Icons.shopping_bag_outlined, size: 16),
+                                    label: const Text('Buy bundle', maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    style: FilledButton.styleFrom(
+                                      minimumSize: const Size(0, 42),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                        if (compact) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(
-                                (bundle['badge'] ?? 'Student bundle')
-                                    .toString()
-                                    .toUpperCase(),
-                                style: const TextStyle(
-                                  color: Color(0xFF9A7600),
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: .7,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                (bundle['name'] ?? bundle['title'] ?? 'Bundle')
-                                    .toString(),
-                                style: const TextStyle(
-                                  color: ink,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                (bundle['description'] ??
-                                        'Curated campus essentials.')
-                                    .toString(),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: muted,
-                                  fontSize: 12,
-                                  height: 1.3,
-                                ),
-                              ),
-                              if (price != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 7),
-                                  child: Text(
-                                    '₹$price',
-                                    style: const TextStyle(
-                                      color: blue,
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 17,
-                                    ),
-                                  ),
-                                ),
-                              const SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      onPressed: () => _showBundleDetails(context, bundle),
-                                      style: OutlinedButton.styleFrom(
-                                        minimumSize: const Size(0, 40),
-                                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                                      ),
-                                      child: const Text('View details'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: FilledButton.icon(
-                                      onPressed: () => _buyBundle(context, bundle),
-                                      icon: const Icon(Icons.shopping_bag_outlined, size: 16),
-                                      label: const Text('Buy bundle'),
-                                      style: FilledButton.styleFrom(
-                                        minimumSize: const Size(0, 40),
-                                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              image,
+                              const SizedBox(height: 14),
+                              SizedBox(width: double.infinity, child: details),
                             ],
-                          ),
-                        ),
-                      ],
+                          );
+                        }
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            image,
+                            const SizedBox(width: 14),
+                            Expanded(child: details),
+                          ],
+                        );
+                      },
                     ),
                   );
                 }),

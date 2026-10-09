@@ -26,10 +26,21 @@ class _CheckoutScreenState extends State<CheckoutScreen>{
     try{
       await FirestoreDatabase.instance.createOrder(uid:uid,items:items,total:total,status:'pending');
       await FirestoreDatabase.instance.clearCart(uid);
-      if(!mounted)return;
-      Navigator.pushNamedAndRemoveUntil(context,'/orders',(_)=>false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Order placed successfully.')));
-    }finally{if(mounted)setState(()=>loading=false);}
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Order placed successfully.')),
+      );
+      Navigator.pushNamedAndRemoveUntil(context, '/orders', (_) => false);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('We could not complete your order. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   @override Widget build(BuildContext context){
