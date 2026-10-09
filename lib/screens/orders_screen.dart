@@ -4,7 +4,7 @@ import '../database/firestore_database.dart';
 
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
-  static const cream=Color(0xFFFAF8F3), ink=Color(0xFF172033), blue=Color(0xFF2563EB), green=Color(0xFF198754), muted=Color(0xFF6B7280), border=Color(0xFFE7E2D9);
+  static const cream=Color(0xFFF5F7FB), ink=Color(0xFF172554), blue=Color(0xFF3157D5), green=Color(0xFF198754), muted=Color(0xFF64748B), border=Color(0xFFE2E8F0);
 
   @override Widget build(BuildContext context){
     final uid=FirebaseAuth.instance.currentUser?.uid;
@@ -21,7 +21,7 @@ class OrdersScreen extends StatelessWidget {
           return Container(padding:const EdgeInsets.all(18),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(22),border:Border.all(color:border)),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             Row(children:[Expanded(child:Text('#${o['id']}',style:const TextStyle(color:ink,fontWeight:FontWeight.w900))),Container(padding:const EdgeInsets.symmetric(horizontal:10,vertical:6),decoration:BoxDecoration(color:color.withValues(alpha:.12),borderRadius:BorderRadius.circular(10)),child:Text(status.toUpperCase(),style:TextStyle(color:color,fontSize:10,fontWeight:FontWeight.w900)))]),
             const SizedBox(height:12),Text('₹${((o['total'] as num?)?.toDouble()??0).toStringAsFixed(0)}',style:const TextStyle(color:blue,fontSize:22,fontWeight:FontWeight.w900)),const SizedBox(height:5),Text('${(o['items'] as List?)?.length??0} item line(s)',style:const TextStyle(color:muted)),
-            const SizedBox(height:16),LinearProgressIndicator(value:done?1:.5,minHeight:7,borderRadius:BorderRadius.circular(8),backgroundColor:const Color(0xFFEAF2FF),color:color),
+            const SizedBox(height:16),LinearProgressIndicator(value:done?1:.5,minHeight:7,borderRadius:BorderRadius.circular(8),backgroundColor:const Color(0xFFE8EEFF),color:color),
           ]));
         });
       },

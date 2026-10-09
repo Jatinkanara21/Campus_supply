@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
-  static const cream = Color(0xFFFAF8F3);
-  static const ink = Color(0xFF172033);
-  static const blue = Color(0xFF2563EB);
-  static const yellow = Color(0xFFFACC15);
-  static const muted = Color(0xFF707681);
+  static const cream = Color(0xFFF5F7FB);
+  static const ink = Color(0xFF172554);
+  static const blue = Color(0xFF3157D5);
+  static const yellow = Color(0xFFFFC66D);
+  static const muted = Color(0xFF64748B);
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +25,7 @@ class AboutScreen extends StatelessWidget {
               SizedBox(height: 14),
               Text('Create more. Spend less.', style: TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w900, letterSpacing: -1)),
               SizedBox(height: 8),
-              Text('Campus Supply is built around one idea: students should spend less time hunting for essentials and more time creating.', style: TextStyle(color: Color(0xFFEAF2FF), height: 1.45)),
+              Text('Campus Supply is built around one idea: students should spend less time hunting for essentials and more time creating.', style: TextStyle(color: Color(0xFFE8EEFF), height: 1.45)),
             ]),
           ),
           const SizedBox(height: 18),
@@ -40,7 +40,7 @@ class AboutScreen extends StatelessWidget {
   static Widget _card(String title, String text) => Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFE7E2D9))),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFFE2E8F0))),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title, style: const TextStyle(color: ink, fontSize: 17, fontWeight: FontWeight.w900)),
           const SizedBox(height: 7),

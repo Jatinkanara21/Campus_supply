@@ -8,14 +8,14 @@ import '../widgets/campus_logo.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  static const cream = Color(0xFFFAF8F3);
-  static const ink = Color(0xFF172033);
+  static const cream = Color(0xFFF5F7FB);
+  static const ink = Color(0xFF172554);
   static const blue = Color(0xFF2563EB);
-  static const yellow = Color(0xFFFACC15);
-  static const coral = Color(0xFFF97368);
+  static const yellow = Color(0xFFFFC66D);
+  static const coral = Color(0xFFFF8066);
   static const white = Colors.white;
-  static const muted = Color(0xFF6B7280);
-  static const border = Color(0xFFE8E4DB);
+  static const muted = Color(0xFF64748B);
+  static const border = Color(0xFFE2E8F0);
   static const softBlue = Color(0xFFEAF2FF);
   static const softYellow = Color(0xFFFFF7CC);
   static const softCoral = Color(0xFFFFE9E6);

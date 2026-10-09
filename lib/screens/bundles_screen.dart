@@ -7,12 +7,12 @@ import '../database/firestore_database.dart';
 class BundlesScreen extends StatelessWidget {
   const BundlesScreen({super.key});
 
-  static const cream = Color(0xFFF8F9FC);
-  static const ink = Color(0xFF172033);
+  static const cream = Color(0xFFF5F7FB);
+  static const ink = Color(0xFF172554);
   static const blue = Color(0xFF2563EB);
-  static const yellow = Color(0xFFFACC15);
-  static const muted = Color(0xFF6B7280);
-  static const border = Color(0xFFE4E7EC);
+  static const yellow = Color(0xFFFFC66D);
+  static const muted = Color(0xFF64748B);
+  static const border = Color(0xFFE2E8F0);
 
   @override
   Widget build(BuildContext context) {

@@ -4,7 +4,7 @@ import '../database/firestore_database.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
-  static const cream = Color(0xFFFAF8F3), ink = Color(0xFF172033), blue = Color(0xFF2563EB), muted = Color(0xFF6B7280), border = Color(0xFFE7E2D9);
+  static const cream = Color(0xFFF5F7FB), ink = Color(0xFF172554), blue = Color(0xFF2563EB), muted = Color(0xFF64748B), border = Color(0xFFE2E8F0);
 
   @override
   Widget build(BuildContext context) {

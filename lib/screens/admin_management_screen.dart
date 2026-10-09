@@ -449,7 +449,7 @@ class AdminManagementScreen extends StatelessWidget {
                                           : 'Image selected',
                                       style: const TextStyle(
                                         fontSize: 12,
-                                        color: Color(0xFF707681),
+                                        color: Color(0xFF64748B),
                                       ),
                                     ),
                                   ],
@@ -500,7 +500,7 @@ class AdminManagementScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       const Text(
                         'Use a local image (uploaded to GitHub Storage) or paste a public direct image URL.',
-                        style: TextStyle(fontSize: 11.5, color: Color(0xFF707681)),
+                        style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
                       ),
                       if (isValidImageUrl(imageUrl.text)) ...[
                         const SizedBox(height: 12),

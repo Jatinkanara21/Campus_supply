@@ -47,7 +47,7 @@ class AppImage extends StatelessWidget {
           child: Icon(
             Icons.image_not_supported_outlined,
             size: 42,
-            color: Color(0xFF2563EB),
+            color: Color(0xFF3157D5),
           ),
         );
   }

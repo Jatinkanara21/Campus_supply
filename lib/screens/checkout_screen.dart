@@ -8,7 +8,7 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen>{
-  static const cream=Color(0xFFFAF8F3), ink=Color(0xFF172033), blue=Color(0xFF2563EB), muted=Color(0xFF707681), border=Color(0xFFE7E2D9);
+  static const cream=Color(0xFFF5F7FB), ink=Color(0xFF172554), blue=Color(0xFF2563EB), muted=Color(0xFF64748B), border=Color(0xFFE2E8F0);
   bool loading=false;
   final name=TextEditingController(), phone=TextEditingController(), address=TextEditingController(), city=TextEditingController(), pin=TextEditingController();
 

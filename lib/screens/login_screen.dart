@@ -11,13 +11,13 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static const forest = Color(0xFFFAF8F3);
+  static const forest = Color(0xFFF5F7FB);
   static const darkEmerald = Colors.white;
-  static const emerald = Color(0xFF2563EB);
+  static const emerald = Color(0xFF3157D5);
   static const sage = Color(0xFF9AA0AA);
-  static const mint = Color(0xFF172033);
-  static const gold = Color(0xFFFACC15);
-  static const taupe = Color(0xFF707681);
+  static const mint = Color(0xFF172554);
+  static const gold = Color(0xFFFFC66D);
+  static const taupe = Color(0xFF64748B);
   static const espresso = Color(0xFFFFFFFF);
 
   final emailController = TextEditingController();

@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 class FaqScreen extends StatelessWidget {
   const FaqScreen({super.key});
 
-  static const cream = Color(0xFFFAF8F3);
-  static const ink = Color(0xFF172033);
-  static const muted = Color(0xFF707681);
-  static const border = Color(0xFFE7E2D9);
+  static const cream = Color(0xFFF5F7FB);
+  static const ink = Color(0xFF172554);
+  static const muted = Color(0xFF64748B);
+  static const border = Color(0xFFE2E8F0);
 
   @override
   Widget build(BuildContext context) {

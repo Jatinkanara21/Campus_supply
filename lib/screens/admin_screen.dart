@@ -16,11 +16,11 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  static const cream = Color(0xFFFAF8F3);
-  static const ink = Color(0xFF172033);
+  static const cream = Color(0xFFF5F7FB);
+  static const ink = Color(0xFF172554);
   static const blue = Color(0xFF2563EB);
-  static const yellow = Color(0xFFFACC15);
-  static const muted = Color(0xFF707681);
+  static const yellow = Color(0xFFFFC66D);
+  static const muted = Color(0xFF64748B);
 
   bool loading = true;
   bool admin = false;
@@ -154,7 +154,7 @@ class _AdminScreenState extends State<AdminScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFE7E2D9)),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
                           children: [
@@ -227,7 +227,7 @@ class _AdminScreenState extends State<AdminScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE7E2D9)),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: Row(
             children: [
@@ -431,7 +431,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _metric(String value, String label, IconData icon) => Container(
     padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE7E2D9))),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
       Icon(icon, color: blue),
       const SizedBox(height: 8),
@@ -442,7 +442,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _menu(BuildContext context, IconData icon, String title, String subtitle, AdminSection section) => Container(
     margin: const EdgeInsets.only(bottom: 10),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE7E2D9))),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2E8F0))),
     child: ListTile(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdminManagementScreen(section: section))),
       leading: CircleAvatar(backgroundColor: const Color(0xFFEAF2FF), child: Icon(icon, color: blue)),
