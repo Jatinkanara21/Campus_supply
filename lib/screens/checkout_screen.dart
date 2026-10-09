@@ -31,7 +31,7 @@ class _CheckoutScreenState extends State<CheckoutScreen>{
         const SnackBar(content: Text('Order placed successfully.')),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/orders', (_) => false);
-    } catch (error) {
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
