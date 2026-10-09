@@ -217,7 +217,7 @@ class BundlesScreen extends StatelessWidget {
                           ],
                         );
                       },
-                    ),,
+                    ),
                   );
                 }),
             ],
