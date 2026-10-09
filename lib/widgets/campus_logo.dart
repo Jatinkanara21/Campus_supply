@@ -6,10 +6,10 @@ class CampusLogo extends StatelessWidget {
 
   const CampusLogo({super.key, this.size = 56, this.showWordmark = false});
 
-  static const blue = Color(0xFF2563EB);
-  static const cream = Color(0xFFFAF8F3);
-  static const yellow = Color(0xFFFACC15);
-  static const ink = Color(0xFF172033);
+  static const blue = Color(0xFF3157D5);
+  static const cream = Color(0xFFF5F7FB);
+  static const yellow = Color(0xFFFFC66D);
+  static const ink = Color(0xFF172554);
 
   @override
   Widget build(BuildContext context) {
