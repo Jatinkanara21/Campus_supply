@@ -289,7 +289,9 @@ class _AdminScreenState extends State<AdminScreen> {
         builder: (dialogContext, setDialogState) => AlertDialog(
           title: const Text('Homepage hero image'),
           content: SizedBox(
-            width: 520,
+            width: MediaQuery.sizeOf(dialogContext).width < 584
+                              ? MediaQuery.sizeOf(dialogContext).width - 64
+                              : 520,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
