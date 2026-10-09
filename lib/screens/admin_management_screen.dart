@@ -374,7 +374,9 @@ class AdminManagementScreen extends StatelessWidget {
           return AlertDialog(
             title: Text(title),
             content: SizedBox(
-              width: 520,
+              width: MediaQuery.sizeOf(dialogContext).width < 584
+                              ? MediaQuery.sizeOf(dialogContext).width - 64
+                              : 520,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
