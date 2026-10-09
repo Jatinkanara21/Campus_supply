@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../database/firestore_database.dart';
+import '../widgets/app_image.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -59,7 +60,11 @@ class CartScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
       child: Row(children: [
-        Container(width: 88, height: 88, clipBehavior: Clip.antiAlias, decoration: BoxDecoration(color: const Color(0xFFF4F2ED), borderRadius: BorderRadius.circular(16)), child: image.isEmpty ? const Icon(Icons.inventory_2_rounded, color: blue, size: 36) : Image.network(image, fit: BoxFit.cover)),
+        Container(width: 88, height: 88, clipBehavior: Clip.antiAlias, decoration: BoxDecoration(color: const Color(0xFFF4F2ED), borderRadius: BorderRadius.circular(16)), child: AppImage(
+          source: image,
+          fit: BoxFit.cover,
+          fallback: const Icon(Icons.inventory_2_rounded, color: blue, size: 36),
+        )),
         const SizedBox(width: 13),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text((p?['name'] ?? 'Product').toString(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: ink, fontWeight: FontWeight.w900)),
