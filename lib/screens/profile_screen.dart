@@ -312,7 +312,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: StreamBuilder<List<Map<String, dynamic>>>(
           stream: FirestoreDatabase.instance.watchOrders(uid),
           builder: (context, snapshot) => _stat(
-            snapshot.hasError ? '—' : snapshot.hasData ? '\${snapshot.data!.length}' : '…',
+            snapshot.hasError ? '—' : snapshot.hasData ? '${snapshot.data!.length}' : '…',
             'Orders', Icons.shopping_cart_outlined, paleBlue,
           ),
         ),
@@ -322,7 +322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: StreamBuilder<List<Map<String, dynamic>>>(
           stream: FirestoreDatabase.instance.watchWishlist(uid),
           builder: (context, snapshot) => _stat(
-            snapshot.hasError ? '—' : snapshot.hasData ? '\${snapshot.data!.length}' : '…',
+            snapshot.hasError ? '—' : snapshot.hasData ? '${snapshot.data!.length}' : '…',
             'Wishlist', Icons.favorite_rounded, paleCoral,
           ),
         ),
