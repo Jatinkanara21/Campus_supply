@@ -16,8 +16,8 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  static const cream = Color(0xFFF5F7FB);
-  static const ink = Color(0xFF172554);
+  static const cream = Color(0xFFFAF8F3);
+  static const ink = Color(0xFF172033);
   static const blue = Color(0xFF2563EB);
   static const yellow = Color(0xFFFFC66D);
   static const muted = Color(0xFF64748B);
@@ -156,32 +156,47 @@ class _AdminScreenState extends State<AdminScreen> {
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
-                        child: Row(
-                          children: [
-                            const CircleAvatar(
-                              backgroundColor: Color(0xFFFFF4C7),
-                              child: Icon(Icons.auto_awesome_rounded, color: ink),
-                            ),
-                            const SizedBox(width: 12),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final compact = constraints.maxWidth < 520;
+                            final information = const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Starter catalog', style: TextStyle(color: ink, fontWeight: FontWeight.w900)),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Add ready-to-use products, categories and bundles. Existing records are never overwritten.',
+                                  style: TextStyle(color: muted, fontSize: 12, height: 1.4),
+                                ),
+                              ],
+                            );
+                            if (compact) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Text('Starter catalog', style: TextStyle(color: ink, fontWeight: FontWeight.w900)),
-                                  SizedBox(height: 3),
-                                  Text(
+                                  Row(children: [
+                                    const CircleAvatar(backgroundColor: Color(0xFFFFF4C7), child: Icon(Icons.auto_awesome_rounded, color: ink)),
+                                    const SizedBox(width: 12),
+                                    const Expanded(child: Text('Starter catalog', style: TextStyle(color: ink, fontWeight: FontWeight.w900))),
+                                  ]),
+                                  const SizedBox(height: 10),
+                                  const Text(
                                     'Add ready-to-use products, categories and bundles. Existing records are never overwritten.',
-                                    style: TextStyle(color: muted, fontSize: 11.5, height: 1.3),
+                                    style: TextStyle(color: muted, fontSize: 12, height: 1.4),
                                   ),
+                                  const SizedBox(height: 12),
+                                  Align(alignment: Alignment.centerRight, child: FilledButton(onPressed: _seedCatalog, child: const Text('Seed catalog'))),
                                 ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            FilledButton(
-                              onPressed: _seedCatalog,
-                              child: const Text('Seed'),
-                            ),
-                          ],
+                              );
+                            }
+                            return Row(children: [
+                              const CircleAvatar(backgroundColor: Color(0xFFFFF4C7), child: Icon(Icons.auto_awesome_rounded, color: ink)),
+                              const SizedBox(width: 12),
+                              Expanded(child: information),
+                              const SizedBox(width: 12),
+                              FilledButton(onPressed: _seedCatalog, child: const Text('Seed')),
+                            ]);
+                          },
                         ),
                       ),
                       const SizedBox(height: 22),
