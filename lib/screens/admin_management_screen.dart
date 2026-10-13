@@ -477,7 +477,10 @@ class AdminManagementScreen extends StatelessWidget {
           }
 
           return AlertDialog(
-            title: Text(title),
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: Text(title, style: const TextStyle(color: Color(0xFF172033), fontWeight: FontWeight.w900)),
             content: SizedBox(
               width: MediaQuery.sizeOf(dialogContext).width < 584
                               ? MediaQuery.sizeOf(dialogContext).width - 64
@@ -488,17 +491,21 @@ class AdminManagementScreen extends StatelessWidget {
                   children: [
                     TextField(
                       controller: name,
-                      decoration: const InputDecoration(labelText: 'Name'),
+                      decoration: const InputDecoration(labelText: 'Name', prefixIcon: Icon(Icons.label_outline_rounded)),
                     ),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: description,
-                      decoration: const InputDecoration(labelText: 'Description'),
+                      maxLines: 3,
+                      minLines: 2,
+                      decoration: const InputDecoration(labelText: 'Description', alignLabelWithHint: true, prefixIcon: Icon(Icons.notes_rounded)),
                     ),
+                    const SizedBox(height: 12),
                     if (section == AdminSection.products || section == AdminSection.bundles)
                       TextField(
                         controller: price,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Price'),
+                        decoration: const InputDecoration(labelText: 'Price', prefixIcon: Icon(Icons.currency_rupee_rounded)),
                       ),
                     if (section == AdminSection.products ||
                         section == AdminSection.categories ||
