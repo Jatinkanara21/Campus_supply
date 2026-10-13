@@ -1358,7 +1358,7 @@ class _FirebaseProductCard extends StatelessWidget {
                   const Spacer(),
                   Flexible(
                     child: Text(
-                      '₹\${product['price'] ?? 0}',
+                      '₹${product['price'] ?? 0}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.end,
