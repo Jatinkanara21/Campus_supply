@@ -38,6 +38,50 @@ jobs:
       - name: Build Flutter Web
         run: flutter build web --release --base-href "/Campus_supply/"
 
+      - name: Bust Flutter web asset caches
+        env:
+          BUILD_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path("build/web")
+          build_id = os.environ["BUILD_SHA"][:12]
+          config_path = root / "flutter_build_config.json"
+          config = json.loads(config_path.read_text())
+
+          def version_main_js(value):
+              if isinstance(value, dict):
+                  for key, child in list(value.items()):
+                      if key == "mainJsPath" and isinstance(child, str):
+                          old_path = root / child
+                          suffix = old_path.suffix or ".js"
+                          new_name = f"main.{build_id}{suffix}"
+                          new_path = root / new_name
+                          if old_path.exists():
+                              old_path.rename(new_path)
+                              value[key] = new_name
+                      else:
+                          version_main_js(child)
+              elif isinstance(value, list):
+                  for child in value:
+                      version_main_js(child)
+
+          version_main_js(config)
+          config_path.write_text(json.dumps(config, separators=(",", ":")))
+
+          index_path = root / "index.html"
+          html = index_path.read_text()
+          html = html.replace(
+              'src="flutter_bootstrap.js"',
+              f'src="flutter_bootstrap.js?v={build_id}"',
+          )
+          index_path.write_text(html)
+          print(f"Cache-busted Flutter entrypoint for build {build_id}")
+          PY
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
