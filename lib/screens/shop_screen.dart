@@ -201,7 +201,7 @@ class _ShopScreenState extends State<ShopScreen> {
                             crossAxisCount: columns,
                             crossAxisSpacing: 12,
                             mainAxisSpacing: 12,
-                            childAspectRatio: columns == 2 ? .72 : .82,
+                            childAspectRatio: columns == 2 ? .60 : .82,
                           ),
                           itemBuilder: (_, i) => _card(context, filtered[i]),
                         ),
@@ -289,9 +289,23 @@ class _ShopScreenState extends State<ShopScreen> {
               (p['name'] ?? 'Product').toString(),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: ink, fontWeight: FontWeight.w800),
+              style: const TextStyle(color: ink, fontWeight: FontWeight.w800, height: 1.2),
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 4),
+            Text(
+              (p['category'] ?? 'Campus essential').toString(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: blue, fontSize: 10, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              (p['description'] ?? '').toString(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: muted, fontSize: 10, height: 1.25),
+            ),
+            const SizedBox(height: 6),
             Row(
               children: [
                 const Icon(
