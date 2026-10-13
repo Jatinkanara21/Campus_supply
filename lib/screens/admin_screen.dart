@@ -17,7 +17,7 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen> {
   static const cream = Color(0xFFFAF8F3);
-  static const ink = Color(0xFF172033);
+  static const ink = Color(0xFF172554);
   static const blue = Color(0xFF2563EB);
   static const yellow = Color(0xFFFFC66D);
   static const muted = Color(0xFF64748B);
@@ -106,7 +106,7 @@ class _AdminScreenState extends State<AdminScreen> {
                       Container(
                         padding: const EdgeInsets.all(22),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [blue, Color(0xFF1747B8)]),
+                          gradient: const LinearGradient(colors: [blue, Color(0xFF1D4ED8)]),
                           borderRadius: BorderRadius.circular(28),
                         ),
                         child: Row(

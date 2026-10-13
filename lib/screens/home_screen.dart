@@ -420,7 +420,7 @@ class HomeScreen extends StatelessWidget {
             const Text(
               'Discover stationery, tech and everyday study essentials.',
               style: TextStyle(
-                color: Color(0xFFE8EEFF),
+                color: Color(0xFFEAF2FF),
                 fontSize: 13,
                 height: 1.45,
               ),
@@ -777,7 +777,7 @@ class HomeScreen extends StatelessWidget {
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF4F2ED),
+                  color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(17),
                 ),
                 child: Stack(
@@ -1294,43 +1294,87 @@ class _HeroFallbackVisual extends StatelessWidget {
 class _FirebaseProductCard extends StatelessWidget {
   final Map<String, dynamic> product;
   final VoidCallback onTap;
+
   const _FirebaseProductCard({required this.product, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final imageUrl = (product['imageUrl'] ?? '').toString().trim();
-    // Firestore may contain either a bundled asset path or a Firebase Storage URL.
-    final displayImageUrl = imageUrl.isNotEmpty ? imageUrl : _fallbackImageUrl(product);
-    return GestureDetector(
-      onTap:onTap,
-      child: Container(
-        padding:const EdgeInsets.all(12),
-        decoration:BoxDecoration(color:HomeScreen.white,borderRadius:BorderRadius.circular(20),border:Border.all(color:HomeScreen.border)),
-        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          Expanded(child:Container(width:double.infinity,decoration:BoxDecoration(color:const Color(0xFFF5F3EE),borderRadius:BorderRadius.circular(16)),clipBehavior:Clip.antiAlias,child:displayImageUrl.isNotEmpty
-              ? AppImage(
-                  source: displayImageUrl,
-                  fit: BoxFit.contain,
-                  fallback: const Icon(
-                    Icons.inventory_2_rounded,
-                    color: HomeScreen.blue,
-                    size: 62,
+    // Firestore may contain a bundled asset path or a Firebase Storage URL.
+    final displayImageUrl =
+        imageUrl.isNotEmpty ? imageUrl : _fallbackImageUrl(product);
+
+    return Material(
+      color: HomeScreen.white,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: HomeScreen.border),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: HomeScreen.softBlue,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                )
-              : const Icon(
-                  Icons.inventory_2_rounded,
-                  color: HomeScreen.blue,
-                  size: 62,
-                ))),
-          const SizedBox(height:9),
-          Text((product['name']??'Product').toString(),maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(color:HomeScreen.ink,fontSize:13,fontWeight:FontWeight.w800)),
-          const SizedBox(height:5),
-          Row(children:[const Icon(Icons.star_rounded,color:Color(0xFFF4B400),size:15),const SizedBox(width:3),Text((product['rating']??'New').toString(),style:const TextStyle(color:HomeScreen.muted,fontSize:10.5,fontWeight:FontWeight.w700)),const Spacer(),Text('₹${product['price']??0}',style:const TextStyle(color:HomeScreen.blue,fontSize:15,fontWeight:FontWeight.w900))]),
-        ]),
+                  child: displayImageUrl.isNotEmpty
+                      ? AppImage(
+                          source: displayImageUrl,
+                          fit: BoxFit.contain,
+                          fallback: const Icon(Icons.inventory_2_rounded, color: HomeScreen.blue, size: 62),
+                        )
+                      : const Icon(Icons.inventory_2_rounded, color: HomeScreen.blue, size: 62),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                (product['name'] ?? 'Product').toString(),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: HomeScreen.ink, fontSize: 13, height: 1.25, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 7),
+              Row(
+                children: [
+                  const Icon(Icons.star_rounded, color: Color(0xFFF4B400), size: 15),
+                  const SizedBox(width: 3),
+                  Flexible(
+                    child: Text(
+                      (product['rating'] ?? 'New').toString(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: HomeScreen.muted, fontSize: 10.5, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const Spacer(),
+                  Flexible(
+                    child: Text(
+                      '₹\${product['price'] ?? 0}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: const TextStyle(color: HomeScreen.blue, fontSize: 14, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
+
 
 class _HeaderLink extends StatelessWidget {
   final String label;

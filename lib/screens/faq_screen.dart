@@ -4,7 +4,7 @@ class FaqScreen extends StatelessWidget {
   const FaqScreen({super.key});
 
   static const cream = Color(0xFFFAF8F3);
-  static const ink = Color(0xFF172033);
+  static const ink = Color(0xFF172554);
   static const muted = Color(0xFF64748B);
   static const border = Color(0xFFE2E8F0);
   static const blue = Color(0xFF2563EB);

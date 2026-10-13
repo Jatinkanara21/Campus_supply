@@ -141,7 +141,7 @@ class AdminManagementScreen extends StatelessWidget {
                 ? '★ $rating'
                 : null;
     final badgeColor = section == AdminSection.orders && status.toLowerCase() == 'delivered'
-        ? const Color(0xFF198754)
+        ? const Color(0xFF15803D)
         : section == AdminSection.users && role == 'admin'
             ? const Color(0xFF7C3AED)
             : const Color(0xFF2563EB);
@@ -180,7 +180,7 @@ class AdminManagementScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(displayName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF172033), fontWeight: FontWeight.w900)),
+                Text(displayName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF172554), fontWeight: FontWeight.w900)),
                 const SizedBox(height: 5),
                 Text(subtitle, maxLines: section == AdminSection.reviews ? 3 : 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF64748B), height: 1.35, fontSize: 12)),
                 if (badgeText != null) ...[
@@ -241,7 +241,7 @@ class AdminManagementScreen extends StatelessWidget {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Icon(empty ? icon : Icons.cloud_off_outlined, color: const Color(0xFF2563EB), size: 48),
         const SizedBox(height: 12),
-        Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF172033), fontWeight: FontWeight.w800)),
+        Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF172554), fontWeight: FontWeight.w800)),
       ]),
     ),
   );
@@ -480,7 +480,7 @@ class AdminManagementScreen extends StatelessWidget {
             backgroundColor: Colors.white,
             surfaceTintColor: Colors.transparent,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            title: Text(title, style: const TextStyle(color: Color(0xFF172033), fontWeight: FontWeight.w900)),
+            title: Text(title, style: const TextStyle(color: Color(0xFF172554), fontWeight: FontWeight.w900)),
             content: SizedBox(
               width: MediaQuery.sizeOf(dialogContext).width < 584
                               ? MediaQuery.sizeOf(dialogContext).width - 64

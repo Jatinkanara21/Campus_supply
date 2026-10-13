@@ -9,7 +9,7 @@ class ContactScreen extends StatefulWidget {
 
 class _ContactScreenState extends State<ContactScreen> {
   static const cream = Color(0xFFFAF8F3);
-  static const ink = Color(0xFF172033);
+  static const ink = Color(0xFF172554);
   static const blue = Color(0xFF2563EB);
   static const muted = Color(0xFF64748B);
   static const border = Color(0xFFE2E8F0);
@@ -126,7 +126,7 @@ class _ContactScreenState extends State<ContactScreen> {
         prefixIcon: alignLabelWithHint ? null : Icon(icon, size: 20),
         alignLabelWithHint: alignLabelWithHint,
         filled: true,
-        fillColor: const Color(0xFFFAFAF8),
+        fillColor: const Color(0xFFFAF8F3),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: border)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: border)),

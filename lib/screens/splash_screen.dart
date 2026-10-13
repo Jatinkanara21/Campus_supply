@@ -16,12 +16,12 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _fade;
   Timer? _navigationTimer;
 
-  static const cream = Color(0xFFF5F7FB);
+  static const cream = Color(0xFFFAF8F3);
   static const ink = Color(0xFF172554);
-  static const blue = Color(0xFF3157D5);
+  static const blue = Color(0xFF2563EB);
   static const yellow = Color(0xFFFFC66D);
   static const muted = Color(0xFF64748B);
-  static const softBlue = Color(0xFFE8EEFF);
+  static const softBlue = Color(0xFFEAF2FF);
 
   @override
   void initState() {
@@ -138,7 +138,7 @@ class _SplashScreenState extends State<SplashScreen>
                         child: CircularProgressIndicator(
                           strokeWidth: 2.5,
                           color: blue,
-                          backgroundColor: Color(0xFFE3EAF8),
+                          backgroundColor: Color(0xFFEAF2FF),
                         ),
                       ),
                     ],

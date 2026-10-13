@@ -5,7 +5,7 @@ import '../widgets/app_image.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
-  static const cream = Color(0xFFFAF8F3), ink = Color(0xFF172033), blue = Color(0xFF2563EB), muted = Color(0xFF64748B), border = Color(0xFFE2E8F0);
+  static const cream = Color(0xFFFAF8F3), ink = Color(0xFF172554), blue = Color(0xFF2563EB), muted = Color(0xFF64748B), border = Color(0xFFE2E8F0);
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +60,7 @@ class CartScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
       child: Row(children: [
-        Container(width: 88, height: 88, clipBehavior: Clip.antiAlias, decoration: BoxDecoration(color: const Color(0xFFF4F2ED), borderRadius: BorderRadius.circular(16)), child: AppImage(
+        Container(width: 88, height: 88, clipBehavior: Clip.antiAlias, decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(16)), child: AppImage(
           source: image,
           fit: BoxFit.contain,
           fallback: const Icon(Icons.inventory_2_rounded, color: blue, size: 36),

@@ -8,7 +8,7 @@ class BundlesScreen extends StatelessWidget {
   const BundlesScreen({super.key});
 
   static const cream = Color(0xFFFAF8F3);
-  static const ink = Color(0xFF172033);
+  static const ink = Color(0xFF172554);
   static const blue = Color(0xFF2563EB);
   static const yellow = Color(0xFFFFC66D);
   static const muted = Color(0xFF64748B);
@@ -64,7 +64,7 @@ class BundlesScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [blue, Color(0xFF1747B8)],
+                    colors: [blue, Color(0xFF1D4ED8)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
