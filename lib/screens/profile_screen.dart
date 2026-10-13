@@ -39,63 +39,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final content = <Widget>[
-      Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [blue, Color(0xFF1D4ED8)]),
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 68,
-              height: 68,
-              decoration: const BoxDecoration(color: yellow, shape: BoxShape.circle),
-              child: const Icon(Icons.person_rounded, color: ink, size: 36),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 4),
-                  Text(admin ? 'Administrator account' : 'Student account', style: const TextStyle(color: Color(0xFFDDE8FF))),
-                ],
-              ),
-            ),
-            if (admin)
-              IconButton(
-                onPressed: () => Navigator.pushNamed(context, '/admin'),
-                icon: const Icon(Icons.admin_panel_settings_rounded, color: yellow),
-              ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 16),
-      _liveStats(),
-      const SizedBox(height: 18),
-      if (admin)
-        _action(context, Icons.admin_panel_settings_rounded, 'Admin dashboard', 'Manage your Campus Supply catalog', () => Navigator.pushNamed(context, '/admin'), true),
-      _action(context, Icons.receipt_long_outlined, 'My orders', 'Track purchases and delivery status', () => Navigator.pushNamed(context, '/orders'), false),
-      _action(context, Icons.favorite_border_rounded, 'Wishlist', 'Your saved products', () => Navigator.pushNamed(context, '/wishlist'), false),
-      _action(context, Icons.shopping_bag_outlined, 'Cart', 'Review your current bag', () => Navigator.pushNamed(context, '/cart'), false),
-      _action(context, Icons.info_outline_rounded, 'About', 'Learn about Campus Supply', () => Navigator.pushNamed(context, '/about'), false),
-      _action(context, Icons.help_outline_rounded, 'Help & FAQ', 'Find quick answers', () => Navigator.pushNamed(context, '/faq'), false),
-      _action(context, Icons.mail_outline_rounded, 'Contact', 'Talk to the Campus Supply team', () => Navigator.pushNamed(context, '/contact'), false),
-      const SizedBox(height: 8),
-      OutlinedButton.icon(
-        onPressed: () async {
-          await AuthService.logout();
-          if (!mounted) return;
-          Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
-        },
-        icon: const Icon(Icons.logout_rounded),
-        label: const Text('Sign out'),
-      ),
-    ];
-
     return Scaffold(
       backgroundColor: cream,
       appBar: AppBar(
@@ -103,13 +46,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 850;
+          final wide = constraints.maxWidth >= 900;
+          final maxWidth = wide ? 1120.0 : 680.0;
+          final horizontalPadding = wide ? 28.0 : 18.0;
+          final availableWidth = (constraints.maxWidth < maxWidth ? constraints.maxWidth : maxWidth) - horizontalPadding * 2;
+          final itemWidth = wide ? (availableWidth - 16) / 2 : availableWidth;
           return Center(
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: wide ? 1000 : 650),
+              constraints: BoxConstraints(maxWidth: maxWidth),
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(18, 10, 18, 32),
-                children: content,
+                padding: EdgeInsets.fromLTRB(horizontalPadding, 18, horizontalPadding, 36),
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(wide ? 28 : 20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [blue, Color(0xFF1D4ED8)],
+                      ),
+                      borderRadius: BorderRadius.circular(26),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: wide ? 76 : 62,
+                          height: wide ? 76 : 62,
+                          decoration: const BoxDecoration(color: yellow, shape: BoxShape.circle),
+                          child: Icon(Icons.person_rounded, color: ink, size: wide ? 40 : 32),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white, fontSize: wide ? 25 : 21, fontWeight: FontWeight.w900)),
+                              const SizedBox(height: 5),
+                              Text(admin ? 'Administrator account' : 'Student account', style: const TextStyle(color: Color(0xFFDDE8FF), fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        if (admin)
+                          IconButton(
+                            tooltip: 'Admin dashboard',
+                            onPressed: () => Navigator.pushNamed(context, '/admin'),
+                            icon: const Icon(Icons.admin_panel_settings_rounded, color: yellow, size: 28),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  _liveStats(),
+                  const SizedBox(height: 28),
+                  Text('Your account', style: TextStyle(color: ink, fontSize: wide ? 20 : 18, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 12,
+                    children: [
+                      if (admin)
+                        SizedBox(width: itemWidth, child: _action(context, Icons.admin_panel_settings_rounded, 'Admin dashboard', 'Manage your Campus Supply catalog', () => Navigator.pushNamed(context, '/admin'), true)),
+                      SizedBox(width: itemWidth, child: _action(context, Icons.receipt_long_outlined, 'My orders', 'Track purchases and delivery status', () => Navigator.pushNamed(context, '/orders'), false)),
+                      SizedBox(width: itemWidth, child: _action(context, Icons.favorite_border_rounded, 'Wishlist', 'Your saved products', () => Navigator.pushNamed(context, '/wishlist'), false)),
+                      SizedBox(width: itemWidth, child: _action(context, Icons.shopping_bag_outlined, 'Cart', 'Review your current bag', () => Navigator.pushNamed(context, '/cart'), false)),
+                      SizedBox(width: itemWidth, child: _action(context, Icons.info_outline_rounded, 'About', 'Learn about Campus Supply', () => Navigator.pushNamed(context, '/about'), false)),
+                      SizedBox(width: itemWidth, child: _action(context, Icons.help_outline_rounded, 'Help & FAQ', 'Find quick answers', () => Navigator.pushNamed(context, '/faq'), false)),
+                      SizedBox(width: itemWidth, child: _action(context, Icons.mail_outline_rounded, 'Contact', 'Talk to the Campus Supply team', () => Navigator.pushNamed(context, '/contact'), false)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      foregroundColor: ink,
+                      side: const BorderSide(color: border),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: () async {
+                      await AuthService.logout();
+                      if (!mounted) return;
+                      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+                    },
+                    icon: const Icon(Icons.logout_rounded, size: 18),
+                    label: const Text('Sign out', style: TextStyle(fontWeight: FontWeight.w800)),
+                  ),
+                ],
               ),
             ),
           );
