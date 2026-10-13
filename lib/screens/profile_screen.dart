@@ -178,13 +178,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Row(children: [
       Expanded(child: StreamBuilder<List<Map<String, dynamic>>>(
         stream: FirestoreDatabase.instance.watchOrders(uid),
-        builder: (context, s) => _stat(s.hasError ? '—' : s.hasData ? '\${s.data!.length}' : '…',
+        builder: (context, s) => _stat(s.hasError ? '—' : s.hasData ? '${s.data!.length}' : '…',
           'Orders', Icons.shopping_cart_outlined, paleBlue, blue),
       )),
       const _StatDivider(),
       Expanded(child: StreamBuilder<List<Map<String, dynamic>>>(
         stream: FirestoreDatabase.instance.watchWishlist(uid),
-        builder: (context, s) => _stat(s.hasError ? '—' : s.hasData ? '\${s.data!.length}' : '…',
+        builder: (context, s) => _stat(s.hasError ? '—' : s.hasData ? '${s.data!.length}' : '…',
           'Wishlist', Icons.favorite_rounded, const Color(0xFFFFEEEE), coral),
       )),
     ]);
