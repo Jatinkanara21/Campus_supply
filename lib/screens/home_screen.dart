@@ -669,7 +669,7 @@ class HomeScreen extends StatelessWidget {
         if (action.isNotEmpty)
           GestureDetector(
             onTap: onTap,
-            child: const Text(
+            child: Text(
               action,
               style: TextStyle(
                 color: blue,
