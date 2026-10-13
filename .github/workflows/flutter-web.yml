@@ -43,43 +43,34 @@ jobs:
           BUILD_SHA: ${{ github.sha }}
         run: |
           python3 - <<'PY'
-          import json
           import os
           from pathlib import Path
 
           root = Path("build/web")
           build_id = os.environ["BUILD_SHA"][:12]
-          config_path = root / "flutter_build_config.json"
-          config = json.loads(config_path.read_text())
-
-          def version_main_js(value):
-              if isinstance(value, dict):
-                  for key, child in list(value.items()):
-                      if key == "mainJsPath" and isinstance(child, str):
-                          old_path = root / child
-                          suffix = old_path.suffix or ".js"
-                          new_name = f"main.{build_id}{suffix}"
-                          new_path = root / new_name
-                          if old_path.exists():
-                              old_path.rename(new_path)
-                              value[key] = new_name
-                      else:
-                          version_main_js(child)
-              elif isinstance(value, list):
-                  for child in value:
-                      version_main_js(child)
-
-          version_main_js(config)
-          config_path.write_text(json.dumps(config, separators=(",", ":")))
-
           index_path = root / "index.html"
+          bootstrap_path = root / "flutter_bootstrap.js"
+
+          # Version the bootstrap URL and the compiled Dart entrypoint URL.
+          # Flutter versions differ in their generated build-config files, so
+          # do not depend on flutter_build_config.json being present.
           html = index_path.read_text()
           html = html.replace(
               'src="flutter_bootstrap.js"',
               f'src="flutter_bootstrap.js?v={build_id}"',
           )
           index_path.write_text(html)
-          print(f"Cache-busted Flutter entrypoint for build {build_id}")
+
+          if bootstrap_path.exists():
+              bootstrap = bootstrap_path.read_text()
+              for filename in ("main.dart.js", "main.dart.mjs", "main.dart.wasm"):
+                  bootstrap = bootstrap.replace(
+                      filename,
+                      f"{filename}?v={build_id}",
+                  )
+              bootstrap_path.write_text(bootstrap)
+
+          print(f"Cache-busted Flutter entrypoints for build {build_id}")
           PY
 
       - name: Upload Pages artifact
