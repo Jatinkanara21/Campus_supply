@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../database/firestore_database.dart';
 import '../services/auth_service.dart';
 
@@ -14,9 +15,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   static const cream = Color(0xFFFAF8F3);
   static const ink = Color(0xFF172554);
   static const blue = Color(0xFF2563EB);
+  static const blueDark = Color(0xFF1D4ED8);
   static const yellow = Color(0xFFFFC66D);
   static const muted = Color(0xFF64748B);
   static const border = Color(0xFFE2E8F0);
+  static const paleBlue = Color(0xFFEAF2FF);
+  static const paleCoral = Color(0xFFFFE9E6);
 
   String name = 'Student';
   bool admin = false;
@@ -37,131 +41,259 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  void _go(String route) => Navigator.pushNamed(context, route);
+
+  Future<void> _signOut() async {
+    await AuthService.logout();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final email = user?.email?.trim() ?? '';
+    final wide = MediaQuery.sizeOf(context).width >= 850;
+    final maxWidth = wide ? 980.0 : 620.0;
+
     return Scaffold(
       backgroundColor: cream,
-      appBar: AppBar(
-        title: const Text('Profile', style: TextStyle(fontWeight: FontWeight.w900)),
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 900;
-          final maxWidth = wide ? 1120.0 : 680.0;
-          final horizontalPadding = wide ? 28.0 : 18.0;
-          final availableWidth = (constraints.maxWidth < maxWidth ? constraints.maxWidth : maxWidth) - horizontalPadding * 2;
-          final itemWidth = wide ? (availableWidth - 16) / 2 : availableWidth;
-          return Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxWidth),
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(horizontalPadding, 18, horizontalPadding, 36),
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(wide ? 28 : 20),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [blue, Color(0xFF1D4ED8)],
+      body: SafeArea(
+        bottom: false,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final side = constraints.maxWidth >= 850 ? 26.0 : 16.0;
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(side, 12, side, 0),
+                        child: _brandHeader(),
                       ),
-                      borderRadius: BorderRadius.circular(26),
                     ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: wide ? 76 : 62,
-                          height: wide ? 76 : 62,
-                          decoration: const BoxDecoration(color: yellow, shape: BoxShape.circle),
-                          child: Icon(Icons.person_rounded, color: ink, size: wide ? 40 : 32),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
+                    SliverToBoxAdapter(
+                      child: Transform.translate(
+                        offset: const Offset(0, -20),
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(side, 0, side, 0),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white, fontSize: wide ? 25 : 21, fontWeight: FontWeight.w900)),
-                              const SizedBox(height: 5),
-                              Text(admin ? 'Administrator account' : 'Student account', style: const TextStyle(color: Color(0xFFDDE8FF), fontSize: 13)),
+                              _profileSummary(user, email, wide),
+                              const SizedBox(height: 18),
+                              _sectionCard(children: [
+                                _menuRow(
+                                  icon: Icons.inventory_2_outlined,
+                                  title: 'My Orders',
+                                  subtitle: 'Track and view your orders',
+                                  tint: paleBlue,
+                                  onTap: () => _go('/orders'),
+                                ),
+                                _menuRow(
+                                  icon: Icons.favorite_rounded,
+                                  title: 'My Wishlist',
+                                  subtitle: 'View your saved products',
+                                  tint: paleCoral,
+                                  onTap: () => _go('/wishlist'),
+                                ),
+                                _menuRow(
+                                  icon: Icons.shopping_cart_outlined,
+                                  title: 'Cart',
+                                  subtitle: 'Review items in your bag',
+                                  tint: paleBlue,
+                                  showDivider: false,
+                                  onTap: () => _go('/cart'),
+                                ),
+                              ]),
+                              const SizedBox(height: 18),
+                              _sectionCard(children: [
+                                if (admin)
+                                  _menuRow(
+                                    icon: Icons.admin_panel_settings_outlined,
+                                    title: 'Admin Dashboard',
+                                    subtitle: 'Manage the Campus Supply catalog',
+                                    tint: const Color(0xFFFFF7CC),
+                                    onTap: () => _go('/admin'),
+                                  ),
+                                _menuRow(
+                                  icon: Icons.help_outline_rounded,
+                                  title: 'Help & Support',
+                                  subtitle: 'FAQs and answers to common questions',
+                                  tint: paleBlue,
+                                  onTap: () => _go('/faq'),
+                                ),
+                                _menuRow(
+                                  icon: Icons.mail_outline_rounded,
+                                  title: 'Contact Us',
+                                  subtitle: 'Talk to the Campus Supply team',
+                                  tint: paleBlue,
+                                  onTap: () => _go('/contact'),
+                                ),
+                                _menuRow(
+                                  icon: Icons.info_outline_rounded,
+                                  title: 'About Campus Supply',
+                                  subtitle: 'Create More. Spend Less.',
+                                  tint: paleBlue,
+                                  showDivider: false,
+                                  onTap: () => _go('/about'),
+                                ),
+                              ]),
+                              const SizedBox(height: 18),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: _signOut,
+                                  icon: const Icon(Icons.logout_rounded),
+                                  label: const Text('Log out'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFFDC2626),
+                                    backgroundColor: const Color(0xFFFFE3E3),
+                                    side: BorderSide.none,
+                                    minimumSize: const Size.fromHeight(56),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
                             ],
                           ),
                         ),
-                        if (admin)
-                          IconButton(
-                            tooltip: 'Admin dashboard',
-                            onPressed: () => Navigator.pushNamed(context, '/admin'),
-                            icon: const Icon(Icons.admin_panel_settings_rounded, color: yellow, size: 28),
-                          ),
-                      ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  _liveStats(),
-                  const SizedBox(height: 28),
-                  Text('Your account', style: TextStyle(color: ink, fontSize: wide ? 20 : 18, fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 12,
-                    children: [
-                      if (admin)
-                        SizedBox(width: itemWidth, child: _action(context, Icons.admin_panel_settings_rounded, 'Admin dashboard', 'Manage your Campus Supply catalog', () => Navigator.pushNamed(context, '/admin'), true)),
-                      SizedBox(width: itemWidth, child: _action(context, Icons.receipt_long_outlined, 'My orders', 'Track purchases and delivery status', () => Navigator.pushNamed(context, '/orders'), false)),
-                      SizedBox(width: itemWidth, child: _action(context, Icons.favorite_border_rounded, 'Wishlist', 'Your saved products', () => Navigator.pushNamed(context, '/wishlist'), false)),
-                      SizedBox(width: itemWidth, child: _action(context, Icons.shopping_bag_outlined, 'Cart', 'Review your current bag', () => Navigator.pushNamed(context, '/cart'), false)),
-                      SizedBox(width: itemWidth, child: _action(context, Icons.info_outline_rounded, 'About', 'Learn about Campus Supply', () => Navigator.pushNamed(context, '/about'), false)),
-                      SizedBox(width: itemWidth, child: _action(context, Icons.help_outline_rounded, 'Help & FAQ', 'Find quick answers', () => Navigator.pushNamed(context, '/faq'), false)),
-                      SizedBox(width: itemWidth, child: _action(context, Icons.mail_outline_rounded, 'Contact', 'Talk to the Campus Supply team', () => Navigator.pushNamed(context, '/contact'), false)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                      foregroundColor: ink,
-                      side: const BorderSide(color: border),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    onPressed: () async {
-                      await AuthService.logout();
-                      if (!mounted) return;
-                      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
-                    },
-                    icon: const Icon(Icons.logout_rounded, size: 18),
-                    label: const Text('Sign out', style: TextStyle(fontWeight: FontWeight.w800)),
-                  ),
-                ],
+                  ],
+                ),
               ),
+            );
+          },
+        ),
+      ),
+      bottomNavigationBar: _bottomNavigation(),
+    );
+  }
+
+  Widget _brandHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 20, 22, 40),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [blue, blueDark],
+        ),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(30),
+          bottom: Radius.circular(30),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: yellow,
+              borderRadius: BorderRadius.circular(17),
             ),
-          );
-        },
+            child: const Icon(Icons.shopping_bag_rounded, color: ink, size: 32),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text.rich(
+                  TextSpan(children: [
+                    TextSpan(text: 'Campus ', style: TextStyle(color: Colors.white)),
+                    TextSpan(text: 'Supply', style: TextStyle(color: yellow)),
+                  ]),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.6),
+                ),
+                SizedBox(height: 4),
+                Text('Create More. Spend Less.', style: TextStyle(color: Color(0xFFEAF2FF), fontSize: 13)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.person_outline_rounded, color: Colors.white, size: 28),
+        ],
       ),
     );
   }
 
-  Widget _action(BuildContext context, IconData icon, String title, String subtitle, VoidCallback onTap, bool highlighted) {
+  Widget _profileSummary(User? user, String email, bool wide) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      width: double.infinity,
+      padding: EdgeInsets.all(wide ? 26 : 18),
       decoration: BoxDecoration(
-        color: highlighted ? blue : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: highlighted ? blue : border),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+        boxShadow: [
+          BoxShadow(color: ink.withValues(alpha: 0.055), blurRadius: 24, offset: const Offset(0, 8)),
+        ],
       ),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: highlighted ? Colors.white.withValues(alpha: .14) : const Color(0xFFEAF2FF),
-            borderRadius: BorderRadius.circular(13),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _avatar(user),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, maxLines: 2, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: ink, fontSize: wide ? 25 : 20, fontWeight: FontWeight.w900, height: 1.15)),
+                      if (email.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(email, maxLines: 2, overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: muted, fontSize: 12.5)),
+                      ],
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+                        decoration: BoxDecoration(color: paleBlue, borderRadius: BorderRadius.circular(30)),
+                        child: Text(admin ? 'Administrator' : 'Student',
+                          style: const TextStyle(color: blue, fontSize: 12, fontWeight: FontWeight.w800)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: Icon(icon, color: highlighted ? yellow : blue),
-        ),
-        title: Text(title, style: TextStyle(color: highlighted ? Colors.white : ink, fontWeight: FontWeight.w800)),
-        subtitle: Text(subtitle, style: TextStyle(color: highlighted ? const Color(0xFFDDE8FF) : muted, fontSize: 12)),
-        trailing: Icon(Icons.chevron_right_rounded, color: highlighted ? Colors.white : muted),
+          const SizedBox(height: 22),
+          _liveStats(),
+        ],
+      ),
+    );
+  }
+
+  Widget _avatar(User? user) {
+    final photoUrl = user?.photoURL;
+    return Container(
+      width: 76,
+      height: 76,
+      padding: const EdgeInsets.all(3),
+      decoration: const BoxDecoration(color: paleBlue, shape: BoxShape.circle),
+      child: ClipOval(
+        child: photoUrl != null && photoUrl.isNotEmpty
+            ? Image.network(photoUrl, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(Icons.person_rounded, color: blue, size: 42))
+            : const Icon(Icons.person_rounded, color: blue, size: 42),
       ),
     );
   }
@@ -169,53 +301,135 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _liveStats() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      return Row(
-        children: [
-          Expanded(child: _stat('—', 'Orders')),
-          Expanded(child: _stat('—', 'Wishlist')),
-        ],
-      );
+      return Row(children: [
+        Expanded(child: _stat('—', 'Orders', Icons.shopping_cart_outlined, paleBlue)),
+        const SizedBox(width: 8),
+        Expanded(child: _stat('—', 'Wishlist', Icons.favorite_rounded, paleCoral)),
+      ]);
     }
-    return Row(
-      children: [
-        Expanded(
-          child: StreamBuilder<List<Map<String, dynamic>>>(
-            stream: FirestoreDatabase.instance.watchOrders(uid),
-            builder: (context, snapshot) => _stat(
-              snapshot.hasError ? '—' : snapshot.hasData ? '${snapshot.data!.length}' : '…',
-              'Orders',
-            ),
+    return Row(children: [
+      Expanded(
+        child: StreamBuilder<List<Map<String, dynamic>>>(
+          stream: FirestoreDatabase.instance.watchOrders(uid),
+          builder: (context, snapshot) => _stat(
+            snapshot.hasError ? '—' : snapshot.hasData ? '\${snapshot.data!.length}' : '…',
+            'Orders', Icons.shopping_cart_outlined, paleBlue,
           ),
         ),
-        Expanded(
-          child: StreamBuilder<List<Map<String, dynamic>>>(
-            stream: FirestoreDatabase.instance.watchWishlist(uid),
-            builder: (context, snapshot) => _stat(
-              snapshot.hasError ? '—' : snapshot.hasData ? '${snapshot.data!.length}' : '…',
-              'Wishlist',
-            ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: StreamBuilder<List<Map<String, dynamic>>>(
+          stream: FirestoreDatabase.instance.watchWishlist(uid),
+          builder: (context, snapshot) => _stat(
+            snapshot.hasError ? '—' : snapshot.hasData ? '\${snapshot.data!.length}' : '…',
+            'Wishlist', Icons.favorite_rounded, paleCoral,
           ),
         ),
-      ],
+      ),
+    ]);
+  }
+
+  Widget _stat(String value, String label, IconData icon, Color tint) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFCFCFD),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: border),
+      ),
+      child: Row(children: [
+        Container(
+          width: 38, height: 38,
+          decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
+          child: Icon(icon, color: label == 'Wishlist' ? const Color(0xFFF06464) : blue, size: 20),
+        ),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(value, style: const TextStyle(color: ink, fontSize: 20, fontWeight: FontWeight.w900)),
+            Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: muted, fontSize: 11)),
+          ]),
+        ),
+      ]),
     );
   }
 
-  Widget _stat(String value, String label) {
+  Widget _sectionCard({required List<Widget> children}) {
     return Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(vertical: 17),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: border),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+        boxShadow: [
+          BoxShadow(color: ink.withValues(alpha: 0.035), blurRadius: 18, offset: const Offset(0, 6)),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _menuRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color tint,
+    required VoidCallback onTap,
+    bool showDivider = true,
+  }) {
+    return Column(children: [
+      Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 2),
+            child: Row(children: [
+              Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
+                child: Icon(icon, color: title == 'My Wishlist' ? const Color(0xFFF06464) : ink, size: 25),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: const TextStyle(color: ink, fontSize: 15.5, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: muted, fontSize: 12.5)),
+                ]),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right_rounded, color: muted, size: 25),
+            ]),
+          ),
         ),
-        child: Column(
-          children: [
-            Text(value, style: const TextStyle(color: ink, fontSize: 20, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 3),
-            Text(label, style: const TextStyle(color: muted, fontSize: 11)),
-          ],
-        ),
-      );
+      ),
+      if (showDivider) const Divider(height: 1, indent: 62, color: border),
+    ]);
+  }
+
+  Widget _bottomNavigation() {
+    return NavigationBar(
+      selectedIndex: 4,
+      backgroundColor: Colors.white,
+      indicatorColor: paleBlue,
+      elevation: 8,
+      onDestinationSelected: (index) {
+        const routes = ['/home', '/shop', '/cart', '/wishlist', '/profile'];
+        if (index == 4) return;
+        Navigator.pushReplacementNamed(context, routes[index]);
+      },
+      destinations: const [
+        NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
+        NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Shop'),
+        NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), selectedIcon: Icon(Icons.shopping_cart_rounded), label: 'Cart'),
+        NavigationDestination(icon: Icon(Icons.favorite_border_rounded), selectedIcon: Icon(Icons.favorite_rounded), label: 'Wishlist'),
+        NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
+      ],
+    );
   }
 }
