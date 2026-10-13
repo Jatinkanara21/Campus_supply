@@ -4,7 +4,7 @@ import '../database/firestore_database.dart';
 
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
-  static const cream = Color(0xFFFAF8F3), ink = Color(0xFF172033), blue = Color(0xFF3157D5), green = Color(0xFF198754), muted = Color(0xFF64748B), border = Color(0xFFE2E8F0);
+  static const cream = Color(0xFFFAF8F3), ink = Color(0xFF172554), blue = Color(0xFF2563EB), green = Color(0xFF15803D), muted = Color(0xFF64748B), border = Color(0xFFE2E8F0);
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +50,7 @@ class OrdersScreen extends StatelessWidget {
                       Text('$itemCount item line(s)', style: const TextStyle(color: muted, fontSize: 13)),
                     ]),
                     const SizedBox(height: 15),
-                    ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: delivered ? 1 : .5, minHeight: 7, backgroundColor: const Color(0xFFE8EEFF), color: color)),
+                    ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: delivered ? 1 : .5, minHeight: 7, backgroundColor: const Color(0xFFEAF2FF), color: color)),
                   ]),
                 );
               },

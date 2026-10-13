@@ -14,7 +14,7 @@ class _ShopScreenState extends State<ShopScreen> {
   bool _routeArgsRead = false;
 
   static const cream = Color(0xFFFAF8F3);
-  static const ink = Color(0xFF172033);
+  static const ink = Color(0xFF172554);
   static const blue = Color(0xFF2563EB);
   static const muted = Color(0xFF64748B);
   static const border = Color(0xFFE2E8F0);
@@ -277,7 +277,7 @@ class _ShopScreenState extends State<ShopScreen> {
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F3EE),
+                  color: const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(17),
                 ),
                 clipBehavior: Clip.antiAlias,

@@ -4,8 +4,8 @@ class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
   static const cream = Color(0xFFFAF8F3);
-  static const ink = Color(0xFF172033);
-  static const blue = Color(0xFF3157D5);
+  static const ink = Color(0xFF172554);
+  static const blue = Color(0xFF2563EB);
   static const yellow = Color(0xFFFFC66D);
   static const muted = Color(0xFF64748B);
   static const border = Color(0xFFE2E8F0);
@@ -27,7 +27,7 @@ class AboutScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(26),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [blue, Color(0xFF2447B8)]),
+                      gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [blue, Color(0xFF1D4ED8)]),
                       borderRadius: BorderRadius.circular(28),
                     ),
                     child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -35,7 +35,7 @@ class AboutScreen extends StatelessWidget {
                       SizedBox(height: 16),
                       Text('Create more. Spend less.', style: TextStyle(color: Colors.white, fontSize: 28, height: 1.12, fontWeight: FontWeight.w900, letterSpacing: -.8)),
                       SizedBox(height: 10),
-                      Text('Campus Supply is built around one idea: students should spend less time hunting for essentials and more time creating.', style: TextStyle(color: Color(0xFFE8EEFF), height: 1.55)),
+                      Text('Campus Supply is built around one idea: students should spend less time hunting for essentials and more time creating.', style: TextStyle(color: Color(0xFFEAF2FF), height: 1.55)),
                     ]),
                   ),
                   const SizedBox(height: 20),

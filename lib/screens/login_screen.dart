@@ -11,9 +11,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static const forest = Color(0xFFF5F7FB);
+  static const forest = Color(0xFFFAF8F3);
   static const darkEmerald = Colors.white;
-  static const emerald = Color(0xFF3157D5);
+  static const emerald = Color(0xFF2563EB);
   static const sage = Color(0xFF9AA0AA);
   static const mint = Color(0xFF172554);
   static const gold = Color(0xFFFFC66D);

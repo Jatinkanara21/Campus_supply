@@ -12,8 +12,8 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   static const cream = Color(0xFFFAF8F3);
-  static const ink = Color(0xFF172033);
-  static const blue = Color(0xFF3157D5);
+  static const ink = Color(0xFF172554);
+  static const blue = Color(0xFF2563EB);
   static const yellow = Color(0xFFFFC66D);
   static const muted = Color(0xFF64748B);
   static const border = Color(0xFFE2E8F0);
@@ -43,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Container(
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [blue, Color(0xFF1747B8)]),
+          gradient: const LinearGradient(colors: [blue, Color(0xFF1D4ED8)]),
           borderRadius: BorderRadius.circular(28),
         ),
         child: Row(
@@ -133,7 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: highlighted ? Colors.white.withValues(alpha: .14) : const Color(0xFFE8EEFF),
+            color: highlighted ? Colors.white.withValues(alpha: .14) : const Color(0xFFEAF2FF),
             borderRadius: BorderRadius.circular(13),
           ),
           child: Icon(icon, color: highlighted ? yellow : blue),

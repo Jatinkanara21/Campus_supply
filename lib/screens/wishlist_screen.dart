@@ -5,7 +5,7 @@ import '../database/firestore_database.dart';
 
 class WishlistScreen extends StatelessWidget {
   const WishlistScreen({super.key});
-  static const cream = Color(0xFFFAF8F3), ink = Color(0xFF172033), blue = Color(0xFF3157D5), coral = Color(0xFFFF8066), muted = Color(0xFF64748B), border = Color(0xFFE2E8F0);
+  static const cream = Color(0xFFFAF8F3), ink = Color(0xFF172554), blue = Color(0xFF2563EB), coral = Color(0xFFFF8066), muted = Color(0xFF64748B), border = Color(0xFFE2E8F0);
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +43,7 @@ class WishlistScreen extends StatelessWidget {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: border)),
                         child: Row(children: [
-                          Expanded(flex: 4, child: Container(clipBehavior: Clip.antiAlias, decoration: BoxDecoration(color: const Color(0xFFF7F5F0), borderRadius: BorderRadius.circular(16)), child: AppImage(source: image, fit: BoxFit.contain, fallback: const Center(child: Icon(Icons.inventory_2_rounded, color: blue, size: 35))))),
+                          Expanded(flex: 4, child: Container(clipBehavior: Clip.antiAlias, decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(16)), child: AppImage(source: image, fit: BoxFit.contain, fallback: const Center(child: Icon(Icons.inventory_2_rounded, color: blue, size: 35))))),
                           const SizedBox(width: 13),
                           Expanded(flex: 6, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text((product?['name'] ?? 'Product').toString(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: ink, fontWeight: FontWeight.w900, height: 1.25)),
