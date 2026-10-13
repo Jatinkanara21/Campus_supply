@@ -115,7 +115,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 final details = _section('Delivery details', [
                   TextFormField(controller: name, textInputAction: TextInputAction.next, decoration: _decoration('Full name', Icons.person_outline_rounded), validator: (v) => v == null || v.trim().isEmpty ? 'Enter your full name.' : null),
                   const SizedBox(height: 12),
-                  TextFormField(controller: phone, keyboardType: TextInputType.phone, maxLength: 10, textInputAction: TextInputAction.next, decoration: _decoration('Phone number', Icons.phone_outlined), validator: (v) => RegExp(r'^[0-9]{10}).hasMatch((v ?? '').trim()) ? null : 'Enter a valid 10-digit Indian mobile number.'),
+                  TextFormField(controller: phone, keyboardType: TextInputType.phone, maxLength: 10, textInputAction: TextInputAction.next, decoration: _decoration('Phone number', Icons.phone_outlined), validator: (v) => RegExp(r'^[0-9]{10}$').hasMatch((v ?? '').trim()) ? null : 'Enter a valid 10-digit Indian mobile number.'),
                   const SizedBox(height: 2),
                   TextFormField(controller: address, textInputAction: TextInputAction.next, decoration: _decoration('Delivery address', Icons.location_on_outlined, alignLabelWithHint: true), maxLines: 3, validator: (v) => v == null || v.trim().isEmpty ? 'Enter your delivery address.' : null),
                   const SizedBox(height: 12),
@@ -123,12 +123,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     Row(children: [
                       Expanded(child: TextFormField(controller: city, textInputAction: TextInputAction.next, decoration: _decoration('City', Icons.location_city_outlined), validator: (v) => v == null || v.trim().isEmpty ? 'Enter your city.' : null)),
                       const SizedBox(width: 12),
-                      Expanded(child: TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}).hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.')),
+                      Expanded(child: TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.')),
                     ])
                   else ...[
                     TextFormField(controller: city, textInputAction: TextInputAction.next, decoration: _decoration('City', Icons.location_city_outlined), validator: (v) => v == null || v.trim().isEmpty ? 'Enter your city.' : null),
                     const SizedBox(height: 12),
-                    TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^\\d{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.'),
+                    TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.'),
                   ],
                 ]);
                 final summary = _section('Order summary', [
@@ -224,12 +224,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     Row(children: [
                       Expanded(child: TextFormField(controller: city, textInputAction: TextInputAction.next, decoration: _decoration('City', Icons.location_city_outlined), validator: (v) => v == null || v.trim().isEmpty ? 'Enter your city.' : null)),
                       const SizedBox(width: 12),
-                      Expanded(child: TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^\\d{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.')),
+                      Expanded(child: TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.')),
                     ])
                   else ...[
                     TextFormField(controller: city, textInputAction: TextInputAction.next, decoration: _decoration('City', Icons.location_city_outlined), validator: (v) => v == null || v.trim().isEmpty ? 'Enter your city.' : null),
                     const SizedBox(height: 12),
-                    TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^\\d{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.'),
+                    TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.'),
                   ],
                 ]);
                 final summary = _section('Order summary', [
@@ -322,7 +322,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   else ...[
                     TextFormField(controller: city, textInputAction: TextInputAction.next, decoration: _decoration('City', Icons.location_city_outlined), validator: (v) => v == null || v.trim().isEmpty ? 'Enter your city.' : null),
                     const SizedBox(height: 12),
-                    TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}).hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.'),
+                    TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.'),
                   ],
                 ]);
                 final summary = _section('Order summary', [
@@ -418,12 +418,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     Row(children: [
                       Expanded(child: TextFormField(controller: city, textInputAction: TextInputAction.next, decoration: _decoration('City', Icons.location_city_outlined), validator: (v) => v == null || v.trim().isEmpty ? 'Enter your city.' : null)),
                       const SizedBox(width: 12),
-                      Expanded(child: TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^\\d{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.')),
+                      Expanded(child: TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.')),
                     ])
                   else ...[
                     TextFormField(controller: city, textInputAction: TextInputAction.next, decoration: _decoration('City', Icons.location_city_outlined), validator: (v) => v == null || v.trim().isEmpty ? 'Enter your city.' : null),
                     const SizedBox(height: 12),
-                    TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^\\d{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.'),
+                    TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.'),
                   ],
                 ]);
                 final summary = _section('Order summary', [
@@ -607,12 +607,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     Row(children: [
                       Expanded(child: TextFormField(controller: city, textInputAction: TextInputAction.next, decoration: _decoration('City', Icons.location_city_outlined), validator: (v) => v == null || v.trim().isEmpty ? 'Enter your city.' : null)),
                       const SizedBox(width: 12),
-                      Expanded(child: TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}).hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.')),
+                      Expanded(child: TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.')),
                     ])
                   else ...[
                     TextFormField(controller: city, textInputAction: TextInputAction.next, decoration: _decoration('City', Icons.location_city_outlined), validator: (v) => v == null || v.trim().isEmpty ? 'Enter your city.' : null),
                     const SizedBox(height: 12),
-                    TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^\\d{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.'),
+                    TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.'),
                   ],
                 ]);
                 final summary = _section('Order summary', [
@@ -705,7 +705,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   else ...[
                     TextFormField(controller: city, textInputAction: TextInputAction.next, decoration: _decoration('City', Icons.location_city_outlined), validator: (v) => v == null || v.trim().isEmpty ? 'Enter your city.' : null),
                     const SizedBox(height: 12),
-                    TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}).hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.'),
+                    TextFormField(controller: pin, keyboardType: TextInputType.number, maxLength: 6, decoration: _decoration('PIN code', Icons.markunread_mailbox_outlined), validator: (v) => RegExp(r'^[0-9]{6}$').hasMatch((v ?? '').trim()) ? null : 'Enter a 6-digit PIN code.'),
                   ],
                 ]);
                 final summary = _section('Order summary', [
