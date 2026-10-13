@@ -51,7 +51,8 @@ class AdminManagementScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final canAdd = section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles;
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      backgroundColor: const Color(0xFFFAF8F3),
+      appBar: AppBar(title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900))),
       floatingActionButton: canAdd
           ? FloatingActionButton.extended(
               onPressed: () => _add(context),
@@ -62,15 +63,33 @@ class AdminManagementScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance.collection(collection).snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text('Unable to load ' + title + '.'));
+          if (snapshot.hasError) return _state('Unable to load ' + title + '.');
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           final docs = snapshot.data!.docs;
-          if (docs.isEmpty) return Center(child: Text('No ' + title + ' yet.'));
+          if (docs.isEmpty) {
+            return _state('No ' + title.toLowerCase() + ' yet.', empty: true);
+          }
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
-            itemCount: docs.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, index) => _tile(context, docs[index]),
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 100),
+            itemCount: docs.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    section == AdminSection.products ? 'Manage your campus store catalog' :
+                    section == AdminSection.categories ? 'Organize your campus store' :
+                    section == AdminSection.bundles ? 'Manage student bundles and package details' :
+                    section == AdminSection.orders ? 'View and manage customer orders' :
+                    section == AdminSection.users ? 'Manage campus store accounts and roles' :
+                    'View and manage customer feedback',
+                    style: const TextStyle(color: Color(0xFF64748B), height: 1.4),
+                  ),
+                );
+              }
+              return _tile(context, docs[index - 1]);
+            },
           );
         },
       ),
@@ -79,67 +98,153 @@ class AdminManagementScreen extends StatelessWidget {
 
   Widget _tile(BuildContext context, QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
-    final name = (data['name'] ?? data['title'] ?? doc.id).toString();
+    final displayName = section == AdminSection.orders
+        ? '#${doc.id}'
+        : section == AdminSection.users
+            ? (data['email'] ?? doc.id).toString()
+            : section == AdminSection.reviews
+                ? 'Customer review'
+                : (data['name'] ?? data['title'] ?? doc.id).toString();
     String subtitle;
     switch (section) {
       case AdminSection.products:
-        subtitle = '₹' + (data['price'] ?? '-').toString() + ' • ' + (data['category'] ?? 'General').toString();
+        subtitle = '₹${(data['price'] ?? '-').toString()} • ${(data['category'] ?? 'General').toString()}';
         break;
       case AdminSection.categories:
       case AdminSection.bundles:
         subtitle = (data['description'] ?? 'Catalog item').toString();
         break;
       case AdminSection.orders:
-        subtitle = 'Status: ' + (data['status'] ?? 'pending').toString() + ' • Total: ₹' + (data['total'] ?? '-').toString();
+        final count = (data['items'] is List) ? (data['items'] as List).length : 0;
+        subtitle = 'Total: ₹${(data['total'] ?? '-').toString()} • $count item(s)';
         break;
       case AdminSection.users:
-        subtitle = (data['email'] ?? '').toString() + ' • Role: ' + (data['role'] ?? 'user').toString();
+        subtitle = 'Account role';
         break;
       case AdminSection.reviews:
-        subtitle = 'Rating: ' + (data['rating'] ?? '-').toString() + ' • ' + (data['comment'] ?? '').toString();
+        subtitle = (data['comment'] ?? '').toString().trim().isEmpty
+            ? 'No written comment'
+            : (data['comment'] ?? '').toString();
         break;
     }
 
-    return Card(
-      child: ListTile(
-        leading: CircleAvatar(backgroundColor: const Color(0xFFEAF2FF), child: Icon(icon, color: const Color(0xFF2563EB))),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
-        trailing: PopupMenuButton<String>(
-          onSelected: (value) {
-            if (value == 'edit') _edit(context, doc);
-            if (value == 'delete') _delete(context, doc);
-            if (value.startsWith('status:')) _setOrderStatus(doc.id, value.substring(7));
-            if (value.startsWith('role:')) _setRole(doc.id, value.substring(5));
-          },
-          itemBuilder: (_) {
-            if (section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles) {
-              return const [
-                PopupMenuItem(value: 'edit', child: Text('Edit')),
-                PopupMenuItem(value: 'delete', child: Text('Delete')),
-              ];
-            }
-            if (section == AdminSection.orders) {
-              return const [
-                PopupMenuItem(value: 'status:pending', child: Text('Pending')),
-                PopupMenuItem(value: 'status:confirmed', child: Text('Confirmed')),
-                PopupMenuItem(value: 'status:shipped', child: Text('Shipped')),
-                PopupMenuItem(value: 'status:delivered', child: Text('Delivered')),
-                PopupMenuItem(value: 'status:cancelled', child: Text('Cancelled')),
-              ];
-            }
-            if (section == AdminSection.users) {
-              return const [
-                PopupMenuItem(value: 'role:user', child: Text('Make user')),
-                PopupMenuItem(value: 'role:admin', child: Text('Make admin')),
-              ];
-            }
-            return const [PopupMenuItem(value: 'delete', child: Text('Delete review'))];
-          },
-        ),
+    final imageUrl = (data['imageUrl'] ?? '').toString().trim();
+    final role = (data['role'] ?? 'user').toString().toLowerCase();
+    final status = (data['status'] ?? 'pending').toString();
+    final rating = (data['rating'] ?? '').toString();
+    final hasImage = (section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles) && imageUrl.isNotEmpty;
+    final badgeText = section == AdminSection.orders
+        ? status.toUpperCase()
+        : section == AdminSection.users
+            ? (role == 'admin' ? 'ADMIN' : 'USER')
+            : section == AdminSection.reviews && rating.isNotEmpty
+                ? '★ $rating'
+                : null;
+    final badgeColor = section == AdminSection.orders && status.toLowerCase() == 'delivered'
+        ? const Color(0xFF198754)
+        : section == AdminSection.users && role == 'admin'
+            ? const Color(0xFF7C3AED)
+            : const Color(0xFF2563EB);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF2FF),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: hasImage
+                ? AppImage(source: imageUrl, fit: BoxFit.contain, fallback: Center(child: Icon(icon, color: const Color(0xFF2563EB))))
+                : Center(
+                    child: Icon(
+                      section == AdminSection.orders ? Icons.receipt_long_outlined :
+                      section == AdminSection.users ? Icons.person_outline_rounded :
+                      section == AdminSection.reviews ? Icons.rate_review_outlined : icon,
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(displayName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF172033), fontWeight: FontWeight.w900)),
+                const SizedBox(height: 5),
+                Text(subtitle, maxLines: section == AdminSection.reviews ? 3 : 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF64748B), height: 1.35, fontSize: 12)),
+                if (badgeText != null) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                      decoration: BoxDecoration(color: badgeColor.withValues(alpha: .10), borderRadius: BorderRadius.circular(9)),
+                      child: Text(badgeText, style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .3)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Actions',
+            onSelected: (value) {
+              if (value == 'edit') _edit(context, doc);
+              if (value == 'delete') _delete(context, doc);
+              if (value.startsWith('status:')) _setOrderStatus(doc.id, value.substring(7));
+              if (value.startsWith('role:')) _setRole(doc.id, value.substring(5));
+            },
+            itemBuilder: (_) {
+              if (section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles) {
+                return const [
+                  PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  PopupMenuItem(value: 'delete', child: Text('Delete')),
+                ];
+              }
+              if (section == AdminSection.orders) {
+                return const [
+                  PopupMenuItem(value: 'status:pending', child: Text('Pending')),
+                  PopupMenuItem(value: 'status:confirmed', child: Text('Confirmed')),
+                  PopupMenuItem(value: 'status:shipped', child: Text('Shipped')),
+                  PopupMenuItem(value: 'status:delivered', child: Text('Delivered')),
+                  PopupMenuItem(value: 'status:cancelled', child: Text('Cancelled')),
+                ];
+              }
+              if (section == AdminSection.users) {
+                return const [
+                  PopupMenuItem(value: 'role:user', child: Text('Make user')),
+                  PopupMenuItem(value: 'role:admin', child: Text('Make admin')),
+                ];
+              }
+              return const [PopupMenuItem(value: 'delete', child: Text('Delete review'))];
+            },
+          ),
+        ],
       ),
     );
   }
+
+  Widget _state(String message, {bool empty = false}) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(empty ? icon : Icons.cloud_off_outlined, color: const Color(0xFF2563EB), size: 48),
+        const SizedBox(height: 12),
+        Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF172033), fontWeight: FontWeight.w800)),
+      ]),
+    ),
+  );
 
   Future<void> _add(BuildContext context) async {
     final name = TextEditingController();
