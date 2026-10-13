@@ -13,8 +13,8 @@ class ShopScreen extends StatefulWidget {
 class _ShopScreenState extends State<ShopScreen> {
   bool _routeArgsRead = false;
 
-  static const cream = Color(0xFFF5F7FB);
-  static const ink = Color(0xFF172554);
+  static const cream = Color(0xFFFAF8F3);
+  static const ink = Color(0xFF172033);
   static const blue = Color(0xFF2563EB);
   static const muted = Color(0xFF64748B);
   static const border = Color(0xFFE2E8F0);
