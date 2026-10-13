@@ -8,7 +8,7 @@ import '../widgets/campus_logo.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  static const cream = Color(0xFFF5F7FB);
+  static const cream = Color(0xFFFAF8F3);
   static const ink = Color(0xFF172554);
   static const blue = Color(0xFF2563EB);
   static const yellow = Color(0xFFFFC66D);
@@ -381,23 +381,115 @@ class HomeScreen extends StatelessWidget {
       builder: (context, snapshot) {
         final imageUrl =
             (snapshot.data?['heroImageUrl'] ?? '').toString().trim();
+        final imageSource = imageUrl.isNotEmpty
+            ? imageUrl
+            : 'assets/image/products/backpack.svg';
 
-        // Image-only hero: no text, buttons, gradient or split layout.
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: SizedBox(
-            width: double.infinity,
-            height: wide ? 235 : 200,
-            child: AppImage(
-              source: imageUrl.isNotEmpty
-                  ? imageUrl
-                  : 'assets/image/products/backpack.svg',
-              fit: BoxFit.cover,
-              fallback: const SizedBox.expand(
-                child: ColoredBox(color: blue),
+        final copy = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0x33FFFFFF),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: const Text(
+                'MADE FOR STUDENT LIFE',
+                style: TextStyle(
+                  color: white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                ),
               ),
             ),
+            const SizedBox(height: 14),
+            Text(
+              'Everything You Need for a Successful Semester',
+              style: TextStyle(
+                color: white,
+                fontSize: wide ? 30 : 25,
+                height: 1.12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -.7,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Discover stationery, tech and everyday study essentials.',
+              style: TextStyle(
+                color: Color(0xFFE8EEFF),
+                fontSize: 13,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: () => Navigator.pushNamed(context, '/shop'),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+              label: const Text('Shop Now'),
+              style: FilledButton.styleFrom(
+                backgroundColor: yellow,
+                foregroundColor: ink,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ],
+        );
+
+        final visual = Container(
+          constraints: BoxConstraints(
+            minHeight: wide ? 210 : 150,
+            maxHeight: wide ? 270 : 185,
           ),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.all(12),
+          child: AppImage(
+            source: imageSource,
+            fit: BoxFit.contain,
+            fallback: const _HeroFallbackVisual(),
+          ),
+        );
+
+        return Container(
+          decoration: BoxDecoration(
+            color: blue,
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: [
+              BoxShadow(
+                color: blue.withValues(alpha: .12),
+                blurRadius: 22,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          padding: EdgeInsets.fromLTRB(wide ? 30 : 22, 22, wide ? 24 : 22, 22),
+          child: wide
+              ? Row(
+                  children: [
+                    Expanded(flex: 6, child: copy),
+                    const SizedBox(width: 12),
+                    Expanded(flex: 4, child: visual),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    copy,
+                    const SizedBox(height: 8),
+                    Align(alignment: Alignment.centerRight, child: SizedBox(width: 145, child: visual)),
+                  ],
+                ),
         );
       },
     );
@@ -578,7 +670,7 @@ class HomeScreen extends StatelessWidget {
           GestureDetector(
             onTap: onTap,
             child: const Text(
-              'See all',
+              action,
               style: TextStyle(
                 color: blue,
                 fontSize: 12,
@@ -1218,7 +1310,7 @@ class _FirebaseProductCard extends StatelessWidget {
           Expanded(child:Container(width:double.infinity,decoration:BoxDecoration(color:const Color(0xFFF5F3EE),borderRadius:BorderRadius.circular(16)),clipBehavior:Clip.antiAlias,child:displayImageUrl.isNotEmpty
               ? AppImage(
                   source: displayImageUrl,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   fallback: const Icon(
                     Icons.inventory_2_rounded,
                     color: HomeScreen.blue,
