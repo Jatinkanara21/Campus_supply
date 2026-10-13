@@ -10,7 +10,7 @@ class ProductDetailScreen extends StatefulWidget {
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  static const cream = Color(0xFFF5F7FB), ink = Color(0xFF172554), blue = Color(0xFF2563EB), muted = Color(0xFF64748B), border = Color(0xFFE2E8F0);
+  static const cream = Color(0xFFFAF8F3), ink = Color(0xFF172033), blue = Color(0xFF2563EB), muted = Color(0xFF64748B), border = Color(0xFFE2E8F0);
   int quantity = 1;
   bool saving = false;
 
@@ -34,7 +34,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ]),
       body: LayoutBuilder(builder: (context, constraints) {
         final wide = constraints.maxWidth >= 850;
-        final image = _image(displayImageUrl);
+        final image = _image(displayImageUrl, wide ? 440 : constraints.maxWidth < 420 ? 300 : 360);
         final details = _details(context, product, name, description, price, rating, category);
         return SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(wide ? 34 : 18, 8, wide ? 34 : 18, 36),
@@ -61,8 +61,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return 'assets/image/products/notebook.svg';
   }
 
-  Widget _image(String url) => Container(
-    height: 440, clipBehavior: Clip.antiAlias,
+  Widget _image(String url, double height) => Container(
+    height: height, clipBehavior: Clip.antiAlias,
     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28), border: Border.all(color: border)),
     child: url.isEmpty
         ? const Center(child: Icon(Icons.inventory_2_rounded, color: blue, size: 110))
