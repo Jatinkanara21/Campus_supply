@@ -332,13 +332,13 @@ class BundlesScreen extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(26),
         border: Border.all(color: const Color(0xFFDCE5F2)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x08111827),
-            blurRadius: 16,
-            offset: Offset(0, 5),
+            color: Color(0x0B172554),
+            blurRadius: 22,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -347,26 +347,51 @@ class BundlesScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: 176,
+            height: 190,
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Container(
-                  color: const Color(0xFFFFF8D9),
-                  padding: const EdgeInsets.all(20),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFFF4F7FF), Color(0xFFFFF7DD)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: -28,
+                  bottom: -52,
+                  child: Container(
+                    width: 150,
+                    height: 150,
+                    decoration: const BoxDecoration(
+                      color: Color(0x30FFFFFF),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 28, 22, 14),
                   child: _bundleImage(bundle),
                 ),
                 Positioned(
-                  top: 13,
-                  left: 13,
+                  top: 14,
+                  left: 14,
                   child: Container(
                     constraints: const BoxConstraints(maxWidth: 210),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
                     decoration: BoxDecoration(
-                      color: yellow,
-                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(11),
+                      border: Border.all(color: const Color(0xFFF4D98C)),
                       boxShadow: const [
-                        BoxShadow(color: Color(0x18000000), blurRadius: 7, offset: Offset(0, 2)),
+                        BoxShadow(
+                          color: Color(0x10000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 3),
+                        ),
                       ],
                     ),
                     child: Text(
@@ -374,7 +399,7 @@ class BundlesScreen extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Color(0xFF755600),
+                        color: Color(0xFF795A05),
                         fontSize: 9,
                         letterSpacing: .55,
                         fontWeight: FontWeight.w900,
@@ -382,11 +407,27 @@ class BundlesScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                Positioned(
+                  right: 14,
+                  top: 14,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xEFFFFFFF),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: blue,
+                      size: 16,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(19, 18, 19, 19),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -396,55 +437,75 @@ class BundlesScreen extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: ink,
-                    fontSize: 18,
+                    fontSize: 19,
                     height: 1.2,
-                    letterSpacing: -.25,
+                    letterSpacing: -.35,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 7),
-                Text(
-                  description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: muted, fontSize: 12, height: 1.45),
+                SizedBox(
+                  height: 36,
+                  child: Text(
+                    description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: muted, fontSize: 12, height: 1.45),
+                  ),
                 ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    const Icon(Icons.local_offer_outlined, color: blue, size: 17),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: Text(
-                        priceLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: rawPrice == null ? muted : blue,
-                          fontSize: rawPrice == null ? 12 : 23,
-                          letterSpacing: rawPrice == null ? 0 : -.5,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    if (rawPrice != null)
+                const SizedBox(height: 15),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F7FF),
+                    border: Border.all(color: const Color(0xFFE2EBFC)),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Row(
+                    children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        width: 34,
+                        height: 34,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEAF2FF),
-                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(11),
                         ),
-                        child: const Text(
-                          'BUNDLE',
-                          style: TextStyle(
-                            color: blue,
-                            fontSize: 8,
-                            letterSpacing: .6,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        child: const Icon(Icons.sell_outlined, color: blue, size: 18),
+                      ),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'BUNDLE PRICE',
+                              style: TextStyle(
+                                color: muted,
+                                fontSize: 9,
+                                letterSpacing: .7,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              priceLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: rawPrice == null ? muted : blue,
+                                fontSize: rawPrice == null ? 12 : 22,
+                                height: 1.05,
+                                letterSpacing: -.4,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                  ],
+                      if (rawPrice != null)
+                        const Icon(Icons.verified_rounded, color: Color(0xFF16A34A), size: 19),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
                 LayoutBuilder(
@@ -456,9 +517,9 @@ class BundlesScreen extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: blue,
                         side: const BorderSide(color: Color(0xFFBFCEEA)),
-                        minimumSize: const Size(0, 44),
+                        minimumSize: const Size(0, 46),
                         padding: const EdgeInsets.symmetric(horizontal: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
                       ),
                       child: const Text(
                         'View details',
@@ -479,9 +540,9 @@ class BundlesScreen extends StatelessWidget {
                       ),
                       style: FilledButton.styleFrom(
                         backgroundColor: blue,
-                        minimumSize: const Size(0, 44),
+                        minimumSize: const Size(0, 46),
                         padding: const EdgeInsets.symmetric(horizontal: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
                       ),
                     );
 
@@ -499,7 +560,7 @@ class BundlesScreen extends StatelessWidget {
                     return Row(
                       children: [
                         Expanded(child: viewButton),
-                        const SizedBox(width: 9),
+                        const SizedBox(width: 10),
                         Expanded(child: buyButton),
                       ],
                     );
@@ -605,56 +666,288 @@ class BundlesScreen extends StatelessWidget {
   ) async {
     final name = (bundle['name'] ?? bundle['title'] ?? 'Student Bundle').toString();
     final description = (bundle['description'] ?? 'Curated campus essentials.').toString();
+    final badge = (bundle['badge'] ?? 'Student bundle').toString();
     final rawPrice = bundle['price'];
     final price = rawPrice is num
         ? rawPrice.toDouble()
         : double.tryParse((rawPrice ?? '').toString());
+    final priceLabel = price == null ? 'Price unavailable' : '₹' + price.toStringAsFixed(0);
 
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(
-          name,
-          style: const TextStyle(color: ink, fontWeight: FontWeight.w900),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(description, style: const TextStyle(height: 1.5)),
-              const SizedBox(height: 14),
-              if (price != null)
-                Text(
-                  'Bundle price: ₹' + price.toStringAsFixed(0),
-                  style: const TextStyle(
-                    color: blue,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
+      barrierColor: const Color(0x990D1733),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: const Color(0xFFE5EAF3)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x3008172F),
+                  blurRadius: 36,
+                  offset: Offset(0, 18),
                 ),
-              const SizedBox(height: 12),
-              const Text(
-                'This bundle adds all configured products to your bag in one click.',
-                style: TextStyle(color: muted, height: 1.45),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    height: 190,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        const DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFFEAF1FF), Color(0xFFFFF6D7)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: -22,
+                          bottom: -58,
+                          child: Container(
+                            width: 170,
+                            height: 170,
+                            decoration: const BoxDecoration(
+                              color: Color(0x55FFFFFF),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(32, 24, 32, 16),
+                          child: _bundleImage(bundle),
+                        ),
+                        Positioned(
+                          left: 18,
+                          top: 17,
+                          child: Container(
+                            constraints: const BoxConstraints(maxWidth: 220),
+                            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(11),
+                              border: Border.all(color: const Color(0xFFE7D28F)),
+                            ),
+                            child: Text(
+                              badge.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF795A05),
+                                fontSize: 9,
+                                letterSpacing: .6,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: 14,
+                          top: 14,
+                          child: Material(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(13),
+                            child: IconButton(
+                              tooltip: 'Close details',
+                              onPressed: () => Navigator.pop(dialogContext),
+                              icon: const Icon(Icons.close_rounded, color: ink, size: 20),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 23, 24, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: const TextStyle(
+                                  color: ink,
+                                  fontSize: 24,
+                                  height: 1.15,
+                                  letterSpacing: -.55,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0F5FF),
+                                borderRadius: BorderRadius.circular(13),
+                              ),
+                              child: const Icon(Icons.backpack_outlined, color: blue, size: 21),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 11),
+                        Text(
+                          description,
+                          style: const TextStyle(
+                            color: Color(0xFF566680),
+                            fontSize: 14,
+                            height: 1.6,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF4F7FF),
+                            border: Border.all(color: const Color(0xFFE2EBFC)),
+                            borderRadius: BorderRadius.circular(17),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(13),
+                                ),
+                                child: const Icon(Icons.sell_outlined, color: blue, size: 21),
+                              ),
+                              const SizedBox(width: 13),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'BUNDLE PRICE',
+                                      style: TextStyle(
+                                        color: muted,
+                                        fontSize: 10,
+                                        letterSpacing: .8,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      priceLabel,
+                                      style: TextStyle(
+                                        color: price == null ? muted : blue,
+                                        fontSize: price == null ? 13 : 25,
+                                        height: 1.05,
+                                        letterSpacing: -.5,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (price != null)
+                                const Icon(Icons.verified_rounded, color: Color(0xFF16A34A), size: 22),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.shopping_bag_outlined, color: blue, size: 19),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Add the configured items in this kit to your bag in one step.',
+                                style: TextStyle(
+                                  color: muted,
+                                  fontSize: 12,
+                                  height: 1.45,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 23),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final stackButtons = constraints.maxWidth < 330;
+                            final closeButton = OutlinedButton(
+                              onPressed: () => Navigator.pop(dialogContext),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: ink,
+                                side: const BorderSide(color: Color(0xFFD4DCE9)),
+                                minimumSize: const Size(0, 48),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: const Text(
+                                'Close',
+                                style: TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                            );
+                            final buyButton = FilledButton.icon(
+                              onPressed: () {
+                                Navigator.pop(dialogContext);
+                                _buyBundle(context, bundle);
+                              },
+                              icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+                              label: const Text(
+                                'Buy now',
+                                style: TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: blue,
+                                minimumSize: const Size(0, 48),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                            );
+
+                            if (stackButtons) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  SizedBox(width: double.infinity, child: buyButton),
+                                  const SizedBox(height: 10),
+                                  SizedBox(width: double.infinity, child: closeButton),
+                                ],
+                              );
+                            }
+
+                            return Row(
+                              children: [
+                                Expanded(child: closeButton),
+                                const SizedBox(width: 12),
+                                Expanded(child: buyButton),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
-          ),
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              _buyBundle(context, bundle);
-            },
-            icon: const Icon(Icons.shopping_bag_outlined),
-            label: const Text('Buy now'),
-          ),
-        ],
       ),
     );
   }
