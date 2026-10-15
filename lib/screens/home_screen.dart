@@ -24,11 +24,15 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: cream,
+      backgroundColor: const Color(0xFFF5F7FB),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final horizontal = constraints.maxWidth >= 760 ? 28.0 : 16.0;
+            final horizontal = constraints.maxWidth >= 1280
+                ? (constraints.maxWidth - 1180) / 2
+                : constraints.maxWidth >= 760
+                    ? 28.0
+                    : 16.0;
 
             return CustomScrollView(
               slivers: [
@@ -78,7 +82,7 @@ class HomeScreen extends StatelessWidget {
                         }
 
                         return SizedBox(
-                          height: 118,
+                          height: 138,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: categories.length,
@@ -169,8 +173,8 @@ class HomeScreen extends StatelessWidget {
                           itemCount: products.length,
                           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: constraints.maxWidth >= 900 ? 4 : 2,
-                            crossAxisSpacing: 14,
-                            mainAxisSpacing: 14,
+                            crossAxisSpacing: 18,
+                            mainAxisSpacing: 18,
                             childAspectRatio: constraints.maxWidth >= 900 ? .78 : .68,
                           ),
                           itemBuilder: (_, i) {
@@ -237,7 +241,8 @@ class HomeScreen extends StatelessWidget {
                         ),
                       );
                     },
-                  ),                ),
+                  ),
+                ),
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(horizontal, 30, horizontal, 0),
                   sliver: SliverToBoxAdapter(
@@ -280,101 +285,147 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _Header(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const CampusLogo(size: 46),
-            const SizedBox(width: 11),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Campus Supply',
-                    style: TextStyle(
-                      color: ink,
-                      fontSize: 21,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -.8,
+    final wide = MediaQuery.sizeOf(context).width >= 900;
+
+    return Container(
+      padding: EdgeInsets.all(wide ? 20 : 14),
+      decoration: BoxDecoration(
+        color: white,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A172554),
+            blurRadius: 24,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: softBlue,
+                  borderRadius: BorderRadius.circular(17),
+                ),
+                child: const CampusLogo(size: 44),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Campus Supply',
+                      style: TextStyle(
+                        color: ink,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -.7,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    'Your campus. Your essentials.',
-                    style: TextStyle(
-                      color: muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                    SizedBox(height: 3),
+                    Text(
+                      'STUDENT ESSENTIALS, SIMPLIFIED',
+                      style: TextStyle(
+                        color: muted,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: .65,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (MediaQuery.sizeOf(context).width >= 900) ...[
-              _HeaderLink(
-                label: 'Shop',
-                icon: Icons.grid_view_rounded,
-                onTap: () => Navigator.pushNamed(context, '/shop'),
+              if (wide) ...[
+                _HeaderLink(
+                  label: 'Shop',
+                  icon: Icons.grid_view_rounded,
+                  onTap: () => Navigator.pushNamed(context, '/shop'),
+                ),
+                _HeaderLink(
+                  label: 'Bundles',
+                  icon: Icons.auto_awesome_rounded,
+                  onTap: () => Navigator.pushNamed(context, '/bundles'),
+                ),
+              ],
+              _CircleButton(
+                icon: Icons.favorite_border_rounded,
+                onTap: () => Navigator.pushNamed(context, '/wishlist'),
               ),
-              _HeaderLink(
-                label: 'Bundles',
-                icon: Icons.auto_awesome_rounded,
-                onTap: () => Navigator.pushNamed(context, '/bundles'),
-              ),
-            ],
-            _CircleButton(
-              icon: Icons.favorite_border_rounded,
-              onTap: () => Navigator.pushNamed(context, '/wishlist'),
-            ),
-            const SizedBox(width: 8),
-            _CircleButton(
-              icon: Icons.shopping_bag_outlined,
-              onTap: () => Navigator.pushNamed(context, '/cart'),
-            ),
-            if (MediaQuery.sizeOf(context).width >= 900) ...[
               const SizedBox(width: 8),
               _CircleButton(
-                icon: Icons.person_outline_rounded,
-                onTap: () => Navigator.pushNamed(context, '/profile'),
+                icon: Icons.shopping_bag_outlined,
+                onTap: () => Navigator.pushNamed(context, '/cart'),
               ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          onSubmitted: (value) {
-            final query = value.trim();
-            if (query.isNotEmpty) {
-              Navigator.pushNamed(
-                context,
-                '/shop',
-                arguments: {'query': query, 'category': 'All'},
-              );
-            }
-          },
-          decoration: InputDecoration(
-            hintText: 'Search stationery, art supplies, tech and more',
-            prefixIcon: const Icon(Icons.search_rounded, color: blue),
-            suffixIcon: Padding(
-              padding: const EdgeInsets.all(6),
-              child: FilledButton(
-                onPressed: () => Navigator.pushNamed(context, '/shop'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 40),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+              if (wide) ...[
+                const SizedBox(width: 8),
+                _CircleButton(
+                  icon: Icons.person_outline_rounded,
+                  onTap: () => Navigator.pushNamed(context, '/profile'),
                 ),
-                child: const Text('Browse'),
+              ],
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            onSubmitted: (value) {
+              final query = value.trim();
+              if (query.isNotEmpty) {
+                Navigator.pushNamed(
+                  context,
+                  '/shop',
+                  arguments: {'query': query, 'category': 'All'},
+                );
+              }
+            },
+            decoration: InputDecoration(
+              hintText: 'Search stationery, art supplies, tech and more',
+              hintStyle: const TextStyle(fontSize: 12, color: muted),
+              prefixIcon: const Icon(Icons.search_rounded, color: blue, size: 22),
+              suffixIcon: Padding(
+                padding: const EdgeInsets.all(5),
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.pushNamed(context, '/shop'),
+                  icon: const Icon(Icons.arrow_outward_rounded, size: 15),
+                  label: const Text('Browse'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 42),
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              filled: true,
+              fillColor: const Color(0xFFF6F8FC),
+              contentPadding: const EdgeInsets.symmetric(vertical: 18),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(17),
+                borderSide: const BorderSide(color: border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(17),
+                borderSide: const BorderSide(color: border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(17),
+                borderSide: const BorderSide(color: blue, width: 1.5),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _Hero(BuildContext context, {required bool wide}) {
+    Widget _Hero(BuildContext context, {required bool wide}) {
     return StreamBuilder<Map<String, dynamic>>(
       stream: FirestoreDatabase.instance.watchHomeSettings(),
       builder: (context, snapshot) {
@@ -389,73 +440,164 @@ class HomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
               decoration: BoxDecoration(
-                color: const Color(0x33FFFFFF),
+                color: const Color(0x24FFFFFF),
                 borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: const Color(0x38FFFFFF)),
               ),
-              child: const Text(
-                'MADE FOR STUDENT LIFE',
-                style: TextStyle(
-                  color: white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.1,
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              'Everything You Need for a Successful Semester',
-              style: TextStyle(
-                color: white,
-                fontSize: wide ? 30 : 25,
-                height: 1.12,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -.7,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Discover stationery, tech and everyday study essentials.',
-              style: TextStyle(
-                color: Color(0xFFEAF2FF),
-                fontSize: 13,
-                height: 1.45,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.auto_awesome_rounded, color: yellow, size: 14),
+                  SizedBox(width: 7),
+                  Text(
+                    'MADE FOR STUDENT LIFE',
+                    style: TextStyle(
+                      color: white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 18),
-            FilledButton.icon(
-              onPressed: () => Navigator.pushNamed(context, '/shop'),
-              icon: const Icon(Icons.arrow_forward_rounded, size: 17),
-              label: const Text('Shop Now'),
-              style: FilledButton.styleFrom(
-                backgroundColor: yellow,
-                foregroundColor: ink,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                textStyle: const TextStyle(
-                  fontSize: 13,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 540),
+              child: Text(
+                'Your semester,\\nbetter supplied.',
+                style: TextStyle(
+                  color: white,
+                  fontSize: wide ? 39 : 32,
+                  height: 1.08,
                   fontWeight: FontWeight.w900,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  letterSpacing: -1.0,
                 ),
               ),
+            ),
+            const SizedBox(height: 13),
+            const Text(
+              'Discover stationery, tech and everyday essentials for class, creative projects and life on campus.',
+              style: TextStyle(
+                color: Color(0xFFE5EDFF),
+                fontSize: 13.5,
+                height: 1.6,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                FilledButton.icon(
+                  onPressed: () => Navigator.pushNamed(context, '/shop'),
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+                  label: const Text('Shop essentials'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: yellow,
+                    foregroundColor: ink,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 19,
+                      vertical: 16,
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.pushNamed(context, '/bundles'),
+                  icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+                  label: const Text('Explore bundles'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: white,
+                    side: const BorderSide(color: Color(0x8CFFFFFF)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 17,
+                      vertical: 15,
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const Wrap(
+              spacing: 15,
+              runSpacing: 8,
+              children: [
+                _HeroBenefit(icon: Icons.edit_note_rounded, label: 'Stationery'),
+                _HeroBenefit(icon: Icons.devices_rounded, label: 'Study tech'),
+                _HeroBenefit(icon: Icons.palette_outlined, label: 'Project supplies'),
+              ],
             ),
           ],
         );
 
         final visual = Container(
           constraints: BoxConstraints(
-            minHeight: wide ? 210 : 150,
-            maxHeight: wide ? 270 : 185,
+            minHeight: wide ? 250 : 190,
+            maxHeight: wide ? 310 : 230,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0x18FFFFFF),
+            borderRadius: BorderRadius.circular(27),
+            border: Border.all(color: const Color(0x36FFFFFF)),
           ),
           alignment: Alignment.center,
-          padding: const EdgeInsets.all(12),
-          child: AppImage(
-            source: imageSource,
-            fit: BoxFit.contain,
-            fallback: const _HeroFallbackVisual(),
+          padding: const EdgeInsets.all(15),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              AppImage(
+                source: imageSource,
+                fit: BoxFit.contain,
+                fallback: const _HeroFallbackVisual(),
+              ),
+              Positioned(
+                right: 2,
+                bottom: 2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xF2FFFFFF),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.school_rounded, size: 14, color: blue),
+                      SizedBox(width: 6),
+                      Text(
+                        'READY FOR CAMPUS',
+                        style: TextStyle(
+                          color: ink,
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: .5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         );
 
@@ -464,42 +606,81 @@ class HomeScreen extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF1D4ED8), Color(0xFF2563EB), Color(0xFF3B82F6)],
+              colors: [
+                Color(0xFF111D46),
+                Color(0xFF1D4ED8),
+                Color(0xFF3978F6),
+              ],
             ),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: const Color(0x332563EB)),
-            boxShadow: [
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: const [
               BoxShadow(
-                color: blue.withValues(alpha: .20),
-                blurRadius: 28,
-                offset: const Offset(0, 14),
+                color: Color(0x262563EB),
+                blurRadius: 34,
+                offset: Offset(0, 16),
               ),
             ],
           ),
           clipBehavior: Clip.antiAlias,
-          padding: EdgeInsets.fromLTRB(wide ? 34 : 22, wide ? 30 : 24, wide ? 28 : 22, wide ? 30 : 24),
-          child: wide
-              ? Row(
-                  children: [
-                    Expanded(flex: 6, child: copy),
-                    const SizedBox(width: 12),
-                    Expanded(flex: 4, child: visual),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    copy,
-                    const SizedBox(height: 8),
-                    Align(alignment: Alignment.centerRight, child: SizedBox(width: 145, child: visual)),
-                  ],
+          child: Stack(
+            children: [
+              Positioned(
+                top: -88,
+                right: wide ? 260 : -32,
+                child: Container(
+                  width: 245,
+                  height: 245,
+                  decoration: const BoxDecoration(
+                    color: Color(0x12FFFFFF),
+                    shape: BoxShape.circle,
+                  ),
                 ),
+              ),
+              Positioned(
+                bottom: -118,
+                right: -30,
+                child: Container(
+                  width: 300,
+                  height: 300,
+                  decoration: const BoxDecoration(
+                    color: Color(0x12FFFFFF),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  wide ? 34 : 20,
+                  wide ? 34 : 24,
+                  wide ? 34 : 20,
+                  wide ? 34 : 24,
+                ),
+                child: wide
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(flex: 6, child: copy),
+                          const SizedBox(width: 30),
+                          Expanded(flex: 4, child: visual),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          copy,
+                          const SizedBox(height: 22),
+                          visual,
+                        ],
+                      ),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  IconData _categoryIcon(String name) {
+    IconData _categoryIcon(String name) {
     final value = name.toLowerCase();
     if (value.contains('pen') || value.contains('pencil')) return Icons.edit_rounded;
     if (value.contains('book') || value.contains('notebook')) return Icons.menu_book_rounded;
@@ -536,23 +717,34 @@ class HomeScreen extends StatelessWidget {
 
   Widget _StudentDeal() {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(21),
       decoration: BoxDecoration(
-        color: ink,
-        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Color(0xFF172554), Color(0xFF243B72)],
+        ),
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14172554),
+            blurRadius: 20,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
               color: yellow,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(18),
             ),
-            child: const Icon(Icons.school_rounded, color: ink, size: 23),
+            child: const Icon(Icons.school_rounded, color: ink, size: 26),
           ),
-          const SizedBox(width: 13),
+          const SizedBox(width: 15),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,30 +753,40 @@ class HomeScreen extends StatelessWidget {
                   'Student Budget. Sorted.',
                   style: TextStyle(
                     color: white,
-                    fontSize: 17,
+                    fontSize: 18,
                     fontWeight: FontWeight.w900,
+                    letterSpacing: -.3,
                   ),
                 ),
-                SizedBox(height: 4),
+                SizedBox(height: 5),
                 Text(
                   'Show your student ID and unlock special savings on eligible essentials.',
                   style: TextStyle(
-                    color: Color(0xFFB9C0CC),
-                    fontSize: 11.5,
-                    height: 1.4,
+                    color: Color(0xFFD4DBEE),
+                    fontSize: 12,
+                    height: 1.45,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.arrow_forward_rounded, color: yellow, size: 20),
+          const SizedBox(width: 10),
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: const Color(0x18FFFFFF),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0x42FFFFFF)),
+            ),
+            child: const Icon(Icons.arrow_forward_rounded, color: yellow, size: 19),
+          ),
         ],
       ),
     );
   }
 
-  Widget _BottomNav(BuildContext context) {
+    Widget _BottomNav(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
         color: white,
@@ -641,8 +843,17 @@ class HomeScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        Container(
+          width: 4,
+          height: subtitle == null ? 30 : 40,
+          decoration: BoxDecoration(
+            color: blue,
+            borderRadius: BorderRadius.circular(99),
+          ),
+        ),
+        const SizedBox(width: 11),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -651,18 +862,18 @@ class HomeScreen extends StatelessWidget {
                 title,
                 style: const TextStyle(
                   color: ink,
-                  fontSize: 19,
+                  fontSize: 21,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: -.45,
+                  letterSpacing: -.55,
                 ),
               ),
               if (subtitle != null) ...[
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: const TextStyle(
                     color: muted,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -671,14 +882,29 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         if (action.isNotEmpty)
-          GestureDetector(
-            onTap: onTap,
-            child: Text(
-              action,
-              style: TextStyle(
-                color: blue,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
+          Material(
+            color: softBlue,
+            borderRadius: BorderRadius.circular(13),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(13),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      action,
+                      style: const TextStyle(
+                        color: blue,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_forward_rounded, color: blue, size: 14),
+                  ],
+                ),
               ),
             ),
           ),
@@ -686,7 +912,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _CategoryCard({
+    Widget _CategoryCard({
     required String imageUrl,
     required IconData icon,
     required String title,
@@ -694,50 +920,64 @@ class HomeScreen extends StatelessWidget {
     required Color accent,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: 112,
-        padding: const EdgeInsets.all(11),
-        decoration: BoxDecoration(
-          color: white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: border),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 45,
-              height: 45,
-              decoration: BoxDecoration(
-                color: background,
-                shape: BoxShape.circle,
+    return Material(
+      color: white,
+      borderRadius: BorderRadius.circular(22),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          width: 136,
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: border),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x07172554),
+                blurRadius: 16,
+                offset: Offset(0, 5),
               ),
-              child: imageUrl.isNotEmpty
-                  ? ClipOval(child: _homeAssetImage(imageUrl))
-                  : Icon(icon, color: accent, size: 22),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: ink,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w800,
-                height: 1.15,
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 53,
+                height: 53,
+                decoration: BoxDecoration(
+                  color: background,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: imageUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: _homeAssetImage(imageUrl),
+                      )
+                    : Icon(icon, color: accent, size: 25),
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              Text(
+                title,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: ink,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _CategoryMessage({required String message}) {
+    Widget _CategoryMessage({required String message}) {
     return Container(
       height: 118,
       alignment: Alignment.center,
@@ -960,7 +1200,8 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-    );  }
+    );
+  }
 
   Widget _Testimonial({
     required String quote,
@@ -1199,7 +1440,8 @@ class _HeroFallbackVisual extends StatelessWidget {
         Positioned(
           top: 15,
           right: 18,
-          child: Container(            width: 11,
+          child: Container(
+            width: 11,
             height: 11,
             decoration: const BoxDecoration(
               color: HomeScreen.yellow,
@@ -1301,21 +1543,22 @@ class _FirebaseProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageUrl = (product['imageUrl'] ?? '').toString().trim();
-    // Firestore may contain a bundled asset path or a Firebase Storage URL.
     final displayImageUrl =
         imageUrl.isNotEmpty ? imageUrl : _fallbackImageUrl(product);
 
     return Material(
       color: HomeScreen.white,
+      elevation: 2,
+      shadowColor: const Color(0x12172554),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(25),
         side: const BorderSide(color: HomeScreen.border),
       ),
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(13),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1324,46 +1567,106 @@ class _FirebaseProductCard extends StatelessWidget {
                   width: double.infinity,
                   clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F6FC),
-                    borderRadius: BorderRadius.circular(18),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFEDF3FF), Color(0xFFF8FAFD)],
+                    ),
+                    borderRadius: BorderRadius.circular(19),
                   ),
-                  child: displayImageUrl.isNotEmpty
-                      ? AppImage(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: AppImage(
                           source: displayImageUrl,
                           fit: BoxFit.contain,
-                          fallback: const Icon(Icons.inventory_2_rounded, color: HomeScreen.blue, size: 62),
-                        )
-                      : const Icon(Icons.inventory_2_rounded, color: HomeScreen.blue, size: 62),
+                          fallback: const Icon(
+                            Icons.inventory_2_rounded,
+                            color: HomeScreen.blue,
+                            size: 62,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 10,
+                        left: 10,
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: .92),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.shopping_bag_outlined,
+                            color: HomeScreen.blue,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 13),
               Text(
                 (product['name'] ?? 'Product').toString(),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: HomeScreen.ink, fontSize: 13.5, height: 1.25, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  color: HomeScreen.ink,
+                  fontSize: 14.5,
+                  height: 1.25,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-              const SizedBox(height: 7),
+              const SizedBox(height: 11),
               Row(
                 children: [
-                  const Icon(Icons.star_rounded, color: Color(0xFFF4B400), size: 15),
-                  const SizedBox(width: 3),
-                  Flexible(
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF7D6),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.star_rounded,
+                      color: Color(0xFFE0A000),
+                      size: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
                     child: Text(
                       (product['rating'] ?? 'New').toString(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: HomeScreen.muted, fontSize: 10.5, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: HomeScreen.muted,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 4),
                   Flexible(
-                    child: Text(
-                      '₹${product['price'] ?? 0}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.end,
-                      style: const TextStyle(color: HomeScreen.blue, fontSize: 14, fontWeight: FontWeight.w900),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: HomeScreen.softBlue,
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: Text(
+                        '₹\${product['price'] ?? 0}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(
+                          color: HomeScreen.blue,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -1376,8 +1679,7 @@ class _FirebaseProductCard extends StatelessWidget {
   }
 }
 
-
-class _HeaderLink extends StatelessWidget {
+  class _HeaderLink extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
@@ -1436,4 +1738,16 @@ class _CircleButton extends StatelessWidget {
       ),
     );
   }
+}
+
+String _fallbackImageUrl(Map<String, dynamic> product) {
+  final value = '\${product['name'] ?? ''} \${product['category'] ?? ''}'.toLowerCase();
+  if (value.contains('backpack') || value.contains('bag')) return 'assets/image/products/backpack.svg';
+  if (value.contains('headphone')) return 'assets/image/products/headphones.svg';
+  if (value.contains('bottle') || value.contains('tumbler')) return 'assets/image/products/bottle.svg';
+  if (value.contains('calculator')) return 'assets/image/products/calculator.svg';
+  if (value.contains('lamp')) return 'assets/image/products/lamp.svg';
+  if (value.contains('sleeve')) return 'assets/image/products/sleeve.svg';
+  if (value.contains('pen')) return 'assets/image/products/pen.svg';
+  return 'assets/image/products/notebook.svg';
 }
