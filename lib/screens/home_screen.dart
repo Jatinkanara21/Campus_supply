@@ -425,7 +425,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-    Widget _Hero(BuildContext context, {required bool wide}) {
+  Widget _Hero(BuildContext context, {required bool wide}) {
     return StreamBuilder<Map<String, dynamic>>(
       stream: FirestoreDatabase.instance.watchHomeSettings(),
       builder: (context, snapshot) {
@@ -467,7 +467,7 @@ class HomeScreen extends StatelessWidget {
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 540),
               child: Text(
-                'Your semester,\\nbetter supplied.',
+                'Your semester,\nbetter supplied.',
                 style: TextStyle(
                   color: white,
                   fontSize: wide ? 39 : 32,
@@ -680,7 +680,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-    IconData _categoryIcon(String name) {
+  IconData _categoryIcon(String name) {
     final value = name.toLowerCase();
     if (value.contains('pen') || value.contains('pencil')) return Icons.edit_rounded;
     if (value.contains('book') || value.contains('notebook')) return Icons.menu_book_rounded;
@@ -786,7 +786,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-    Widget _BottomNav(BuildContext context) {
+  Widget _BottomNav(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
         color: white,
@@ -912,7 +912,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-    Widget _CategoryCard({
+  Widget _CategoryCard({
     required String imageUrl,
     required IconData icon,
     required String title,
@@ -977,7 +977,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-    Widget _CategoryMessage({required String message}) {
+  Widget _CategoryMessage({required String message}) {
     return Container(
       height: 118,
       alignment: Alignment.center,
@@ -1534,6 +1534,32 @@ class _HeroFallbackVisual extends StatelessWidget {
   }
 }
 
+class _HeroBenefit extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _HeroBenefit({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: HomeScreen.yellow, size: 15),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            color: HomeScreen.white,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _FirebaseProductCard extends StatelessWidget {
   final Map<String, dynamic> product;
   final VoidCallback onTap;
@@ -1657,7 +1683,7 @@ class _FirebaseProductCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(11),
                       ),
                       child: Text(
-                        '₹\${product['price'] ?? 0}',
+                        '₹${product['price'] ?? 0}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.end,
@@ -1679,7 +1705,7 @@ class _FirebaseProductCard extends StatelessWidget {
   }
 }
 
-  class _HeaderLink extends StatelessWidget {
+class _HeaderLink extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
@@ -1741,7 +1767,7 @@ class _CircleButton extends StatelessWidget {
 }
 
 String _fallbackImageUrl(Map<String, dynamic> product) {
-  final value = '\${product['name'] ?? ''} \${product['category'] ?? ''}'.toLowerCase();
+  final value = '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
   if (value.contains('backpack') || value.contains('bag')) return 'assets/image/products/backpack.svg';
   if (value.contains('headphone')) return 'assets/image/products/headphones.svg';
   if (value.contains('bottle') || value.contains('tumbler')) return 'assets/image/products/bottle.svg';
