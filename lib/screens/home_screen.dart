@@ -237,8 +237,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                       );
                     },
-                  ),
-                ),
+                  ),                ),
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(horizontal, 30, horizontal, 0),
                   sliver: SliverToBoxAdapter(
@@ -462,23 +461,27 @@ class HomeScreen extends StatelessWidget {
 
         return Container(
           decoration: BoxDecoration(
-            color: blue,
-            borderRadius: BorderRadius.circular(26),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF1D4ED8), Color(0xFF2563EB), Color(0xFF3B82F6)],
+            ),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: const Color(0x332563EB)),
             boxShadow: [
               BoxShadow(
-                color: blue.withValues(alpha: .12),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
+                color: blue.withValues(alpha: .20),
+                blurRadius: 28,
+                offset: const Offset(0, 14),
               ),
             ],
           ),
           clipBehavior: Clip.antiAlias,
-          padding: EdgeInsets.fromLTRB(wide ? 30 : 22, 22, wide ? 24 : 22, 22),
+          padding: EdgeInsets.fromLTRB(wide ? 34 : 22, wide ? 30 : 24, wide ? 28 : 22, wide ? 30 : 24),
           child: wide
               ? Row(
                   children: [
-                    Expanded(flex: 6, child: copy),
-                    const SizedBox(width: 12),
+                    Expanded(flex: 6, child: copy),                    const SizedBox(width: 12),
                     Expanded(flex: 4, child: visual),
                   ],
                 )
@@ -717,8 +720,7 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              title,
-              maxLines: 2,
+              title,              maxLines: 2,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -957,8 +959,7 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    );  }
 
   Widget _Testimonial({
     required String quote,
@@ -1197,8 +1198,7 @@ class _HeroFallbackVisual extends StatelessWidget {
         Positioned(
           top: 15,
           right: 18,
-          child: Container(
-            width: 11,
+          child: Container(            width: 11,
             height: 11,
             decoration: const BoxDecoration(
               color: HomeScreen.yellow,
@@ -1308,13 +1308,13 @@ class _FirebaseProductCard extends StatelessWidget {
       color: HomeScreen.white,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         side: const BorderSide(color: HomeScreen.border),
       ),
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(13),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1323,8 +1323,8 @@ class _FirebaseProductCard extends StatelessWidget {
                   width: double.infinity,
                   clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
-                    color: HomeScreen.softBlue,
-                    borderRadius: BorderRadius.circular(16),
+                    color: const Color(0xFFF3F6FC),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                   child: displayImageUrl.isNotEmpty
                       ? AppImage(
@@ -1340,7 +1340,7 @@ class _FirebaseProductCard extends StatelessWidget {
                 (product['name'] ?? 'Product').toString(),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: HomeScreen.ink, fontSize: 13, height: 1.25, fontWeight: FontWeight.w800),
+                style: const TextStyle(color: HomeScreen.ink, fontSize: 13.5, height: 1.25, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 7),
               Row(
@@ -1437,15 +1437,3 @@ class _CircleButton extends StatelessWidget {
   }
 }
 
-
-String _fallbackImageUrl(Map<String, dynamic> product) {
-  final value = '${product['name'] ?? ''} ${product['category'] ?? ''}'.toLowerCase();
-  if (value.contains('backpack') || value.contains('bag')) return 'assets/image/products/backpack.svg';
-  if (value.contains('headphone')) return 'assets/image/products/headphones.svg';
-  if (value.contains('bottle') || value.contains('tumbler')) return 'assets/image/products/bottle.svg';
-  if (value.contains('calculator')) return 'assets/image/products/calculator.svg';
-  if (value.contains('lamp')) return 'assets/image/products/lamp.svg';
-  if (value.contains('sleeve')) return 'assets/image/products/sleeve.svg';
-  if (value.contains('pen')) return 'assets/image/products/pen.svg';
-  return 'assets/image/products/notebook.svg';
-}
