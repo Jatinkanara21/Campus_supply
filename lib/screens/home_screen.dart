@@ -481,7 +481,8 @@ class HomeScreen extends StatelessWidget {
           child: wide
               ? Row(
                   children: [
-                    Expanded(flex: 6, child: copy),                    const SizedBox(width: 12),
+                    Expanded(flex: 6, child: copy),
+                    const SizedBox(width: 12),
                     Expanded(flex: 4, child: visual),
                   ],
                 )
