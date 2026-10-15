@@ -134,7 +134,7 @@ class BundlesScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         LayoutBuilder(
                           builder: (context, gridConstraints) {
-                            final twoColumns = gridConstraints.maxWidth >= 790;
+                            final twoColumns = gridConstraints.maxWidth >= 760;
                             final cardWidth = twoColumns
                                 ? (gridConstraints.maxWidth - 18) / 2
                                 : gridConstraints.maxWidth;
@@ -222,7 +222,7 @@ class BundlesScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Smart kits for projects, classes and exam season — spend less time searching and more time creating.',
+                      'Smart kits for projects, classes and exam season. Spend less time searching and more time creating.',
                       style: TextStyle(
                         color: Color(0xFFDDE8FF),
                         fontSize: 13,
@@ -311,7 +311,7 @@ class BundlesScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Admins can add student bundles from the dashboard. Check back soon for ready-to-go campus kits.',
+            'There are no student bundles available right now. Please check back soon for ready-to-go campus kits.',
             textAlign: TextAlign.center,
             style: TextStyle(color: muted, height: 1.5, fontSize: 13),
           ),
@@ -332,8 +332,8 @@ class BundlesScreen extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(23),
-        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFDCE5F2)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x08111827),
@@ -347,13 +347,13 @@ class BundlesScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: 162,
+            height: 176,
             child: Stack(
               fit: StackFit.expand,
               children: [
                 Container(
                   color: const Color(0xFFFFF8D9),
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(20),
                   child: _bundleImage(bundle),
                 ),
                 Positioned(
@@ -386,7 +386,7 @@ class BundlesScreen extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(17, 16, 17, 17),
+            padding: const EdgeInsets.fromLTRB(19, 18, 19, 19),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
