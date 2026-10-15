@@ -413,7 +413,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ]);
   }
 
-  ,
+  Widget _bottomNavigation() {
+    return NavigationBar(
+      selectedIndex: 4,
+      backgroundColor: Colors.white,
+      indicatorColor: paleBlue,
+      elevation: 8,
+      onDestinationSelected: (index) {
+        const routes = ['/home', '/shop', '/cart', '/wishlist', '/profile'];
+        if (index == 4) return;
+        Navigator.pushReplacementNamed(context, routes[index]);
+      },
       destinations: const [
         NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
         NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Shop'),

@@ -952,7 +952,52 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
-  }  ,
+  }  Widget _BottomNav(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: white,
+        border: Border(top: BorderSide(color: border)),
+      ),
+      child: NavigationBar(
+        height: 72,
+        backgroundColor: white,
+        surfaceTintColor: white,
+        indicatorColor: softBlue,
+        selectedIndex: 0,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined, color: ink),
+            selectedIcon: Icon(Icons.home_rounded, color: blue),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.grid_view_rounded, color: ink),
+            selectedIcon: Icon(Icons.grid_view_rounded, color: blue),
+            label: 'Categories',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.shopping_cart_outlined, color: ink),
+            selectedIcon: Icon(Icons.shopping_cart_rounded, color: blue),
+            label: 'Cart',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.favorite_border_rounded, color: ink),
+            selectedIcon: Icon(Icons.favorite_rounded, color: blue),
+            label: 'Wishlist',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline_rounded, color: ink),
+            selectedIcon: Icon(Icons.person_rounded, color: blue),
+            label: 'Profile',
+          ),
+        ],
+        onDestinationSelected: (i) {
+          if (i == 1) Navigator.pushNamed(context, '/shop');
+          if (i == 2) Navigator.pushNamed(context, '/cart');
+          if (i == 3) Navigator.pushNamed(context, '/wishlist');
+          if (i == 4) Navigator.pushNamed(context, '/profile');
+        },
       ),
     );
   }
