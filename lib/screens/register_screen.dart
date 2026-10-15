@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/customer_bottom_nav.dart';
 import '../services/auth_service.dart';
 import '../widgets/campus_logo.dart';
 
@@ -147,6 +148,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const CustomerBottomNav(),
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../widgets/customer_bottom_nav.dart';
 
 import '../database/firestore_database.dart';
 import '../widgets/app_image.dart';
@@ -117,6 +118,7 @@ class CartScreen extends StatelessWidget {
           );
         },
       ),
+      bottomNavigationBar: const CustomerBottomNav(),
     );
   }
 
@@ -467,6 +469,7 @@ class CartScreen extends StatelessWidget {
         ),
       ),
     ),
+    bottomNavigationBar: const CustomerBottomNav(),
   );
 
   Widget _state({

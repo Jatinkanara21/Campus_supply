@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/customer_bottom_nav.dart';
 
 class FaqScreen extends StatelessWidget {
   const FaqScreen({super.key});
@@ -53,6 +54,7 @@ class FaqScreen extends StatelessWidget {
           ),
         ],
       ),
+      bottomNavigationBar: const CustomerBottomNav(),
     );
   }
 }

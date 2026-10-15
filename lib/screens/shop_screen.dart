@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/customer_bottom_nav.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/app_image.dart';
 import '../database/firestore_database.dart';
@@ -467,6 +468,7 @@ class _ShopScreenState extends State<ShopScreen> {
           );
         },
       ),
+      bottomNavigationBar: const CustomerBottomNav(),
     );
   }
 

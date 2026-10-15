@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../widgets/customer_bottom_nav.dart';
 import '../widgets/app_image.dart';
 import '../database/firestore_database.dart';
 
@@ -10,7 +11,9 @@ class WishlistScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return Scaffold(backgroundColor: cream, appBar: AppBar(title: const Text('Wishlist')), body: _state(context, Icons.lock_outline_rounded, 'Sign in to view your wishlist', 'Your saved products will be waiting here.', 'Sign in', () => Navigator.pushNamed(context, '/login')));
+    if (uid == null) return Scaffold(backgroundColor: cream, appBar: AppBar(title: const Text('Wishlist')), body: _state(context, Icons.lock_outline_rounded, 'Sign in to view your wishlist', 'Your saved products will be waiting here.', 'Sign in', () => Navigator.pushNamed(context, '/login')),
+      bottomNavigationBar: const CustomerBottomNav(),
+    );
     return Scaffold(
       backgroundColor: cream,
       appBar: AppBar(title: const Text('Wishlist', style: TextStyle(fontWeight: FontWeight.w900)), actions: [IconButton(tooltip: 'Explore products', onPressed: () => Navigator.pushNamed(context, '/shop'), icon: const Icon(Icons.add_shopping_cart_rounded))]),
@@ -64,6 +67,7 @@ class WishlistScreen extends StatelessWidget {
           );
         },
       ),
+      bottomNavigationBar: const CustomerBottomNav(),
     );
   }
 

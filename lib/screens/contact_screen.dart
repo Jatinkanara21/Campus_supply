@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/customer_bottom_nav.dart';
 
 class ContactScreen extends StatefulWidget {
   const ContactScreen({super.key});
@@ -118,6 +119,7 @@ class _ContactScreenState extends State<ContactScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: const CustomerBottomNav(),
     );
   }
 

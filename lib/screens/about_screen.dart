@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/customer_bottom_nav.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -60,6 +61,7 @@ class AboutScreen extends StatelessWidget {
           ),
         ],
       ),
+      bottomNavigationBar: const CustomerBottomNav(),
     );
   }
 

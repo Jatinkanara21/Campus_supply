@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../widgets/customer_bottom_nav.dart';
 
 import '../database/firestore_database.dart';
 
@@ -243,6 +244,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           );
         },
       ),
+      bottomNavigationBar: const CustomerBottomNav(),
     );
   }
 
@@ -581,6 +583,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         actionLabel: 'Sign in',
         onAction: () => Navigator.pushNamed(context, '/login'),
       ),
+      bottomNavigationBar: const CustomerBottomNav(),
     );
   }
 
