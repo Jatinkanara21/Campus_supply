@@ -192,7 +192,7 @@ class HomeScreen extends StatelessWidget {
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(horizontal, 28, horizontal, 0),
                   sliver: SliverToBoxAdapter(
-                    child: _StudentDeal(),
+                    child: _StudentDeal(context),
                   ),
                 ),
                 SliverPadding(
@@ -241,38 +241,6 @@ class HomeScreen extends StatelessWidget {
                         ),
                       );
                     },
-                  ),
-                ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(horizontal, 30, horizontal, 0),
-                  sliver: SliverToBoxAdapter(
-                    child: _SectionHeading(
-                      title: 'What students say',
-                      subtitle: 'Real campus energy',
-                      action: '',
-                      onTap: () {},
-                    ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 34),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      _Testimonial(
-                        quote: '“Finally, a store that gets student life.”',
-                        byline: 'Aarav • Architecture student',
-                      ),
-                      const SizedBox(height: 10),
-                      _Testimonial(
-                        quote: '“My stationery addiction has found a home.”',
-                        byline: 'Maya • Design student',
-                      ),
-                      const SizedBox(height: 10),
-                      _Testimonial(
-                        quote: '“Less searching. More creating.”',
-                        byline: 'Riya • Fine arts student',
-                      ),
-                    ]),
                   ),
                 ),
               ],
@@ -715,78 +683,275 @@ class HomeScreen extends StatelessWidget {
     return values[index % values.length];
   }
 
-  Widget _StudentDeal() {
-    return Container(
-      padding: const EdgeInsets.all(21),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [Color(0xFF172554), Color(0xFF243B72)],
+  Widget _StudentDeal(BuildContext context) {
+    final wide = MediaQuery.sizeOf(context).width >= 760;
+
+    final copy = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          decoration: BoxDecoration(
+            color: const Color(0x20FFFFFF),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: const Color(0x36FFFFFF)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.auto_awesome_rounded, size: 13, color: yellow),
+              SizedBox(width: 7),
+              Text(
+                'THE CAMPUS SUPPLY EDIT',
+                style: TextStyle(
+                  color: white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
         ),
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14172554),
-            blurRadius: 20,
-            offset: Offset(0, 8),
+        const SizedBox(height: 16),
+        Text(
+          'Show up ready\nfor every class.',
+          style: TextStyle(
+            color: white,
+            fontSize: wide ? 29 : 27,
+            fontWeight: FontWeight.w900,
+            height: 1.1,
+            letterSpacing: -.7,
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: yellow,
-              borderRadius: BorderRadius.circular(18),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'From everyday stationery to project-day essentials, get your campus kit together in one place.',
+          style: TextStyle(
+            color: Color(0xFFDCE6FF),
+            fontSize: 12,
+            height: 1.55,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            FilledButton.icon(
+              onPressed: () => Navigator.pushNamed(context, '/shop'),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+              label: const Text('Shop essentials'),
+              style: FilledButton.styleFrom(
+                backgroundColor: yellow,
+                foregroundColor: ink,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+              ),
             ),
-            child: const Icon(Icons.school_rounded, color: ink, size: 26),
+            OutlinedButton(
+              onPressed: () => Navigator.pushNamed(context, '/bundles'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: white,
+                side: const BorderSide(color: Color(0x80FFFFFF)),
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+                textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+              ),
+              child: const Text('Explore bundles'),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final visual = Container(
+      constraints: BoxConstraints(
+        minHeight: wide ? 225 : 190,
+        maxHeight: wide ? 250 : 210,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0x1FFFFFFF),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0x36FFFFFF)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned(
+            top: 1,
+            right: 8,
+            child: Container(
+              width: 75,
+              height: 75,
+              decoration: const BoxDecoration(
+                color: Color(0x1CFFFFFF),
+                shape: BoxShape.circle,
+              ),
+            ),
           ),
-          const SizedBox(width: 15),
-          const Expanded(
+          Container(
+            width: 164,
+            height: 160,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFF),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x22101A40),
+                  blurRadius: 22,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(13),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Student Budget. Sorted.',
-                  style: TextStyle(
-                    color: white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -.3,
+                Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: softBlue,
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: const Icon(Icons.school_rounded, color: blue, size: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'YOUR CAMPUS KIT',
+                        style: TextStyle(
+                          color: ink,
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: .45,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.verified_rounded, color: Color(0xFF19A66A), size: 17),
+                  ],
+                ),
+                const SizedBox(height: 13),
+                Row(
+                  children: [
+                    _KitIcon(icon: Icons.menu_book_rounded, color: blue, background: softBlue),
+                    const SizedBox(width: 8),
+                    _KitIcon(icon: Icons.edit_rounded, color: Color(0xFFB17A00), background: softYellow),
+                    const SizedBox(width: 8),
+                    _KitIcon(icon: Icons.palette_rounded, color: coral, background: softCoral),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  height: 6,
+                  width: 112,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDE5F2),
+                    borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                SizedBox(height: 5),
-                Text(
-                  'Show your student ID and unlock special savings on eligible essentials.',
-                  style: TextStyle(
-                    color: Color(0xFFD4DBEE),
-                    fontSize: 12,
-                    height: 1.45,
+                const SizedBox(height: 6),
+                Container(
+                  height: 6,
+                  width: 78,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE9EDF5),
+                    borderRadius: BorderRadius.circular(30),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 10),
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: const Color(0x18FFFFFF),
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0x42FFFFFF)),
+          Positioned(
+            right: 0,
+            bottom: 3,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: yellow,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.bolt_rounded, color: ink, size: 15),
+                  SizedBox(width: 4),
+                  Text(
+                    'READY TO GO',
+                    style: TextStyle(color: ink, fontSize: 8, fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
             ),
-            child: const Icon(Icons.arrow_forward_rounded, color: yellow, size: 19),
           ),
         ],
       ),
     );
-  }
 
-  Widget _BottomNav(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF101A3B), Color(0xFF1D3271), Color(0xFF2456B8)],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F172554),
+            blurRadius: 25,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            top: -70,
+            right: wide ? 170 : -60,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: const BoxDecoration(
+                color: Color(0x12FFFFFF),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(wide ? 28 : 19),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth >= 650) {
+                  return Row(
+                    children: [
+                      Expanded(flex: 6, child: copy),
+                      const SizedBox(width: 24),
+                      Expanded(flex: 4, child: visual),
+                    ],
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    copy,
+                    const SizedBox(height: 22),
+                    Align(alignment: Alignment.center, child: visual),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }  Widget _BottomNav(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
         color: white,
@@ -1203,57 +1368,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _Testimonial({
-    required String quote,
-    required String byline,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: white,
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: const BoxDecoration(
-              color: softBlue,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.format_quote_rounded, color: blue, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  quote,
-                  style: const TextStyle(
-                    color: ink,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    height: 1.3,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  byline,
-                  style: const TextStyle(
-                    color: muted,
-                    fontSize: 10.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 }
 
 
@@ -1530,6 +1645,31 @@ class _HeroFallbackVisual extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _KitIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final Color background;
+
+  const _KitIcon({
+    required this.icon,
+    required this.color,
+    required this.background,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 38,
+      height: 42,
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, color: color, size: 21),
     );
   }
 }
