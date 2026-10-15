@@ -147,7 +147,10 @@ class OrdersScreen extends StatelessWidget {
     final itemCount = items?.fold<int>(0, (sum, entry) {
           if (entry is Map) {
             final quantity = entry['quantity'];
-            if (quantity is num) return sum + quantity.toInt().clamp(0, 9999);
+            if (quantity is num) {
+              final safeQuantity = quantity.toInt();
+              return sum + (safeQuantity < 0 ? 0 : safeQuantity);
+            }
           }
           return sum + 1;
         }) ??
