@@ -179,7 +179,22 @@ class _AdminScreenState extends State<AdminScreen> {
                           );
                         },
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 26),
+                      const Text(
+                        'DASHBOARD OVERVIEW',
+                        style: TextStyle(
+                          color: blue,
+                          fontSize: 11,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        'Your store at a glance',
+                        style: TextStyle(color: ink, fontSize: 22, fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 14),
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final width = constraints.maxWidth;
@@ -253,15 +268,43 @@ class _AdminScreenState extends State<AdminScreen> {
                       ),
                       const SizedBox(height: 22),
                       _heroSettingsCard(),
-                      const SizedBox(height: 22),
-                      const Text('Management', style: TextStyle(color: ink, fontSize: 20, fontWeight: FontWeight.w900)),
-                      const SizedBox(height: 12),
-                      _menu(context, Icons.inventory_2_outlined, 'Products', 'Add, edit and remove products', AdminSection.products),
-                      _menu(context, Icons.category_outlined, 'Categories', 'Manage product categories', AdminSection.categories),
-                      _menu(context, Icons.auto_awesome_outlined, 'Bundles', 'Manage student bundles', AdminSection.bundles),
-                      _menu(context, Icons.receipt_long_outlined, 'Orders', 'Review and update order status', AdminSection.orders),
-                      _menu(context, Icons.people_outline_rounded, 'Users', 'View users and manage roles', AdminSection.users),
-                      _menu(context, Icons.rate_review_outlined, 'Reviews', 'Moderate customer reviews', AdminSection.reviews),
+                      const SizedBox(height: 28),
+                      const Text(
+                        'MANAGE YOUR STORE',
+                        style: TextStyle(
+                          color: blue,
+                          fontSize: 11,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        'Quick access',
+                        style: TextStyle(color: ink, fontSize: 22, fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 14),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final columns = constraints.maxWidth >= 760 ? 2 : 1;
+                          return GridView.count(
+                            crossAxisCount: columns,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 2,
+                            childAspectRatio: columns == 2 ? 3.0 : 4.0,
+                            children: [
+                              _menu(context, Icons.inventory_2_outlined, 'Products', 'Add, edit and remove products', AdminSection.products),
+                              _menu(context, Icons.category_outlined, 'Categories', 'Manage product categories', AdminSection.categories),
+                              _menu(context, Icons.auto_awesome_outlined, 'Bundles', 'Manage student bundles', AdminSection.bundles),
+                              _menu(context, Icons.receipt_long_outlined, 'Orders', 'Review and update order status', AdminSection.orders),
+                              _menu(context, Icons.people_outline_rounded, 'Users', 'View users and manage roles', AdminSection.users),
+                              _menu(context, Icons.rate_review_outlined, 'Reviews', 'Moderate customer reviews', AdminSection.reviews),
+                            ],
+                          );
+                        },
+                      ),
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
@@ -540,9 +583,13 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget _metric(String value, String label, IconData icon) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: Colors.white,
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Colors.white, Color(0xFFF2F6FF)],
+      ),
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: const Color(0xFFE2E8F0)),
+      border: Border.all(color: const Color(0xFFDCE6F8)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -579,7 +626,8 @@ class _AdminScreenState extends State<AdminScreen> {
       border: Border.all(color: const Color(0xFFE2E8F0)),
     ),
     child: ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdminManagementScreen(section: section))),
       leading: CircleAvatar(
         radius: 22,
