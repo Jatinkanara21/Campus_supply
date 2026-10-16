@@ -93,15 +93,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     SliverToBoxAdapter(
                       child: Transform.translate(
-                        offset: const Offset(0, -20),
+                        offset: const Offset(0, -14),
                         child: Padding(
                           padding: EdgeInsets.fromLTRB(side, 0, side, 0),
                           child: Column(
                             children: [
                               _profileSummary(user, email, wide),
-                              const SizedBox(height: 18),
+                              const SizedBox(height: 16),
                               _sectionTitle('Your activity', 'Orders and saved products'),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 8),
                               _sectionCard(children: [
                                 _menuRow(
                                   icon: Icons.inventory_2_outlined,
@@ -126,9 +126,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   onTap: () => _go('/cart'),
                                 ),
                               ]),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 17),
                               _sectionTitle('More from Campus Supply', 'Help, information and support'),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 8),
                               _sectionCard(children: [
                                 if (admin)
                                   _menuRow(
@@ -161,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   onTap: () => _go('/about'),
                                 ),
                               ]),
-                              const SizedBox(height: 18),
+                              const SizedBox(height: 15),
                               SizedBox(
                                 width: double.infinity,
                                 child: OutlinedButton.icon(
@@ -181,9 +181,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     foregroundColor: const Color(0xFFDC2626),
                                     backgroundColor: const Color(0xFFFFE3E3),
                                     side: BorderSide.none,
-                                    minimumSize: const Size.fromHeight(56),
+                                    minimumSize: const Size.fromHeight(52),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
+                                      borderRadius: BorderRadius.circular(15),
                                     ),
                                     textStyle: const TextStyle(
                                       fontSize: 16,
@@ -224,12 +224,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               end: Alignment.bottomRight,
               colors: [blue, blueDark],
             ),
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x202563EB),
-                blurRadius: 22,
-                offset: Offset(0, 8),
+                color: Color(0x182563EB),
+                blurRadius: 16,
+                offset: Offset(0, 6),
               ),
             ],
           ),
@@ -295,13 +295,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _profileSummary(User? user, String email, bool wide) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(wide ? 26 : 18),
+      padding: EdgeInsets.all(wide ? 22 : 17),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: border),
         boxShadow: [
-          BoxShadow(color: ink.withValues(alpha: 0.055), blurRadius: 24, offset: const Offset(0, 8)),
+          BoxShadow(color: ink.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 5)),
         ],
       ),
       child: Column(
@@ -337,7 +337,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 18),
           _liveStats(),
         ],
       ),
@@ -347,8 +347,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _avatar(User? user) {
     final photoUrl = user?.photoURL;
     return Container(
-      width: 76,
-      height: 76,
+      width: 68,
+      height: 68,
       padding: const EdgeInsets.all(3),
       decoration: const BoxDecoration(color: paleBlue, shape: BoxShape.circle),
       child: ClipOval(
@@ -394,22 +394,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _stat(String value, String label, IconData icon, Color tint) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFFFCFCFD),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: border),
       ),
       child: Row(children: [
         Container(
-          width: 38, height: 38,
+          width: 34, height: 34,
           decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
           child: Icon(icon, color: label == 'Wishlist' ? const Color(0xFFF06464) : blue, size: 20),
         ),
         const SizedBox(width: 9),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(value, style: const TextStyle(color: ink, fontSize: 20, fontWeight: FontWeight.w900)),
+            Text(value, style: const TextStyle(color: ink, fontSize: 19, fontWeight: FontWeight.w900)),
             Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: muted, fontSize: 11)),
           ]),
@@ -422,13 +422,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
+        borderRadius: BorderRadius.circular(21),
+        border: Border.all(color: border),
         boxShadow: [
-          BoxShadow(color: ink.withValues(alpha: 0.035), blurRadius: 18, offset: const Offset(0, 6)),
+          BoxShadow(color: ink.withValues(alpha: 0.025), blurRadius: 12, offset: const Offset(0, 4)),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Column(children: children),
     );
   }
@@ -490,14 +490,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 2),
+            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 2),
             child: Row(children: [
               Container(
-                width: 48, height: 48,
-                decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
-                child: Icon(icon, color: title == 'My Wishlist' ? const Color(0xFFF06464) : ink, size: 25),
+                width: 44, height: 44,
+                decoration: BoxDecoration(color: tint, borderRadius: BorderRadius.circular(13)),
+                child: Icon(icon, color: title == 'My Wishlist' ? const Color(0xFFF06464) : ink, size: 23),
               ),
               const SizedBox(width: 14),
               Expanded(
