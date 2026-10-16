@@ -25,6 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String name = 'Student';
   bool admin = false;
+  bool signingOut = false;
 
   @override
   void initState() {
@@ -45,9 +46,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _go(String route) => Navigator.pushNamed(context, route);
 
   Future<void> _signOut() async {
-    await AuthService.logout();
-    if (!mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+    if (signingOut) return;
+    setState(() => signingOut = true);
+    try {
+      await AuthService.logout();
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => signingOut = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Could not sign out right now. Please try again.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
   }
 
   @override
@@ -84,6 +100,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               _profileSummary(user, email, wide),
                               const SizedBox(height: 18),
+                              _sectionTitle('Your activity', 'Orders and saved products'),
+                              const SizedBox(height: 10),
                               _sectionCard(children: [
                                 _menuRow(
                                   icon: Icons.inventory_2_outlined,
@@ -108,7 +126,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   onTap: () => _go('/cart'),
                                 ),
                               ]),
-                              const SizedBox(height: 18),
+                              const SizedBox(height: 20),
+                              _sectionTitle('More from Campus Supply', 'Help, information and support'),
+                              const SizedBox(height: 10),
                               _sectionCard(children: [
                                 if (admin)
                                   _menuRow(
@@ -145,9 +165,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               SizedBox(
                                 width: double.infinity,
                                 child: OutlinedButton.icon(
-                                  onPressed: _signOut,
-                                  icon: const Icon(Icons.logout_rounded),
-                                  label: const Text('Log out'),
+                                  onPressed: signingOut ? null : _signOut,
+                                  icon: signingOut
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Color(0xFFDC2626),
+                                          ),
+                                        )
+                                      : const Icon(Icons.logout_rounded),
+                                  label: Text(signingOut ? 'Signing out…' : 'Sign Out'),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: const Color(0xFFDC2626),
                                     backgroundColor: const Color(0xFFFFE3E3),
@@ -181,53 +210,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _brandHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(22, 20, 22, 40),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [blue, blueDark],
-        ),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(30),
-          bottom: Radius.circular(30),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: yellow,
-              borderRadius: BorderRadius.circular(17),
-            ),
-            child: const Icon(Icons.shopping_bag_rounded, color: ink, size: 32),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 360;
+        return Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 16 : 22,
+            vertical: compact ? 17 : 20,
           ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text.rich(
-                  TextSpan(children: [
-                    TextSpan(text: 'Campus ', style: TextStyle(color: Colors.white)),
-                    TextSpan(text: 'Supply', style: TextStyle(color: yellow)),
-                  ]),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.6),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [blue, blueDark],
+            ),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x202563EB),
+                blurRadius: 22,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: compact ? 48 : 54,
+                height: compact ? 48 : 54,
+                decoration: BoxDecoration(
+                  color: yellow,
+                  borderRadius: BorderRadius.circular(17),
                 ),
-                SizedBox(height: 4),
-                Text('Create More. Spend Less.', style: TextStyle(color: Color(0xFFEAF2FF), fontSize: 13)),
+                child: const Icon(Icons.shopping_bag_rounded, color: ink, size: 30),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text.rich(
+                      const TextSpan(children: [
+                        TextSpan(text: 'Campus ', style: TextStyle(color: Colors.white)),
+                        TextSpan(text: 'Supply', style: TextStyle(color: yellow)),
+                      ]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: compact ? 20 : 24,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -.6,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      compact ? 'Your campus essentials' : 'Create More. Spend Less.',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Color(0xFFEAF2FF), fontSize: 12.5),
+                    ),
+                  ],
+                ),
+              ),
+              if (constraints.maxWidth >= 360) ...[
+                const SizedBox(width: 10),
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0x22FFFFFF),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0x44FFFFFF)),
+                  ),
+                  child: const Icon(Icons.person_rounded, color: Colors.white, size: 24),
+                ),
               ],
-            ),
+            ],
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.person_outline_rounded, color: Colors.white, size: 28),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -372,6 +433,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _sectionTitle(String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 35,
+            decoration: BoxDecoration(
+              color: blue,
+              borderRadius: BorderRadius.circular(99),
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -.35,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: muted,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _menuRow({
     required IconData icon,
     required String title,
@@ -413,24 +518,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ]);
   }
 
-  Widget _bottomNavigation() {
-    return NavigationBar(
-      selectedIndex: 4,
-      backgroundColor: Colors.white,
-      indicatorColor: paleBlue,
-      elevation: 8,
-      onDestinationSelected: (index) {
-        const routes = ['/home', '/shop', '/cart', '/wishlist', '/profile'];
-        if (index == 4) return;
-        Navigator.pushReplacementNamed(context, routes[index]);
-      },
-      destinations: const [
-        NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
-        NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Shop'),
-        NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), selectedIcon: Icon(Icons.shopping_cart_rounded), label: 'Cart'),
-        NavigationDestination(icon: Icon(Icons.favorite_border_rounded), selectedIcon: Icon(Icons.favorite_rounded), label: 'Wishlist'),
-        NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
-      ],
-    );
-  }
 }
