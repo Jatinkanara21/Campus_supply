@@ -634,7 +634,7 @@ class _AdminScreenState extends State<AdminScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 440;
-        final titleAndDescription = const Column(
+        const titleAndDescription = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Starter catalog', style: TextStyle(color: ink, fontSize: 14, fontWeight: FontWeight.w900)),
