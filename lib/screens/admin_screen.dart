@@ -46,7 +46,22 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: cream,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: blue),
+              SizedBox(height: 16),
+              Text(
+                'Loading admin dashboard...',
+                style: TextStyle(color: muted, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     if (!admin) {
@@ -103,50 +118,87 @@ class _AdminScreenState extends State<AdminScreen> {
                   return ListView(
                     padding: const EdgeInsets.all(18),
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(22),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [blue, Color(0xFF1D4ED8)]),
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                        child: Row(
-                          children: [
-                            const CircleAvatar(
-                              radius: 28,
-                              backgroundColor: yellow,
-                              child: Icon(Icons.admin_panel_settings_rounded, color: ink),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Welcome, ' + name,
-                                    style: const TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text('Campus Supply administration', style: TextStyle(color: Color(0xFFDDE8FF))),
-                                ],
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final compact = constraints.maxWidth < 440;
+                          final greeting = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome, $name',
+                                maxLines: compact ? 3 : 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: compact ? 19 : 23,
+                                  height: 1.15,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Campus Supply administration',
+                                style: TextStyle(color: Color(0xFFDDE8FF), fontSize: 13, height: 1.35),
+                              ),
+                            ],
+                          );
+                          return Container(
+                            padding: EdgeInsets.all(compact ? 18 : 24),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [blue, Color(0xFF1D4ED8)],
+                              ),
+                              borderRadius: BorderRadius.circular(24),
                             ),
-                          ],
-                        ),
+                            child: compact
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: yellow,
+                                        child: Icon(Icons.admin_panel_settings_rounded, color: ink, size: 26),
+                                      ),
+                                      const SizedBox(height: 14),
+                                      greeting,
+                                    ],
+                                  )
+                                : Row(
+                                    children: [
+                                      const CircleAvatar(
+                                        radius: 29,
+                                        backgroundColor: yellow,
+                                        child: Icon(Icons.admin_panel_settings_rounded, color: ink, size: 30),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(child: greeting),
+                                    ],
+                                  ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 18),
-                      GridView.count(
-                        crossAxisCount: MediaQuery.sizeOf(context).width >= 700 ? 4 : 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio: 1.35,
-                        children: [
-                          _metric(products.data?.docs.length.toString() ?? '0', 'Products', Icons.inventory_2_outlined),
-                          _metric(orders.data?.docs.length.toString() ?? '0', 'Orders', Icons.receipt_long_outlined),
-                          _metric(users.data?.docs.length.toString() ?? '0', 'Users', Icons.people_outline_rounded),
-                          _metric('5', 'Modules', Icons.dashboard_customize_outlined),
-                        ],
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final width = constraints.maxWidth;
+                          final columns = width >= 1000 ? 4 : 2;
+                          return GridView.count(
+                            crossAxisCount: columns,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: width < 390 ? 1.15 : (width < 600 ? 1.3 : 1.5),
+                            children: [
+                              _metric(products.data?.docs.length.toString() ?? '0', 'Products', Icons.inventory_2_outlined),
+                              _metric(orders.data?.docs.length.toString() ?? '0', 'Orders', Icons.receipt_long_outlined),
+                              _metric(users.data?.docs.length.toString() ?? '0', 'Users', Icons.people_outline_rounded),
+                              _metric('5', 'Modules', Icons.dashboard_customize_outlined),
+                            ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 22),
                       Container(
@@ -212,6 +264,14 @@ class _AdminScreenState extends State<AdminScreen> {
                       _menu(context, Icons.rate_review_outlined, 'Reviews', 'Moderate customer reviews', AdminSection.reviews),
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFB42318),
+                          backgroundColor: Colors.white,
+                          side: const BorderSide(color: Color(0xFFFECACA)),
+                          minimumSize: const Size.fromHeight(50),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
                         onPressed: () async {
                           await AuthService.logout();
                           if (!mounted) return;
@@ -244,11 +304,12 @@ class _AdminScreenState extends State<AdminScreen> {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 92,
-                height: 68,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 520;
+              final preview = Container(
+                width: compact ? 76.0 : 92.0,
+                height: compact ? 64.0 : 72.0,
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: const Color(0xFFEAF2FF),
@@ -257,28 +318,58 @@ class _AdminScreenState extends State<AdminScreen> {
                 child: imageUrl.isEmpty
                     ? const Icon(Icons.image_outlined, color: blue, size: 30)
                     : _adminAssetImage(imageUrl),
-              ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Homepage hero image', style: TextStyle(color: ink, fontWeight: FontWeight.w900)),
-                    SizedBox(height: 4),
-                    Text(
-                      'Remove the static artwork. Set the hero image with a URL or upload an image file.',
-                      style: TextStyle(color: muted, fontSize: 11.5, height: 1.3),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              FilledButton.icon(
+              );
+              final details = const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Homepage hero image', style: TextStyle(color: ink, fontWeight: FontWeight.w900, fontSize: 15)),
+                  SizedBox(height: 5),
+                  Text(
+                    'Remove the static artwork. Set the hero image with a URL or upload an image file.',
+                    style: TextStyle(color: muted, fontSize: 12, height: 1.4),
+                  ),
+                ],
+              );
+              final manageButton = FilledButton.icon(
                 onPressed: () => _editHeroSettings(imageUrl),
-                icon: const Icon(Icons.image_rounded),
+                icon: const Icon(Icons.image_rounded, size: 18),
                 label: const Text('Manage'),
-              ),
-            ],
+              );
+              if (compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        preview,
+                        const SizedBox(width: 12),
+                        const Expanded(child: Text(
+                          'Homepage hero image',
+                          style: TextStyle(color: ink, fontWeight: FontWeight.w900, fontSize: 15),
+                        )),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Remove the static artwork. Set the hero image with a URL or upload an image file.',
+                      style: TextStyle(color: muted, fontSize: 12, height: 1.4),
+                    ),
+                    const SizedBox(height: 12),
+                    Align(alignment: Alignment.centerRight, child: manageButton),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  preview,
+                  const SizedBox(width: 14),
+                  Expanded(child: details),
+                  const SizedBox(width: 12),
+                  manageButton,
+                ],
+              );
+            },
           ),
         );
       },
@@ -448,23 +539,56 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _metric(String value, String label, IconData icon) => Container(
     padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFE2E8F0))),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(icon, color: blue),
-      const SizedBox(height: 8),
-      Text(value, style: const TextStyle(color: ink, fontSize: 22, fontWeight: FontWeight.w900)),
-      Text(label, style: const TextStyle(color: muted, fontSize: 11)),
-    ]),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEAF2FF),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: blue, size: 21),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: ink, fontSize: 23, fontWeight: FontWeight.w900, height: 1.1),
+        ),
+        const SizedBox(height: 4),
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: muted, fontSize: 12, fontWeight: FontWeight.w600)),
+      ],
+    ),
   );
 
   Widget _menu(BuildContext context, IconData icon, String title, String subtitle, AdminSection section) => Container(
     margin: const EdgeInsets.only(bottom: 10),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE2E8F0))),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
+    ),
     child: ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdminManagementScreen(section: section))),
-      leading: CircleAvatar(backgroundColor: const Color(0xFFEAF2FF), child: Icon(icon, color: blue)),
-      title: Text(title, style: const TextStyle(color: ink, fontWeight: FontWeight.w800)),
-      subtitle: Text(subtitle, style: const TextStyle(color: muted, fontSize: 12)),
+      leading: CircleAvatar(
+        radius: 22,
+        backgroundColor: const Color(0xFFEAF2FF),
+        child: Icon(icon, color: blue, size: 21),
+      ),
+      title: Text(title, style: const TextStyle(color: ink, fontWeight: FontWeight.w800, fontSize: 14)),
+      subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis,
+        style: const TextStyle(color: muted, fontSize: 12, height: 1.35)),
       trailing: const Icon(Icons.chevron_right_rounded, color: muted),
     ),
   );
