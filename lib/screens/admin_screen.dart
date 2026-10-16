@@ -205,7 +205,7 @@ class _AdminScreenState extends State<AdminScreen> {
                             physics: const NeverScrollableScrollPhysics(),
                             crossAxisSpacing: 12,
                             mainAxisSpacing: 12,
-                            childAspectRatio: width < 390 ? 1.15 : (width < 600 ? 1.3 : 1.5),
+                            childAspectRatio: width < 390 ? 1.55 : (width < 600 ? 1.8 : (columns == 4 ? 1.28 : 1.7)),
                             children: [
                               _metric(products.data?.docs.length.toString() ?? '0', 'Products', Icons.inventory_2_outlined),
                               _metric(orders.data?.docs.length.toString() ?? '0', 'Orders', Icons.receipt_long_outlined),
@@ -292,8 +292,8 @@ class _AdminScreenState extends State<AdminScreen> {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             crossAxisSpacing: 12,
-                            mainAxisSpacing: 2,
-                            childAspectRatio: columns == 2 ? 3.0 : 4.0,
+                            mainAxisSpacing: 10,
+                            childAspectRatio: columns == 2 ? 2.5 : 4.6,
                             children: [
                               _menu(context, Icons.inventory_2_outlined, 'Products', 'Add, edit and remove products', AdminSection.products),
                               _menu(context, Icons.category_outlined, 'Categories', 'Manage product categories', AdminSection.categories),
@@ -619,7 +619,6 @@ class _AdminScreenState extends State<AdminScreen> {
   );
 
   Widget _menu(BuildContext context, IconData icon, String title, String subtitle, AdminSection section) => Container(
-    margin: const EdgeInsets.only(bottom: 10),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
