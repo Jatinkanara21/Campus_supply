@@ -446,30 +446,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(width: 10),
-              Expanded(
-                flex: compact ? 1 : 0,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Admin Dashboard',
-                      style: TextStyle(
-                        color: ink,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Manage your catalog',
-                      style: TextStyle(
-                        color: muted,
-                        fontSize: compact ? 11 : 10,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              if (compact)
+                Expanded(child: _adminShortcutText(compact: true))
+              else
+                _adminShortcutText(compact: false),
               const SizedBox(width: 8),
               const Icon(
                 Icons.chevron_right_rounded,
@@ -480,6 +460,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _adminShortcutText({required bool compact}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Admin Dashboard',
+          style: TextStyle(
+            color: ink,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          'Manage your catalog',
+          style: TextStyle(
+            color: muted,
+            fontSize: compact ? 11 : 10,
+          ),
+        ),
+      ],
     );
   }
 
