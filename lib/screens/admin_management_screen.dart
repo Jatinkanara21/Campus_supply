@@ -3046,6 +3046,18 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
   static const _softBlue = Color(0xFFEAF2FF);
 
   final _actions = const AdminManagementScreen(section: AdminSection.categories);
+  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _imageUrlController = TextEditingController();
+
+  QueryDocumentSnapshot<Map<String, dynamic>>? _editingDoc;
+  Uint8List? _selectedImageBytes;
+  String? _selectedFileName;
+  bool _mobileEditorOpen = false;
+  bool _desktopEditorOpen = true;
+  bool _saving = false;
+  bool _uploading = false;
   int _refreshKey = 0;
 
   String get _adminName {
@@ -3054,6 +3066,15 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
     if (displayName.isNotEmpty) return displayName;
     final emailName = user?.email?.split('@').first.trim() ?? '';
     return emailName.isNotEmpty ? emailName : 'Administrator';
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _imageUrlController.dispose();
+    super.dispose();
   }
 
   @override
@@ -3122,12 +3143,20 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
                   ),
                 Text(
                   'Categories',
-                  style: TextStyle(color: _ink, fontSize: compact ? 21 : 28, fontWeight: FontWeight.w900, letterSpacing: -0.7),
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: compact ? 21 : 28,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.7,
+                  ),
                 ),
                 if (!compact)
                   const Padding(
                     padding: EdgeInsets.only(top: 4),
-                    child: Text('Organize your campus store', style: TextStyle(color: _muted, fontSize: 12.5)),
+                    child: Text(
+                      'Organize your campus store',
+                      style: TextStyle(color: _muted, fontSize: 12.5),
+                    ),
                   ),
               ],
             ),
@@ -3154,7 +3183,7 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
             ),
             const SizedBox(width: 12),
             FilledButton.icon(
-              onPressed: () => _actions._add(context),
+              onPressed: _startAdding,
               icon: const Icon(Icons.add_rounded, size: 19),
               label: const Text('Add category'),
               style: FilledButton.styleFrom(
@@ -3190,7 +3219,11 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
                   Expanded(
                     child: Text(
                       title,
-                      style: TextStyle(color: selected ? _blue : _ink, fontWeight: selected ? FontWeight.w800 : FontWeight.w600, fontSize: 13),
+                      style: TextStyle(
+                        color: selected ? _blue : _ink,
+                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
@@ -3223,7 +3256,13 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
               const Expanded(
                 child: Text(
                   'Campus\nSupply',
-                  style: TextStyle(color: _ink, fontSize: 19, height: 1.05, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 19,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
                 ),
               ),
             ],
@@ -3253,7 +3292,12 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_adminName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _ink, fontWeight: FontWeight.w800, fontSize: 12)),
+                    Text(
+                      _adminName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: _ink, fontWeight: FontWeight.w800, fontSize: 12),
+                    ),
                     const Text('Administrator', style: TextStyle(color: _muted, fontSize: 11)),
                   ],
                 ),
@@ -3310,7 +3354,7 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
             title: 'Unable to load categories',
             message: 'Please check your connection and try again.',
             action: FilledButton.icon(
-              onPressed: () => _actions._add(context),
+              onPressed: _startAdding,
               icon: const Icon(Icons.add_rounded),
               label: const Text('Add category'),
               style: FilledButton.styleFrom(backgroundColor: _blue, foregroundColor: Colors.white),
@@ -3331,83 +3375,194 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
         }
 
         final docs = snapshot.data!.docs;
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 560;
-            final columns = constraints.maxWidth >= 1040 ? 2 : 1;
+        final query = _searchController.text.trim().toLowerCase();
+        final visibleDocs = docs.where((doc) {
+          final data = doc.data();
+          final name = (data['name'] ?? data['title'] ?? doc.id).toString().toLowerCase();
+          final description = (data['description'] ?? '').toString().toLowerCase();
+          return query.isEmpty || name.contains(query) || description.contains(query);
+        }).toList();
 
-            if (docs.isEmpty) {
-              return _stateCard(
-                icon: Icons.category_outlined,
-                title: 'Start organizing your store',
-                message: 'Add your first category to help students browse products more easily.',
-                action: FilledButton.icon(
-                  onPressed: () => _actions._add(context),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Add your first category'),
-                  style: FilledButton.styleFrom(backgroundColor: _blue, foregroundColor: Colors.white),
+        final showSplit = screenWidth >= 1120 && !_mobileEditorOpen;
+        if (showSplit) {
+          final showEditor = _desktopEditorOpen;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: showEditor ? 5 : 12,
+                child: _buildCategoryListPane(
+                  docs: visibleDocs,
+                  total: docs.length,
+                  width: screenWidth,
+                  fullWidth: !showEditor,
                 ),
-              );
-            }
+              ),
+              if (showEditor)
+                Expanded(
+                  flex: 7,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 18, 22, 18),
+                    child: _buildEditorPanel(),
+                  ),
+                ),
+            ],
+          );
+        }
 
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1380),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(compact ? 14 : 26, 22, compact ? 14 : 26, compact ? 100 : 28),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Store categories', style: TextStyle(color: _ink, fontSize: 19, fontWeight: FontWeight.w900)),
-                                SizedBox(height: 4),
-                                Text('Keep your catalog clear and easy to browse.', style: TextStyle(color: _muted, fontSize: 12.5)),
-                              ],
-                            ),
+        if (_mobileEditorOpen) {
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              screenWidth < 560 ? 12 : 22,
+              10,
+              screenWidth < 560 ? 12 : 22,
+              18,
+            ),
+            child: _buildEditorPanel(mobile: true),
+          );
+        }
+
+        return _buildCategoryListPane(
+          docs: visibleDocs,
+          total: docs.length,
+          width: screenWidth,
+          fullWidth: true,
+        );
+      },
+    );
+  }
+
+  Widget _buildCategoryListPane({
+    required List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    required int total,
+    required double width,
+    bool fullWidth = false,
+  }) {
+    final compact = width < 560;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        compact ? 14 : (fullWidth ? 28 : 22),
+        18,
+        compact ? 14 : (fullWidth ? 28 : 18),
+        compact ? 20 : 24,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Category catalog',
+                      style: TextStyle(
+                        color: _ink,
+                        fontSize: compact ? 16 : 19,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      total == 1 ? '1 category in your catalog' : '$total categories in your catalog',
+                      style: const TextStyle(color: _muted, fontSize: 11.5),
+                    ),
+                  ],
+                ),
+              ),
+              if (!compact)
+                FilledButton.icon(
+                  onPressed: _startAdding,
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Add category'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _searchController,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: 'Search categories...',
+              prefixIcon: const Icon(Icons.search_rounded, color: _muted),
+              isDense: true,
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: _border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: _border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: _blue, width: 1.3),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: docs.isEmpty
+                ? _stateCard(
+                    icon: total == 0 ? Icons.category_outlined : Icons.search_off_rounded,
+                    title: total == 0 ? 'Start organizing your store' : 'No matching categories',
+                    message: total == 0
+                        ? 'Add your first category to help students browse products more easily.'
+                        : 'Try another search term.',
+                    action: total == 0
+                        ? FilledButton.icon(
+                            onPressed: _startAdding,
+                            icon: const Icon(Icons.add_rounded),
+                            label: const Text('Add your first category'),
+                            style: FilledButton.styleFrom(backgroundColor: _blue, foregroundColor: Colors.white),
+                          )
+                        : TextButton.icon(
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {});
+                            },
+                            icon: const Icon(Icons.search_off_rounded),
+                            label: const Text('Clear search'),
                           ),
-                          if (compact)
-                            IconButton.filled(
-                              tooltip: 'Add category',
-                              onPressed: () => _actions._add(context),
-                              icon: const Icon(Icons.add_rounded),
-                              style: IconButton.styleFrom(backgroundColor: _blue, foregroundColor: Colors.white),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 17),
-                      Expanded(
-                        child: columns == 1
-                            ? ListView.separated(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                itemCount: docs.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 11),
-                                itemBuilder: (context, index) => _categoryCard(docs[index], compact: compact),
-                              )
-                            : GridView.builder(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                itemCount: docs.length,
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  mainAxisSpacing: 14,
-                                  crossAxisSpacing: 14,
-                                  mainAxisExtent: 156,
-                                ),
-                                itemBuilder: (context, index) => _categoryCard(docs[index], compact: false),
-                              ),
-                      ),
-                    ],
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    itemCount: docs.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) => _categoryCard(docs[index], compact: width < 600),
+                  ),
+          ),
+          if (compact)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _startAdding,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Add category'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
                   ),
                 ),
               ),
-            );
-          },
-        );
-      },
+            ),
+        ],
+      ),
     );
   }
 
@@ -3416,82 +3571,702 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
     final name = (data['name'] ?? data['title'] ?? doc.id).toString().trim();
     final description = (data['description'] ?? '').toString().trim();
     final imageUrl = (data['imageUrl'] ?? '').toString().trim();
-    final imageSize = compact ? 70.0 : 84.0;
+    final imageSize = compact ? 70.0 : 78.0;
+    final selected = _editingDoc?.id == doc.id;
 
+    return Material(
+      color: selected ? const Color(0xFFF5F9FF) : Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _startEditing(doc),
+        child: Container(
+          padding: EdgeInsets.all(compact ? 10 : 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: selected ? const Color(0xFF90B8FF) : _border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: imageSize,
+                height: imageSize,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(color: _softBlue, borderRadius: BorderRadius.circular(13)),
+                child: imageUrl.isNotEmpty
+                    ? AppImage(
+                        source: imageUrl,
+                        fit: BoxFit.contain,
+                        fallback: const Center(
+                          child: Icon(Icons.category_outlined, color: _blue, size: 30),
+                        ),
+                      )
+                    : Icon(Icons.category_outlined, color: _blue, size: compact ? 29 : 32),
+              ),
+              SizedBox(width: compact ? 10 : 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name.isEmpty ? 'Untitled category' : name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: _ink,
+                        fontSize: compact ? 13.5 : 14,
+                        height: 1.3,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      description.isEmpty ? 'No description added.' : description,
+                      maxLines: compact ? 2 : 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: _muted, fontSize: 11.5, height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Category actions',
+                icon: const Icon(Icons.more_vert_rounded, color: _muted),
+                onSelected: (value) {
+                  if (value == 'edit') _startEditing(doc);
+                  if (value == 'delete') _deleteCategory(doc);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(children: [
+                      Icon(Icons.edit_outlined, size: 18),
+                      SizedBox(width: 9),
+                      Text('Edit category'),
+                    ]),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(children: [
+                      Icon(Icons.delete_outline_rounded, size: 18),
+                      SizedBox(width: 9),
+                      Text('Delete category'),
+                    ]),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditorPanel({bool mobile = false}) {
+    final editing = _editingDoc != null;
     return Container(
-      padding: EdgeInsets.all(compact ? 11 : 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(17),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: _border),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
         children: [
-          Container(
-            width: imageSize,
-            height: imageSize,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(color: _softBlue, borderRadius: BorderRadius.circular(13)),
-            child: imageUrl.isNotEmpty
-                ? AppImage(
-                    source: imageUrl,
-                    fit: BoxFit.contain,
-                    fallback: const Center(child: Icon(Icons.category_outlined, color: _blue, size: 30)),
-                  )
-                : Icon(Icons.category_outlined, color: _blue, size: compact ? 29 : 33),
-          ),
-          SizedBox(width: compact ? 11 : 14),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: EdgeInsets.fromLTRB(mobile ? 14 : 18, 15, mobile ? 10 : 16, 13),
+            child: Row(
               children: [
-                Text(
-                  name.isEmpty ? 'Untitled category' : name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: _ink, fontSize: compact ? 13.5 : 15, height: 1.25, fontWeight: FontWeight.w900),
+                if (mobile)
+                  IconButton(
+                    tooltip: 'Back to categories',
+                    onPressed: _closeMobileEditor,
+                    icon: const Icon(Icons.arrow_back_rounded, color: _blue),
+                  )
+                else
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(color: _softBlue, borderRadius: BorderRadius.circular(13)),
+                    child: Icon(
+                      editing ? Icons.edit_note_rounded : Icons.category_outlined,
+                      color: _blue,
+                      size: 25,
+                    ),
+                  ),
+                if (!mobile) const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        editing ? 'Edit Category' : 'Add Category',
+                        style: const TextStyle(color: _ink, fontSize: 18, fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        editing ? 'Update this category for your store.' : 'Create a category to organize your catalog.',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: _muted, fontSize: 11.5, height: 1.35),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  description.isEmpty ? 'No description added.' : description,
-                  maxLines: compact ? 2 : 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: _muted, fontSize: 11.5, height: 1.4),
+                if (!mobile)
+                  IconButton(
+                    tooltip: 'Close editor',
+                    onPressed: () {
+                      setState(() {
+                        _desktopEditorOpen = false;
+                        _editingDoc = null;
+                        _clearForm();
+                      });
+                    },
+                    icon: const Icon(Icons.close_rounded, color: _muted),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFE8EEF6)),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final sideBySide = constraints.maxWidth >= 680;
+                final details = _buildCategoryFields();
+                final image = _buildImageSection(compact: !sideBySide);
+
+                return SingleChildScrollView(
+                  padding: EdgeInsets.all(mobile ? 15 : 18),
+                  child: sideBySide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 6, child: details),
+                            const SizedBox(width: 18),
+                            Expanded(flex: 5, child: image),
+                          ],
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            details,
+                            const SizedBox(height: 20),
+                            image,
+                          ],
+                        ),
+                );
+              },
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFE8EEF6)),
+          Padding(
+            padding: EdgeInsets.fromLTRB(15, 12, 15, mobile ? 14 : 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton(
+                  onPressed: _saving || _uploading ? null : _cancelEditing,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _blue,
+                    side: const BorderSide(color: Color(0xFFB9D0FF)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 10),
+                FilledButton.icon(
+                  onPressed: _saving || _uploading ? null : _saveCategory,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.save_outlined, size: 18),
+                  label: Text(_saving ? 'Saving...' : editing ? 'Save changes' : 'Save category'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                  ),
                 ),
               ],
             ),
           ),
-          PopupMenuButton<String>(
-            tooltip: 'Category actions',
-            icon: const Icon(Icons.more_vert_rounded, color: _muted),
-            onSelected: (value) {
-              if (value == 'edit') _actions._edit(context, doc);
-              if (value == 'delete') _actions._delete(context, doc);
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: 'edit',
-                child: Row(children: [
-                  Icon(Icons.edit_outlined, size: 18),
-                  SizedBox(width: 9),
-                  Text('Edit category'),
-                ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'CATEGORY DETAILS',
+          style: TextStyle(color: _blue, fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 11),
+        TextField(
+          controller: _nameController,
+          enabled: !_saving && !_uploading,
+          textCapitalization: TextCapitalization.words,
+          decoration: _inputDecoration(
+            'Category name',
+            hint: 'e.g. Stationery',
+            icon: Icons.category_outlined,
+          ),
+        ),
+        const SizedBox(height: 13),
+        TextField(
+          controller: _descriptionController,
+          enabled: !_saving && !_uploading,
+          minLines: 3,
+          maxLines: 5,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: _inputDecoration(
+            'Description',
+            hint: 'Describe the items in this category',
+            icon: Icons.notes_rounded,
+            alignLabel: true,
+          ),
+        ),
+        const SizedBox(height: 7),
+        const Text(
+          'Keep the description short and clear so students can find the right products.',
+          style: TextStyle(color: _muted, fontSize: 10.5, height: 1.4),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImageSection({required bool compact}) {
+    final validUrl = _isValidImageUrl(_imageUrlController.text);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'CATEGORY IMAGE',
+          style: TextStyle(color: _blue, fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 11),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FBFF),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: _border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: double.infinity,
+                height: compact ? 145 : 125,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(color: _softBlue, borderRadius: BorderRadius.circular(12)),
+                child: _selectedImageBytes != null
+                    ? Image.memory(_selectedImageBytes!, fit: BoxFit.contain)
+                    : validUrl
+                        ? AppImage(
+                            source: _imageUrlController.text.trim(),
+                            fit: BoxFit.contain,
+                            placeholder: const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2, color: _blue),
+                            ),
+                            fallback: const Center(
+                              child: Icon(Icons.broken_image_outlined, color: _muted, size: 34),
+                            ),
+                          )
+                        : const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.cloud_upload_outlined, color: _blue, size: 37),
+                              SizedBox(height: 8),
+                              Text(
+                                'Category image preview',
+                                style: TextStyle(color: _ink, fontWeight: FontWeight.w800, fontSize: 12),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Upload an image or paste a URL',
+                                style: TextStyle(color: _muted, fontSize: 10.5),
+                              ),
+                            ],
+                          ),
               ),
-              PopupMenuItem(
-                value: 'delete',
-                child: Row(children: [
-                  Icon(Icons.delete_outline_rounded, size: 18),
-                  SizedBox(width: 9),
-                  Text('Delete category'),
-                ]),
+              if (_selectedFileName != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _selectedFileName!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: _muted, fontSize: 10.5, fontWeight: FontWeight.w600),
+                ),
+              ],
+              const SizedBox(height: 11),
+              if (compact)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _saving || _uploading ? null : _pickAndUploadImage,
+                      icon: const Icon(Icons.upload_file_rounded, size: 18),
+                      label: Text(_uploading ? 'Uploading...' : 'Upload from device'),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _saving || _uploading ? null : _openImageUrlEntry,
+                      icon: const Icon(Icons.link_rounded, size: 18),
+                      label: const Text('Use image URL'),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _saving || _uploading ? null : _pickAndUploadImage,
+                        icon: const Icon(Icons.upload_file_rounded, size: 17),
+                        label: Text(_uploading ? 'Uploading...' : 'Upload from device'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _saving || _uploading ? null : _openImageUrlEntry,
+                        icon: const Icon(Icons.link_rounded, size: 17),
+                        label: const Text('Use image URL'),
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _imageUrlController,
+                enabled: !_saving && !_uploading,
+                keyboardType: TextInputType.url,
+                onChanged: (_) => setState(() {}),
+                decoration: _inputDecoration(
+                  'Image URL (optional)',
+                  hint: 'https://example.com/category.jpg',
+                  icon: Icons.link_rounded,
+                ).copyWith(
+                  suffixIcon: _imageUrlController.text.trim().isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Clear image URL',
+                          onPressed: _saving || _uploading
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _imageUrlController.clear();
+                                    _selectedImageBytes = null;
+                                    _selectedFileName = null;
+                                  });
+                                },
+                          icon: const Icon(Icons.clear_rounded),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 7),
+              const Text(
+                'Use a JPG, PNG, WEBP or GIF image, or paste a public direct image URL.',
+                style: TextStyle(color: _muted, fontSize: 10.5, height: 1.4),
               ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(
+    String label, {
+    String? hint,
+    IconData? icon,
+    bool alignLabel = false,
+  }) {
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(11),
+      borderSide: const BorderSide(color: Color(0xFFD8E4F4)),
+    );
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      alignLabelWithHint: alignLabel,
+      prefixIcon: icon == null ? null : Icon(icon, size: 19, color: _muted),
+      isDense: true,
+      filled: true,
+      fillColor: const Color(0xFFFBFDFF),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 14),
+      border: border,
+      enabledBorder: border,
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: _blue, width: 1.3),
+      ),
+    );
+  }
+
+  bool _isValidImageUrl(String value) {
+    final uri = Uri.tryParse(value.trim());
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+  }
+
+  Future<void> _openImageUrlEntry() async {
+    if (_saving || _uploading) return;
+    final urlController = TextEditingController(text: _imageUrlController.text.trim());
+    final url = await showDialog<String>(
+      context: context,
+      builder: (urlContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('Use image URL', style: TextStyle(color: _ink, fontWeight: FontWeight.w900)),
+        content: TextField(
+          controller: urlController,
+          autofocus: true,
+          keyboardType: TextInputType.url,
+          decoration: const InputDecoration(
+            labelText: 'Image URL',
+            hintText: 'https://example.com/category.jpg',
+            prefixIcon: Icon(Icons.link_rounded),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(urlContext), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              final value = urlController.text.trim();
+              if (!_isValidImageUrl(value)) {
+                ScaffoldMessenger.of(urlContext).showSnackBar(
+                  const SnackBar(content: Text('Enter a valid http:// or https:// image URL')),
+                );
+                return;
+              }
+              Navigator.pop(urlContext, value);
+            },
+            child: const Text('Use URL'),
           ),
         ],
       ),
     );
+    urlController.dispose();
+    if (!mounted || url == null || url.isEmpty) return;
+    setState(() {
+      _imageUrlController.text = url;
+      _selectedImageBytes = null;
+      _selectedFileName = 'Image URL';
+    });
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    if (_saving || _uploading) return;
+    try {
+      final file = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 90,
+        maxWidth: 1600,
+        maxHeight: 1600,
+      );
+      if (file == null) return;
+      final bytes = await file.readAsBytes();
+      final filename = file.name.trim();
+      final lowerName = filename.toLowerCase();
+      final supported = lowerName.endsWith('.jpg') ||
+          lowerName.endsWith('.jpeg') ||
+          lowerName.endsWith('.png') ||
+          lowerName.endsWith('.webp') ||
+          lowerName.endsWith('.gif');
+      if (!supported) {
+        throw Exception('Please choose JPG, JPEG, PNG, WEBP or GIF.');
+      }
+
+      setState(() {
+        _uploading = true;
+        _selectedImageBytes = bytes;
+        _selectedFileName = filename;
+      });
+
+      final downloadUrl = await ImageStorageService.upload(
+        bytes: bytes,
+        folder: 'categories',
+        fileName: filename,
+      );
+      if (!mounted) return;
+      setState(() {
+        _imageUrlController.text = downloadUrl;
+        _selectedFileName = '$filename • uploaded';
+        _uploading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Image uploaded to GitHub Storage successfully')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _uploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Image upload failed: $e')),
+      );
+    }
+  }
+
+  void _startAdding() {
+    _clearForm();
+    setState(() {
+      _editingDoc = null;
+      if (MediaQuery.sizeOf(context).width < 1120) {
+        _mobileEditorOpen = true;
+      } else {
+        _desktopEditorOpen = true;
+      }
+    });
+  }
+
+  void _startEditing(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    _loadCategoryIntoEditor(doc);
+    setState(() {
+      _editingDoc = doc;
+      if (MediaQuery.sizeOf(context).width < 1120) {
+        _mobileEditorOpen = true;
+      } else {
+        _desktopEditorOpen = true;
+      }
+    });
+  }
+
+  void _loadCategoryIntoEditor(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    _nameController.text = (data['name'] ?? data['title'] ?? '').toString();
+    _descriptionController.text = (data['description'] ?? '').toString();
+    _imageUrlController.text = (data['imageUrl'] ?? '').toString();
+    _selectedImageBytes = null;
+    _selectedFileName = null;
+  }
+
+  void _clearForm() {
+    _nameController.clear();
+    _descriptionController.clear();
+    _imageUrlController.clear();
+    _selectedImageBytes = null;
+    _selectedFileName = null;
+  }
+
+  void _cancelEditing() {
+    if (MediaQuery.sizeOf(context).width < 1120) {
+      _closeMobileEditor();
+      return;
+    }
+    setState(() {
+      _editingDoc = null;
+      _clearForm();
+      _desktopEditorOpen = false;
+    });
+  }
+
+  void _closeMobileEditor() {
+    setState(() {
+      _mobileEditorOpen = false;
+      _editingDoc = null;
+      _clearForm();
+    });
+  }
+
+  Future<void> _saveCategory() async {
+    if (_saving || _uploading) return;
+    final name = _nameController.text.trim();
+    final description = _descriptionController.text.trim();
+    final imageUrl = _imageUrlController.text.trim();
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a category name.')),
+      );
+      return;
+    }
+    if (imageUrl.isNotEmpty && !_isValidImageUrl(imageUrl)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid public http:// or https:// image URL.'),
+          duration: Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      if (_editingDoc == null) {
+        await FirebaseFirestore.instance.collection('categories').add({
+          'name': name,
+          'description': description,
+          'imageUrl': imageUrl,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Item saved successfully')),
+        );
+        _clearForm();
+        setState(() {
+          _saving = false;
+          _mobileEditorOpen = false;
+        });
+      } else {
+        await _editingDoc!.reference.update({
+          'name': name,
+          'description': description,
+          'imageUrl': imageUrl,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product updated successfully')),
+        );
+        setState(() {
+          _saving = false;
+          if (MediaQuery.sizeOf(context).width < 1120) {
+            _mobileEditorOpen = false;
+            _editingDoc = null;
+            _clearForm();
+          }
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Database save failed: $e')),
+      );
+    }
+  }
+
+  Future<void> _deleteCategory(QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
+    try {
+      await _actions._delete(context, doc);
+      if (!mounted) return;
+      if (_editingDoc?.id == doc.id) {
+        setState(() {
+          _editingDoc = null;
+          _clearForm();
+          if (MediaQuery.sizeOf(context).width < 1120) _mobileEditorOpen = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete category: $e')),
+      );
+    }
   }
 
   Widget _stateCard({
@@ -3523,9 +4298,17 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
                   child: Icon(icon, size: 32, color: _blue),
                 ),
                 const SizedBox(height: 17),
-                Text(title, textAlign: TextAlign.center, style: const TextStyle(color: _ink, fontSize: 18, fontWeight: FontWeight.w900)),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: _ink, fontSize: 18, fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 8),
-                Text(message, textAlign: TextAlign.center, style: const TextStyle(color: _muted, fontSize: 12.5, height: 1.5)),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: _muted, fontSize: 12.5, height: 1.5),
+                ),
                 if (action != null) ...[
                   const SizedBox(height: 18),
                   action,
