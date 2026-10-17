@@ -73,7 +73,7 @@ class AdminManagementScreen extends StatelessWidget {
               backgroundColor: Colors.white,
               child: SafeArea(
                 child: SingleChildScrollView(
-                  child: _buildSimplePageSidebar(compact: true),
+                  child: _buildSimplePageSidebar(context, compact: true),
                 ),
               ),
             ),
@@ -117,13 +117,13 @@ class AdminManagementScreen extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(width: 238, child: _buildSimplePageSidebar(compact: false)),
+        SizedBox(width: 238, child: _buildSimplePageSidebar(context, compact: false)),
         Expanded(child: page),
       ],
     );
   }
 
-  Widget _buildSimplePageSidebar({required bool compact}) {
+  Widget _buildSimplePageSidebar(BuildContext context, {required bool compact}) {
     return AdminNavigationSidebar(
       selectedSection: section,
       adminName: _currentAdminName,
