@@ -56,6 +56,9 @@ class AdminManagementScreen extends StatelessWidget {
     if (section == AdminSection.categories) {
       return const _CategoriesWorkspace();
     }
+    if (section == AdminSection.bundles) {
+      return const _BundlesWorkspace();
+    }
 
     final canAdd = section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles;
     return Scaffold(
@@ -1140,6 +1143,7 @@ class AdminManagementScreen extends StatelessWidget {
     Uint8List? selectedImageBytes;
     String? selectedFileName;
     bool isSaving = false;
+    bool isUploading = false;
 
     bool isValidImageUrl(String value) {
       final uri = Uri.tryParse(value.trim());
@@ -1153,18 +1157,24 @@ class AdminManagementScreen extends StatelessWidget {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
           Future<void> enterImageUrl() async {
-            if (isSaving) return;
+            if (isSaving || isUploading) return;
             final urlController = TextEditingController(text: imageUrl.text.trim());
             final url = await showDialog<String>(
               context: dialogContext,
               builder: (urlContext) => AlertDialog(
-                title: const Text('Use image URL'),
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                title: const Text(
+                  'Use image URL',
+                  style: TextStyle(color: Color(0xFF172554), fontWeight: FontWeight.w900),
+                ),
                 content: TextField(
                   controller: urlController,
                   autofocus: true,
                   keyboardType: TextInputType.url,
                   decoration: const InputDecoration(
-                    labelText: 'Image URL',
+                    labelText: 'Direct image URL',
                     hintText: 'https://example.com/image.jpg',
                     prefixIcon: Icon(Icons.link_rounded),
                   ),
@@ -1191,7 +1201,7 @@ class AdminManagementScreen extends StatelessWidget {
               ),
             );
             urlController.dispose();
-            if (url == null || url.isEmpty) return;
+            if (url == null || url.isEmpty || !dialogContext.mounted) return;
             setDialogState(() {
               imageUrl.text = url;
               selectedImageBytes = null;
@@ -1200,11 +1210,9 @@ class AdminManagementScreen extends StatelessWidget {
           }
 
           Future<void> pickImage() async {
-            if (isSaving) return;
-
+            if (isSaving || isUploading) return;
             try {
-              final picker = ImagePicker();
-              final file = await picker.pickImage(
+              final file = await ImagePicker().pickImage(
                 source: ImageSource.gallery,
                 imageQuality: 90,
                 maxWidth: 1600,
@@ -1223,35 +1231,31 @@ class AdminManagementScreen extends StatelessWidget {
               if (!supported) {
                 throw Exception('Please choose JPG, JPEG, PNG, WEBP or GIF.');
               }
-              final folder = section == AdminSection.products
-                  ? 'products'
-                  : section == AdminSection.categories
-                      ? 'categories'
-                      : 'bundles';
 
               setDialogState(() {
+                isUploading = true;
                 selectedImageBytes = bytes;
                 selectedFileName = filename;
               });
 
               final downloadUrl = await ImageStorageService.upload(
                 bytes: bytes,
-                folder: folder,
+                folder: 'bundles',
                 fileName: filename,
               );
 
+              if (!dialogContext.mounted) return;
               setDialogState(() {
                 imageUrl.text = downloadUrl;
                 selectedFileName = '$filename • uploaded';
+                isUploading = false;
               });
-
-              if (dialogContext.mounted) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('Image uploaded to GitHub Storage successfully')),
-                );
-              }
+              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                const SnackBar(content: Text('Image uploaded to GitHub Storage successfully')),
+              );
             } catch (e) {
               if (dialogContext.mounted) {
+                setDialogState(() => isUploading = false);
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   SnackBar(content: Text('Image upload failed: $e')),
                 );
@@ -1259,195 +1263,239 @@ class AdminManagementScreen extends StatelessWidget {
             }
           }
 
+          final screenSize = MediaQuery.sizeOf(dialogContext);
+          final narrow = screenSize.width < 560;
+
+          Widget imagePreview() {
+            if (selectedImageBytes != null) {
+              return Image.memory(
+                selectedImageBytes!,
+                width: double.infinity,
+                height: 170,
+                fit: BoxFit.cover,
+              );
+            }
+            if (isValidImageUrl(imageUrl.text)) {
+              return AppImage(
+                source: imageUrl.text.trim(),
+                fit: BoxFit.cover,
+                placeholder: const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2563EB)),
+                ),
+                fallback: const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.broken_image_outlined, size: 34, color: Color(0xFF2563EB)),
+                      SizedBox(height: 6),
+                      Text('Image URL could not be loaded'),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return Container(
+              color: const Color(0xFFEAF2FF),
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.auto_awesome_mosaic_outlined, color: Color(0xFF2563EB), size: 38),
+                  SizedBox(height: 8),
+                  Text('Bundle image preview', style: TextStyle(color: Color(0xFF64748B))),
+                ],
+              ),
+            );
+          }
+
+          InputDecoration fieldDecoration({
+            required String label,
+            required IconData icon,
+            String? hint,
+          }) {
+            return InputDecoration(
+              labelText: label,
+              hintText: hint,
+              prefixIcon: Icon(icon),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(13),
+                borderSide: const BorderSide(color: Color(0xFFDCE6F8)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(13),
+                borderSide: const BorderSide(color: Color(0xFFDCE6F8)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(13),
+                borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.4),
+              ),
+            );
+          }
+
           return AlertDialog(
-            backgroundColor: Colors.white,
+            backgroundColor: const Color(0xFFFFFEFC),
             surfaceTintColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            title: Text(title, style: const TextStyle(color: Color(0xFF172554), fontWeight: FontWeight.w900)),
-            content: SizedBox(
-              width: MediaQuery.sizeOf(dialogContext).width < 584
-                              ? MediaQuery.sizeOf(dialogContext).width - 64
-                              : 520,
+            insetPadding: EdgeInsets.symmetric(horizontal: narrow ? 14 : 32, vertical: 18),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+            titlePadding: const EdgeInsets.fromLTRB(23, 22, 23, 8),
+            contentPadding: const EdgeInsets.fromLTRB(23, 8, 23, 10),
+            title: Row(
+              children: [
+                Container(
+                  height: 42,
+                  width: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF2FF),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.auto_awesome_outlined, color: Color(0xFF2563EB)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: Color(0xFF172554),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 560,
+                maxHeight: screenSize.height * 0.62,
+              ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const Text(
+                      'Bundle details',
+                      style: TextStyle(color: Color(0xFF172554), fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: name,
-                      decoration: const InputDecoration(labelText: 'Name', prefixIcon: Icon(Icons.label_outline_rounded)),
+                      textCapitalization: TextCapitalization.words,
+                      decoration: fieldDecoration(
+                        label: 'Bundle name',
+                        hint: 'e.g. Exam Ready Kit',
+                        icon: Icons.inventory_2_outlined,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: description,
-                      maxLines: 3,
                       minLines: 2,
-                      decoration: const InputDecoration(labelText: 'Description', alignLabelWithHint: true, prefixIcon: Icon(Icons.notes_rounded)),
+                      maxLines: 4,
+                      decoration: fieldDecoration(
+                        label: 'Description',
+                        hint: 'What is included in this bundle?',
+                        icon: Icons.notes_rounded,
+                      ).copyWith(alignLabelWithHint: true),
                     ),
                     const SizedBox(height: 12),
-                    if (section == AdminSection.products || section == AdminSection.bundles)
-                      TextField(
-                        controller: price,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Price', prefixIcon: Icon(Icons.currency_rupee_rounded)),
+                    TextField(
+                      controller: price,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: fieldDecoration(
+                        label: 'Price (₹)',
+                        hint: '0.00',
+                        icon: Icons.currency_rupee_rounded,
                       ),
-                    if (section == AdminSection.products ||
-                        section == AdminSection.categories ||
-                        section == AdminSection.bundles) ...[
-                      const SizedBox(height: 16),
-                      InkWell(
-                        onTap: pickImage,
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFFD6DCE5)),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
-                            children: [
-                              if (selectedImageBytes != null)
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Image.memory(
-                                    selectedImageBytes!,
-                                    width: 58,
-                                    height: 58,
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
-                              else
-                                Container(
-                                  width: 58,
-                                  height: 58,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEAF2FF),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Icon(
-                                    Icons.cloud_upload_outlined,
-                                    color: Color(0xFF2563EB),
-                                    size: 30,
-                                  ),
-                                ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      selectedFileName ?? 'Upload Image',
-                                      style: const TextStyle(fontWeight: FontWeight.w700),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      selectedFileName == null
-                                          ? 'Choose JPG, PNG, WEBP or GIF'
-                                          : 'Image selected',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF64748B),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Bundle image',
+                      style: TextStyle(color: Color(0xFF172554), fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 170,
+                        child: imagePreview(),
+                      ),
+                    ),
+                    if (selectedFileName != null) ...[
+                      const SizedBox(height: 7),
+                      Text(
+                        selectedFileName!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: imageUrl,
+                      keyboardType: TextInputType.url,
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: fieldDecoration(
+                        label: 'Image URL',
+                        hint: 'https://example.com/image.jpg',
+                        icon: Icons.link_rounded,
+                      ).copyWith(
+                        suffixIcon: imageUrl.text.trim().isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Clear image URL',
+                                onPressed: () => setDialogState(() {
+                                  imageUrl.clear();
+                                  selectedImageBytes = null;
+                                  selectedFileName = null;
+                                }),
+                                icon: const Icon(Icons.clear_rounded),
                               ),
-                              const Icon(Icons.add_photo_alternate_outlined),
-                            ],
-                          ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: isSaving || isUploading ? null : pickImage,
+                          icon: const Icon(Icons.upload_file_rounded),
+                          label: Text(isUploading ? 'Uploading...' : 'Upload from device'),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: imageUrl,
-                        decoration: InputDecoration(
-                          labelText: 'Image URL',
-                          hintText: 'https://example.com/image.jpg',
-                          prefixIcon: const Icon(Icons.link_rounded),
-                          suffixIcon: imageUrl.text.trim().isNotEmpty
-                              ? IconButton(
-                                  tooltip: 'Clear image URL',
-                                  onPressed: () => setDialogState(() => imageUrl.clear()),
-                                  icon: const Icon(Icons.clear),
-                                )
-                              : null,
-                        ),
-                        onChanged: (_) => setDialogState(() {}),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: pickImage,
-                              icon: const Icon(Icons.upload_file_rounded),
-                              label: const Text('Upload from device'),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: enterImageUrl,
-                              icon: const Icon(Icons.link_rounded),
-                              label: const Text('Use image URL'),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Use a local image (uploaded to GitHub Storage) or paste a public direct image URL.',
-                        style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
-                      ),
-                      if (isValidImageUrl(imageUrl.text)) ...[
-                        const SizedBox(height: 12),
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Image preview',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 150,
-                            child: AppImage(
-                              source: imageUrl.text.trim(),
-                              fit: BoxFit.cover,
-                              placeholder: const Center(
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                              fallback: const Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.broken_image_outlined, size: 34),
-                                    SizedBox(height: 6),
-                                    Text('Image URL could not be loaded'),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                        OutlinedButton.icon(
+                          onPressed: isSaving || isUploading ? null : enterImageUrl,
+                          icon: const Icon(Icons.link_rounded),
+                          label: const Text('Use image URL'),
                         ),
                       ],
-                    ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Choose an image file or paste a public direct image URL.',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+                    ),
                   ],
                 ),
               ),
             ),
+            actionsPadding: const EdgeInsets.fromLTRB(18, 2, 18, 16),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
+                onPressed: isSaving || isUploading ? null : () => Navigator.pop(dialogContext, false),
                 child: const Text('Cancel'),
               ),
-              FilledButton(
-                onPressed: isSaving
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: isSaving || isUploading
                     ? null
-                    : () async {
+                    : () {
                         final value = imageUrl.text.trim();
                         if (value.isNotEmpty && !isValidImageUrl(value)) {
                           ScaffoldMessenger.of(dialogContext).showSnackBar(
@@ -1459,31 +1507,16 @@ class AdminManagementScreen extends StatelessWidget {
                           return;
                         }
                         setDialogState(() => isSaving = true);
-                        try {
-                          if (dialogContext.mounted) {
-                            Navigator.pop(dialogContext, true);
-                          }
-                        } catch (e) {
-                          if (dialogContext.mounted) {
-                            setDialogState(() => isSaving = false);
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Save failed: ${e.toString().replaceFirst('Exception: ', '')}',
-                                ),
-                                duration: const Duration(seconds: 6),
-                              ),
-                            );
-                          }
-                        }
+                        Navigator.pop(dialogContext, true);
                       },
-                child: isSaving
+                icon: isSaving
                     ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        width: 17,
+                        height: 17,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
-                    : const Text('Save'),
+                    : const Icon(Icons.check_rounded),
+                label: const Text('Save bundle'),
               ),
             ],
           );
@@ -1491,6 +1524,7 @@ class AdminManagementScreen extends StatelessWidget {
       ),
     );
   }
+
   Future<void> _delete(BuildContext context, QueryDocumentSnapshot<Map<String, dynamic>> doc) async {
     final yes = await showDialog<bool>(
       context: context,
@@ -4316,6 +4350,626 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+
+/// Dedicated management workspace for Bundles. Uses the same visual language
+/// and navigation as the Products and Categories screens.
+class _BundlesWorkspace extends StatefulWidget {
+  const _BundlesWorkspace();
+
+  @override
+  State<_BundlesWorkspace> createState() => _BundlesWorkspaceState();
+}
+
+class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
+  static const _canvas = Color(0xFFFAF8F3);
+  static const _ink = Color(0xFF172554);
+  static const _blue = Color(0xFF2563EB);
+  static const _muted = Color(0xFF64748B);
+  static const _border = Color(0xFFDCE6F8);
+  static const _softBlue = Color(0xFFEAF2FF);
+
+  final _actions = const AdminManagementScreen(section: AdminSection.bundles);
+  int _refreshKey = 0;
+
+  String get _adminName {
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) return displayName;
+    final emailName = user?.email?.split('@').first.trim() ?? '';
+    return emailName.isNotEmpty ? emailName : 'Administrator';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final showSidebar = screenWidth >= 1280;
+
+    return Scaffold(
+      backgroundColor: _canvas,
+      drawer: showSidebar
+          ? null
+          : Drawer(
+              backgroundColor: Colors.white,
+              child: SafeArea(
+                child: SingleChildScrollView(child: _buildSidebar(compact: true)),
+              ),
+            ),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showSidebar) SizedBox(width: 238, child: _buildSidebar()),
+          Expanded(
+            child: Column(
+              children: [
+                _buildHeader(screenWidth: screenWidth, showSidebar: showSidebar),
+                Expanded(child: _buildBody()),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader({required double screenWidth, required bool showSidebar}) {
+    final compact = screenWidth < 560;
+    final veryNarrow = screenWidth < 390;
+
+    return Container(
+      height: compact ? 76 : 100,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 8 : (showSidebar ? 30 : 24)),
+      decoration: const BoxDecoration(
+        color: _canvas,
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Row(
+        children: [
+          if (!showSidebar)
+            Builder(
+              builder: (drawerContext) => IconButton(
+                tooltip: 'Open navigation',
+                onPressed: () => Scaffold.of(drawerContext).openDrawer(),
+                icon: const Icon(Icons.menu_rounded, color: _ink),
+              ),
+            ),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!compact)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 3),
+                    child: Text(
+                      'Admin   /   Bundles',
+                      style: TextStyle(color: _muted, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                Text(
+                  'Bundles',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: compact ? 21 : 28,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.7,
+                    height: 1.1,
+                  ),
+                ),
+                if (!compact)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Manage student bundles and package details',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: _muted, fontSize: 12.5),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 5),
+          if (compact)
+            IconButton(
+              tooltip: 'Refresh bundles',
+              onPressed: () => setState(() => _refreshKey++),
+              icon: const Icon(Icons.refresh_rounded, color: _blue),
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: () => setState(() => _refreshKey++),
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Refresh'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _blue,
+                backgroundColor: Colors.white,
+                side: const BorderSide(color: Color(0xFFB9D0FF)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          const SizedBox(width: 7),
+          FilledButton(
+            onPressed: () => _actions._add(context),
+            style: FilledButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 15, vertical: 13),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              minimumSize: Size(veryNarrow ? 40 : 0, 42),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.add_rounded, size: 19),
+                if (!veryNarrow) ...[
+                  const SizedBox(width: 5),
+                  Text(compact ? 'Add' : 'Add Bundle'),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar({bool compact = false}) {
+    Widget navItem(IconData icon, String label, {AdminSection? section, bool selected = false}) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 5),
+        child: Material(
+          color: selected ? const Color(0xFFE2EDFF) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _navigate(section, compact: compact),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              child: Row(
+                children: [
+                  Icon(icon, size: 21, color: selected ? _blue : _ink),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: selected ? _blue : _ink,
+                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 540),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(right: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      padding: const EdgeInsets.fromLTRB(17, 24, 17, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(color: _blue, borderRadius: BorderRadius.circular(14)),
+                child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 27),
+              ),
+              const SizedBox(width: 11),
+              const Expanded(
+                child: Text(
+                  'Campus\nSupply',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 19,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 31),
+          navItem(Icons.home_rounded, 'Overview'),
+          navItem(Icons.inventory_2_outlined, 'Products', section: AdminSection.products),
+          navItem(Icons.grid_view_rounded, 'Categories', section: AdminSection.categories),
+          navItem(Icons.sell_outlined, 'Bundles', section: AdminSection.bundles, selected: true),
+          navItem(Icons.shopping_cart_outlined, 'Orders', section: AdminSection.orders),
+          navItem(Icons.people_outline_rounded, 'Users', section: AdminSection.users),
+          navItem(Icons.star_border_rounded, 'Reviews', section: AdminSection.reviews),
+          if (!compact) const Spacer() else const SizedBox(height: 22),
+          const Divider(color: Color(0xFFE2E8F0)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: _blue,
+                child: Text(
+                  _adminName.isEmpty ? 'A' : _adminName.substring(0, 1).toUpperCase(),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _adminName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: _ink, fontWeight: FontWeight.w800, fontSize: 12),
+                    ),
+                    const Text('Administrator', style: TextStyle(color: _muted, fontSize: 11)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await AuthService.logout();
+              if (!mounted) return;
+              Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+            },
+            icon: const Icon(Icons.logout_rounded, size: 18),
+            label: const Text('Sign out'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFB42318),
+              backgroundColor: const Color(0xFFFFF0F2),
+              side: BorderSide.none,
+              minimumSize: const Size.fromHeight(45),
+              alignment: Alignment.centerLeft,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigate(AdminSection? section, {required bool compact}) {
+    if (compact) Navigator.pop(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (section == null) {
+        Navigator.pushNamedAndRemoveUntil(context, '/admin', (_) => false);
+      } else if (section != AdminSection.bundles) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => AdminManagementScreen(section: section)),
+        );
+      }
+    });
+  }
+
+  Widget _buildBody() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      key: ValueKey(_refreshKey),
+      stream: FirebaseFirestore.instance.collection('bundles').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _stateCard(
+            icon: Icons.cloud_off_outlined,
+            title: 'Unable to load bundles',
+            message: 'Please check your connection and try again.',
+            action: FilledButton.icon(
+              onPressed: () => setState(() => _refreshKey++),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Try again'),
+              style: FilledButton.styleFrom(backgroundColor: _blue, foregroundColor: Colors.white),
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(width: 30, height: 30, child: CircularProgressIndicator(strokeWidth: 2.5, color: _blue)),
+                SizedBox(height: 14),
+                Text('Loading bundles...', style: TextStyle(color: _muted, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+        final screenWidth = MediaQuery.sizeOf(context).width;
+        final horizontalPadding = screenWidth < 600 ? 16.0 : 28.0;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(horizontalPadding, 22, horizontalPadding, 30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Bundle catalog',
+                      style: TextStyle(color: _ink, fontWeight: FontWeight.w900, fontSize: 17),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _softBlue,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${docs.length} ${docs.length == 1 ? 'bundle' : 'bundles'}',
+                      style: const TextStyle(color: _blue, fontSize: 12, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (docs.isEmpty)
+                _emptyState()
+              else
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final columns = constraints.maxWidth >= 1080
+                        ? 3
+                        : constraints.maxWidth >= 630
+                            ? 2
+                            : 1;
+                    final extent = constraints.maxWidth < 460 ? 365.0 : 355.0;
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: docs.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        mainAxisExtent: extent,
+                      ),
+                      itemBuilder: (context, index) => _bundleCard(context, docs[index]),
+                    );
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _emptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(color: _softBlue, borderRadius: BorderRadius.circular(22)),
+            child: const Icon(Icons.inventory_2_outlined, color: _blue, size: 38),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'No bundles yet',
+            style: TextStyle(color: _ink, fontSize: 20, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Add your first bundle to group useful student essentials into one package.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: _muted, height: 1.5),
+          ),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: () => _actions._add(context),
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Add your first bundle'),
+            style: FilledButton.styleFrom(
+              backgroundColor: _blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bundleCard(
+    BuildContext context,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    final name = (data['name'] ?? data['title'] ?? doc.id).toString();
+    final description = (data['description'] ?? '').toString().trim();
+    final imageUrl = (data['imageUrl'] ?? '').toString().trim();
+    final price = data['price'];
+    final priceLabel = price == null
+        ? '₹0'
+        : price is num
+            ? '₹${price % 1 == 0 ? price.toStringAsFixed(0) : price.toStringAsFixed(2)}'
+            : '₹${price.toString()}';
+
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: imageUrl.isEmpty
+                ? Container(
+                    color: _softBlue,
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.auto_awesome_mosaic_outlined, color: _blue, size: 42),
+                        SizedBox(height: 8),
+                        Text('Bundle image', style: TextStyle(color: _muted, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  )
+                : AppImage(
+                    source: imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: _blue)),
+                    fallback: Container(
+                      color: _softBlue,
+                      child: const Center(child: Icon(Icons.broken_image_outlined, color: _blue, size: 40)),
+                    ),
+                  ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 10, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _ink,
+                            fontSize: 15.5,
+                            height: 1.25,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      SizedBox(
+                        height: 32,
+                        width: 32,
+                        child: PopupMenuButton<String>(
+                          tooltip: 'Bundle actions',
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(Icons.more_vert_rounded, color: _muted),
+                          onSelected: (value) {
+                            if (value == 'edit') _actions._edit(context, doc);
+                            if (value == 'delete') _actions._delete(context, doc);
+                          },
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit_outlined, size: 18),
+                                  SizedBox(width: 10),
+                                  Text('Edit bundle'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline_rounded, size: 18),
+                                  SizedBox(width: 10),
+                                  Text('Delete bundle'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    priceLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: _blue, fontWeight: FontWeight.w900, fontSize: 19),
+                  ),
+                  const SizedBox(height: 7),
+                  Expanded(
+                    child: Text(
+                      description.isEmpty ? 'No description provided.' : description,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: _muted, fontSize: 12.5, height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stateCard({
+    required IconData icon,
+    required String title,
+    required String message,
+    Widget? action,
+  }) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24),
+        constraints: const BoxConstraints(maxWidth: 520),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _border),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: _blue, size: 44),
+            const SizedBox(height: 14),
+            Text(title, textAlign: TextAlign.center, style: const TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 7),
+            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: _muted, height: 1.5)),
+            if (action != null) ...[
+              const SizedBox(height: 18),
+              action,
+            ],
+          ],
         ),
       ),
     );
