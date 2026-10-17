@@ -65,6 +65,9 @@ class AdminManagementScreen extends StatelessWidget {
     if (section == AdminSection.orders) {
       return _OrdersWorkspace(onStatusChanged: _setOrderStatus);
     }
+    if (section == AdminSection.reviews) {
+      return _ReviewsWorkspace(onDeleteReview: (doc) => _delete(context, doc));
+    }
 
     final screenWidth = MediaQuery.sizeOf(context).width;
     final showSidebar = screenWidth >= 1100;
@@ -6714,3 +6717,692 @@ class _UsersWorkspaceState extends State<_UsersWorkspace> {
   }
 }
 
+
+
+/// Dedicated Reviews workspace. Reads the existing Firestore reviews collection
+/// and keeps review deletion wired to the pre-existing confirmation flow.
+class _ReviewsWorkspace extends StatefulWidget {
+  const _ReviewsWorkspace({required this.onDeleteReview});
+
+  final Future<void> Function(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) onDeleteReview;
+
+  @override
+  State<_ReviewsWorkspace> createState() => _ReviewsWorkspaceState();
+}
+
+class _ReviewsWorkspaceState extends State<_ReviewsWorkspace> {
+  static const _canvas = Color(0xFFFAF8F3);
+  static const _ink = Color(0xFF172554);
+  static const _blue = Color(0xFF2563EB);
+  static const _muted = Color(0xFF64748B);
+  static const _border = Color(0xFFDCE6F8);
+  static const _softBlue = Color(0xFFEAF2FF);
+  static const _amber = Color(0xFFB77900);
+  static const _red = Color(0xFFB42318);
+  static const _green = Color(0xFF15803D);
+
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedRating = 'All ratings';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String get _adminName {
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) return displayName;
+    final emailName = user?.email?.split('@').first.trim() ?? '';
+    return emailName.isNotEmpty ? emailName : 'Administrator';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final showSidebar = width >= 1100;
+    final compactWidth = width < 560;
+
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: _canvas,
+      drawer: showSidebar
+          ? null
+          : Drawer(
+              backgroundColor: Colors.white,
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  child: _buildSidebar(compact: true),
+                ),
+              ),
+            ),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showSidebar) SizedBox(width: 238, child: _buildSidebar()),
+          Expanded(
+            child: Column(
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: compactWidth ? 12 : (showSidebar ? 30 : 24),
+                    vertical: compactWidth ? 14 : 22,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: _canvas,
+                    border: Border(
+                      bottom: BorderSide(color: Color(0xFFE8EAF0)),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      if (!showSidebar) ...[
+                        IconButton(
+                          tooltip: 'Open navigation',
+                          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                          icon: const Icon(Icons.menu_rounded, color: _ink),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Reviews Management',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: _ink,
+                                fontSize: compactWidth ? 20 : 25,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Read customer feedback and monitor product ratings.',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: _muted,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(child: _buildReviewsContent()),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar({bool compact = false}) {
+    return AdminNavigationSidebar(
+      selectedSection: AdminSection.reviews,
+      adminName: _adminName,
+      compact: compact,
+      onNavigate: (section) {
+        void navigate() {
+          if (!mounted) return;
+          if (section == null) {
+            Navigator.pushNamedAndRemoveUntil(context, '/admin', (_) => false);
+          } else if (section != AdminSection.reviews) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AdminManagementScreen(section: section),
+              ),
+            );
+          }
+        }
+
+        if (compact) {
+          Navigator.pop(context);
+          WidgetsBinding.instance.addPostFrameCallback((_) => navigate());
+        } else {
+          navigate();
+        }
+      },
+      onSignOut: () async {
+        await AuthService.logout();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+      },
+    );
+  }
+
+  Widget _buildReviewsContent() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('reviews').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _statePanel(
+            icon: Icons.cloud_off_outlined,
+            title: 'Reviews could not be loaded',
+            message: 'Please check the connection and try again.',
+            isError: true,
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(
+            child: CircularProgressIndicator(color: _blue),
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+        final ratings = docs
+            .map((doc) => _ratingFor(doc.data()))
+            .whereType<double>()
+            .toList();
+        final average = ratings.isEmpty
+            ? null
+            : ratings.reduce((a, b) => a + b) / ratings.length;
+        final fiveStarCount = ratings.where((rating) => rating >= 4.5).length;
+
+        final query = _searchController.text.trim().toLowerCase();
+        final selectedStars = int.tryParse(
+          _selectedRating.replaceAll(' stars', ''),
+        );
+        final filteredDocs = docs.where((doc) {
+          final data = doc.data();
+          final rating = _ratingFor(data);
+          final matchesRating = selectedStars == null ||
+              (rating != null && rating.round() == selectedStars);
+          final searchable = [
+            doc.id,
+            data['comment'],
+            data['userName'],
+            data['customerName'],
+            data['displayName'],
+            data['userEmail'],
+            data['email'],
+            data['productName'],
+            data['productTitle'],
+            data['itemName'],
+          ].where((value) => value != null).join(' ').toLowerCase();
+          return matchesRating && (query.isEmpty || searchable.contains(query));
+        }).toList();
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final contentWidth = constraints.maxWidth;
+            final compact = contentWidth < 620;
+            final cardWidth = contentWidth >= 1080
+                ? (contentWidth - 16) / 2
+                : contentWidth;
+            final metricWidth = contentWidth >= 780
+                ? (contentWidth - 24) / 3
+                : (contentWidth - 12) / 2;
+
+            return ListView(
+              padding: EdgeInsets.fromLTRB(
+                contentWidth < 560 ? 14 : 24,
+                22,
+                contentWidth < 560 ? 14 : 24,
+                36,
+              ),
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _metricCard(
+                      width: metricWidth,
+                      label: 'Total reviews',
+                      value: docs.length.toString(),
+                      helper: 'All feedback received',
+                      icon: Icons.rate_review_outlined,
+                      tint: _blue,
+                    ),
+                    _metricCard(
+                      width: metricWidth,
+                      label: 'Average rating',
+                      value: average == null ? '—' : average.toStringAsFixed(1),
+                      helper: '${ratings.length} rated review(s)',
+                      icon: Icons.star_rounded,
+                      tint: _amber,
+                    ),
+                    _metricCard(
+                      width: contentWidth >= 780 ? metricWidth : contentWidth,
+                      label: '5-star reviews',
+                      value: fiveStarCount.toString(),
+                      helper: 'Highest-rated feedback',
+                      icon: Icons.thumb_up_alt_outlined,
+                      tint: _green,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: _border),
+                  ),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: compact ? contentWidth - 60 : 360,
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (_) => setState(() {}),
+                          decoration: InputDecoration(
+                            hintText: 'Search reviews, customers or products',
+                            prefixIcon: const Icon(Icons.search_rounded),
+                            suffixIcon: _searchController.text.isEmpty
+                                ? null
+                                : IconButton(
+                                    tooltip: 'Clear search',
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() {});
+                                    },
+                                    icon: const Icon(Icons.close_rounded),
+                                  ),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 13,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: _border),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: _border),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: compact ? contentWidth - 60 : 180,
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedRating,
+                          decoration: InputDecoration(
+                            labelText: 'Rating',
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: _border),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: _border),
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'All ratings',
+                              child: Text('All ratings'),
+                            ),
+                            DropdownMenuItem(
+                              value: '5 stars',
+                              child: Text('5 stars'),
+                            ),
+                            DropdownMenuItem(
+                              value: '4 stars',
+                              child: Text('4 stars'),
+                            ),
+                            DropdownMenuItem(
+                              value: '3 stars',
+                              child: Text('3 stars'),
+                            ),
+                            DropdownMenuItem(
+                              value: '2 stars',
+                              child: Text('2 stars'),
+                            ),
+                            DropdownMenuItem(
+                              value: '1 stars',
+                              child: Text('1 star'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() => _selectedRating = value);
+                          },
+                        ),
+                      ),
+                      Text(
+                        '${filteredDocs.length} of ${docs.length} reviews',
+                        style: const TextStyle(
+                          color: _muted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                if (docs.isEmpty)
+                  _statePanel(
+                    icon: Icons.rate_review_outlined,
+                    title: 'No reviews yet',
+                    message:
+                        'Customer feedback will appear here when reviews are submitted.',
+                  )
+                else if (filteredDocs.isEmpty)
+                  _statePanel(
+                    icon: Icons.search_off_rounded,
+                    title: 'No matching reviews',
+                    message:
+                        'Try a different search term or choose another rating.',
+                  )
+                else
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: filteredDocs
+                        .map(
+                          (doc) => SizedBox(
+                            key: ValueKey(doc.id),
+                            width: cardWidth,
+                            child: _reviewCard(doc),
+                          ),
+                        )
+                        .toList(),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  double? _ratingFor(Map<String, dynamic> data) {
+    return double.tryParse((data['rating'] ?? '').toString());
+  }
+
+  Widget _reviewCard(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    final rating = _ratingFor(data);
+    final comment = (data['comment'] ?? '').toString().trim();
+    final reviewer = (data['userName'] ??
+            data['customerName'] ??
+            data['displayName'] ??
+            data['userEmail'] ??
+            data['email'] ??
+            'Customer review')
+        .toString()
+        .trim();
+    final product = (data['productName'] ??
+            data['productTitle'] ??
+            data['itemName'] ??
+            '')
+        .toString()
+        .trim();
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x080F172A),
+            blurRadius: 16,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: _softBlue,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person_outline_rounded,
+                  color: _blue,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      reviewer.isEmpty ? 'Customer review' : reviewer,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (product.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        product,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _muted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Review actions',
+                onSelected: (value) {
+                  if (value == 'delete') widget.onDeleteReview(doc);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline_rounded, size: 18),
+                        SizedBox(width: 9),
+                        Text('Delete review'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              ...List.generate(
+                5,
+                (index) => Icon(
+                  Icons.star_rounded,
+                  size: 19,
+                  color: rating != null && index < rating.round()
+                      ? _amber
+                      : const Color(0xFFE2E8F0),
+                ),
+              ),
+              const SizedBox(width: 7),
+              Text(
+                rating == null
+                    ? 'No rating'
+                    : '${rating.toStringAsFixed(rating % 1 == 0 ? 0 : 1)} / 5',
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            comment.isEmpty ? 'No written comment was provided.' : comment,
+            style: TextStyle(
+              color: comment.isEmpty ? _muted : const Color(0xFF334155),
+              fontSize: 13,
+              height: 1.55,
+              fontStyle: comment.isEmpty ? FontStyle.italic : FontStyle.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metricCard({
+    required double width,
+    required String label,
+    required String value,
+    required String helper,
+    required IconData icon,
+    required Color tint,
+  }) {
+    return SizedBox(
+      width: width,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: tint.withValues(alpha: .10),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(icon, color: tint, size: 23),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    helper,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 10,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statePanel({
+    required IconData icon,
+    required String title,
+    required String message,
+    bool isError = false,
+  }) {
+    final tint = isError ? _red : _blue;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 34),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: tint.withValues(alpha: .09),
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: Icon(icon, color: tint, size: 29),
+          ),
+          const SizedBox(height: 13),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _muted,
+              fontSize: 12,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
