@@ -63,17 +63,24 @@ class AdminManagementScreen extends StatelessWidget {
       return _OrdersWorkspace(onStatusChanged: _setOrderStatus);
     }
 
-    final canAdd = section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles;
-    return Scaffold(
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final showSidebar = screenWidth >= 1100;
+    final page = Scaffold(
       backgroundColor: const Color(0xFFFAF8F3),
-      appBar: AppBar(title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900))),
-      floatingActionButton: canAdd
-          ? FloatingActionButton.extended(
-              onPressed: () => _add(context),
-              icon: const Icon(Icons.add_rounded),
-              label: Text(section == AdminSection.products ? 'Product' : section == AdminSection.categories ? 'Category' : 'Bundle'),
-            )
-          : null,
+      drawer: showSidebar
+          ? null
+          : Drawer(
+              backgroundColor: Colors.white,
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  child: _buildSimplePageSidebar(compact: true),
+                ),
+              ),
+            ),
+      appBar: AppBar(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+      ),
+      floatingActionButton: null,
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance.collection(collection).snapshots(),
         builder: (context, snapshot) {
@@ -92,12 +99,9 @@ class AdminManagementScreen extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Text(
-                    section == AdminSection.products ? 'Manage your campus store catalog' :
-                    section == AdminSection.categories ? 'Organize your campus store' :
-                    section == AdminSection.bundles ? 'Manage student bundles and package details' :
-                    section == AdminSection.orders ? 'View and manage customer orders' :
-                    section == AdminSection.users ? 'Manage campus store accounts and roles' :
-                    'View and manage customer feedback',
+                    section == AdminSection.users
+                        ? 'Manage campus store accounts and roles'
+                        : 'View and manage customer feedback',
                     style: const TextStyle(color: Color(0xFF64748B), height: 1.4),
                   ),
                 );
@@ -108,8 +112,57 @@ class AdminManagementScreen extends StatelessWidget {
         },
       ),
     );
+
+    if (!showSidebar) return page;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(width: 238, child: _buildSimplePageSidebar(compact: false)),
+        Expanded(child: page),
+      ],
+    );
   }
 
+  Widget _buildSimplePageSidebar({required bool compact}) {
+    return AdminNavigationSidebar(
+      selectedSection: section,
+      adminName: _currentAdminName,
+      compact: compact,
+      onNavigate: (destination) {
+        void navigate() {
+          if (!context.mounted) return;
+          if (destination == null) {
+            Navigator.pushNamedAndRemoveUntil(context, '/admin', (_) => false);
+          } else if (destination != section) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => AdminManagementScreen(section: destination)),
+            );
+          }
+        }
+
+        if (compact) {
+          Navigator.pop(context);
+          WidgetsBinding.instance.addPostFrameCallback((_) => navigate());
+        } else {
+          navigate();
+        }
+      },
+      onSignOut: () async {
+        await AuthService.logout();
+        if (!context.mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+      },
+    );
+  }
+
+  String get _currentAdminName {
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) return displayName;
+    final emailName = user?.email?.split('@').first.trim() ?? '';
+    return emailName.isNotEmpty ? emailName : 'Administrator';
+  }
 
   Future<bool?> _showProductItemDialog(
     BuildContext context, {
@@ -1733,135 +1786,16 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
   }
 
   Widget _buildSidebar({bool compact = false}) {
-    Widget navItem(
-      IconData icon,
-      String title, {
-      AdminSection? section,
-      bool selected = false,
-    }) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 5),
-        child: Material(
-          color: selected ? const Color(0xFFE2EDFF) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => _navigate(section, compact: compact),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-              child: Row(
-                children: [
-                  Icon(icon, size: 21, color: selected ? _blue : _ink),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        color: selected ? _blue : _ink,
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      constraints: const BoxConstraints(minHeight: 540),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(right: BorderSide(color: Color(0xFFE2E8F0))),
-      ),
-      padding: const EdgeInsets.fromLTRB(17, 24, 17, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(color: _blue, borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 27),
-              ),
-              const SizedBox(width: 11),
-              const Expanded(
-                child: Text(
-                  'Campus\nSupply',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 19,
-                    height: 1.05,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 31),
-          navItem(Icons.home_rounded, 'Overview'),
-          navItem(Icons.inventory_2_outlined, 'Products', section: AdminSection.products, selected: true),
-          navItem(Icons.grid_view_rounded, 'Categories', section: AdminSection.categories),
-          navItem(Icons.sell_outlined, 'Bundles', section: AdminSection.bundles),
-          navItem(Icons.shopping_cart_outlined, 'Orders', section: AdminSection.orders),
-          navItem(Icons.people_outline_rounded, 'Users', section: AdminSection.users),
-          navItem(Icons.star_border_rounded, 'Reviews', section: AdminSection.reviews),
-          if (!compact) const Spacer() else const SizedBox(height: 22),
-          const Divider(color: Color(0xFFE2E8F0)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: _blue,
-                child: Text(
-                  _adminName.trim().isEmpty ? 'A' : _adminName.trim().substring(0, 1).toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _adminName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: _ink, fontWeight: FontWeight.w800, fontSize: 12),
-                    ),
-                    const Text('Administrator', style: TextStyle(color: _muted, fontSize: 11)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () async {
-              await AuthService.logout();
-              if (!mounted) return;
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
-            },
-            icon: const Icon(Icons.logout_rounded, size: 18),
-            label: const Text('Sign out'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFB42318),
-              backgroundColor: const Color(0xFFFFF0F2),
-              side: BorderSide.none,
-              minimumSize: const Size.fromHeight(45),
-              alignment: Alignment.centerLeft,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-              textStyle: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
+    return AdminNavigationSidebar(
+      selectedSection: AdminSection.products,
+      adminName: _adminName,
+      compact: compact,
+      onNavigate: (section) => _navigate(section, compact: compact),
+      onSignOut: () async {
+        await AuthService.logout();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+      },
     );
   }
 
@@ -3238,130 +3172,16 @@ class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
   }
 
   Widget _buildSidebar({bool compact = false}) {
-    Widget navItem(IconData icon, String title, {AdminSection? section, bool selected = false}) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 5),
-        child: Material(
-          color: selected ? const Color(0xFFE2EDFF) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => _navigate(section, compact: compact),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-              child: Row(
-                children: [
-                  Icon(icon, size: 21, color: selected ? _blue : _ink),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        color: selected ? _blue : _ink,
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      constraints: const BoxConstraints(minHeight: 540),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(right: BorderSide(color: Color(0xFFE2E8F0))),
-      ),
-      padding: const EdgeInsets.fromLTRB(17, 24, 17, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(color: _blue, borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 27),
-              ),
-              const SizedBox(width: 11),
-              const Expanded(
-                child: Text(
-                  'Campus\nSupply',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 19,
-                    height: 1.05,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 31),
-          navItem(Icons.home_rounded, 'Overview'),
-          navItem(Icons.inventory_2_outlined, 'Products', section: AdminSection.products),
-          navItem(Icons.grid_view_rounded, 'Categories', section: AdminSection.categories, selected: true),
-          navItem(Icons.sell_outlined, 'Bundles', section: AdminSection.bundles),
-          navItem(Icons.shopping_cart_outlined, 'Orders', section: AdminSection.orders),
-          navItem(Icons.people_outline_rounded, 'Users', section: AdminSection.users),
-          navItem(Icons.star_border_rounded, 'Reviews', section: AdminSection.reviews),
-          if (!compact) const Spacer() else const SizedBox(height: 22),
-          const Divider(color: Color(0xFFE2E8F0)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: _blue,
-                child: Text(
-                  _adminName.isEmpty ? 'A' : _adminName.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _adminName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: _ink, fontWeight: FontWeight.w800, fontSize: 12),
-                    ),
-                    const Text('Administrator', style: TextStyle(color: _muted, fontSize: 11)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () async {
-              await AuthService.logout();
-              if (!mounted) return;
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
-            },
-            icon: const Icon(Icons.logout_rounded, size: 18),
-            label: const Text('Sign out'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFB42318),
-              backgroundColor: const Color(0xFFFFF0F2),
-              side: BorderSide.none,
-              minimumSize: const Size.fromHeight(45),
-              alignment: Alignment.centerLeft,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-              textStyle: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
+    return AdminNavigationSidebar(
+      selectedSection: AdminSection.categories,
+      adminName: _adminName,
+      compact: compact,
+      onNavigate: (section) => _navigate(section, compact: compact),
+      onSignOut: () async {
+        await AuthService.logout();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+      },
     );
   }
 
@@ -4548,129 +4368,16 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
   }
 
   Widget _buildSidebar({bool compact = false}) {
-    Widget navItem(IconData icon, String label, {AdminSection? section, bool selected = false}) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 5),
-        child: Material(
-          color: selected ? const Color(0xFFE2EDFF) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => _navigate(section, compact: compact),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-              child: Row(
-                children: [
-                  Icon(icon, size: 21, color: selected ? _blue : _ink),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        color: selected ? _blue : _ink,
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      constraints: const BoxConstraints(minHeight: 540),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(right: BorderSide(color: Color(0xFFE2E8F0))),
-      ),
-      padding: const EdgeInsets.fromLTRB(17, 24, 17, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(color: _blue, borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 27),
-              ),
-              const SizedBox(width: 11),
-              const Expanded(
-                child: Text(
-                  'Campus\nSupply',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 19,
-                    height: 1.05,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 31),
-          navItem(Icons.home_rounded, 'Overview'),
-          navItem(Icons.inventory_2_outlined, 'Products', section: AdminSection.products),
-          navItem(Icons.grid_view_rounded, 'Categories', section: AdminSection.categories),
-          navItem(Icons.sell_outlined, 'Bundles', section: AdminSection.bundles, selected: true),
-          navItem(Icons.shopping_cart_outlined, 'Orders', section: AdminSection.orders),
-          navItem(Icons.people_outline_rounded, 'Users', section: AdminSection.users),
-          navItem(Icons.star_border_rounded, 'Reviews', section: AdminSection.reviews),
-          if (!compact) const Spacer() else const SizedBox(height: 22),
-          const Divider(color: Color(0xFFE2E8F0)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: _blue,
-                child: Text(
-                  _adminName.isEmpty ? 'A' : _adminName.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _adminName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: _ink, fontWeight: FontWeight.w800, fontSize: 12),
-                    ),
-                    const Text('Administrator', style: TextStyle(color: _muted, fontSize: 11)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () async {
-              await AuthService.logout();
-              if (!mounted) return;
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
-            },
-            icon: const Icon(Icons.logout_rounded, size: 18),
-            label: const Text('Sign out'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFB42318),
-              backgroundColor: const Color(0xFFFFF0F2),
-              side: BorderSide.none,
-              minimumSize: const Size.fromHeight(45),
-              alignment: Alignment.centerLeft,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-            ),
-          ),
-        ],
-      ),
+    return AdminNavigationSidebar(
+      selectedSection: AdminSection.bundles,
+      adminName: _adminName,
+      compact: compact,
+      onNavigate: (section) => _navigate(section, compact: compact),
+      onSignOut: () async {
+        await AuthService.logout();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+      },
     );
   }
 
@@ -5576,24 +5283,145 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
 
   bool get compact => MediaQuery.sizeOf(context).width < 980;
 
+  String get _adminName {
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) return displayName;
+    final emailName = user?.email?.split('@').first.trim() ?? '';
+    return emailName.isNotEmpty ? emailName : 'Administrator';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final showSidebar = width >= 1100;
+
     return Scaffold(
       backgroundColor: cream,
-      appBar: AppBar(
-        backgroundColor: cream,
-        surfaceTintColor: Colors.transparent,
-        title: Text(compact && mobileDetailOpen ? 'Order details' : 'Orders',
-            style: const TextStyle(color: ink, fontWeight: FontWeight.w900)),
-        leading: compact && mobileDetailOpen
-            ? IconButton(
-                tooltip: 'Back to orders',
-                onPressed: () => setState(() => mobileDetailOpen = false),
-                icon: const Icon(Icons.arrow_back_rounded, color: ink),
-              )
-            : null,
+      drawer: showSidebar
+          ? null
+          : Drawer(
+              backgroundColor: Colors.white,
+              child: SafeArea(
+                child: SingleChildScrollView(child: _buildSidebar(compact: true)),
+              ),
+            ),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showSidebar) SizedBox(width: 238, child: _buildSidebar()),
+          Expanded(
+            child: Column(
+              children: [
+                _buildHeader(width: width, showSidebar: showSidebar),
+                Expanded(child: _buildOrdersContent()),
+              ],
+            ),
+          ),
+        ],
       ),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+    );
+  }
+
+  Widget _buildHeader({required double width, required bool showSidebar}) {
+    final compactWidth = width < 560;
+    return Container(
+      height: compactWidth ? 76 : 100,
+      padding: EdgeInsets.symmetric(horizontal: compactWidth ? 10 : (showSidebar ? 30 : 24)),
+      decoration: const BoxDecoration(
+        color: cream,
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Row(
+        children: [
+          if (!showSidebar)
+            mobileDetailOpen && compact
+                ? IconButton(
+                    tooltip: 'Back to order list',
+                    onPressed: () => setState(() => mobileDetailOpen = false),
+                    icon: const Icon(Icons.arrow_back_rounded, color: ink),
+                  )
+                : Builder(
+                    builder: (drawerContext) => IconButton(
+                      tooltip: 'Open navigation',
+                      onPressed: () => Scaffold.of(drawerContext).openDrawer(),
+                      icon: const Icon(Icons.menu_rounded, color: ink),
+                    ),
+                  ),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!compactWidth)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 3),
+                    child: Text(
+                      'Admin   /   Orders',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: muted, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                Text(
+                  compact && mobileDetailOpen ? 'Order details' : 'Orders',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: ink,
+                    fontSize: compactWidth ? 19 : 27,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.6,
+                    height: 1.1,
+                  ),
+                ),
+                if (!compactWidth)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Text(
+                      'View and manage customer orders.',
+                      style: TextStyle(color: muted, fontSize: 12),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar({bool compact = false}) {
+    return AdminNavigationSidebar(
+      selectedSection: AdminSection.orders,
+      adminName: _adminName,
+      compact: compact,
+      onNavigate: (section) => _navigate(section, compact: compact),
+      onSignOut: () async {
+        await AuthService.logout();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+      },
+    );
+  }
+
+  void _navigate(AdminSection? section, {required bool compact}) {
+    if (compact) Navigator.pop(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (section == null) {
+        Navigator.pushNamedAndRemoveUntil(context, '/admin', (_) => false);
+      } else if (section != AdminSection.orders) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => AdminManagementScreen(section: section)),
+        );
+      }
+    });
+  }
+
+  Widget _buildOrdersContent() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance.collection('orders').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -5642,8 +5470,7 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
           if (compact) return _mobileList(docs, chosen, pending, delivered);
           return _desktopView(docs, chosen, pending, delivered);
         },
-      ),
-    );
+      ),;
   }
 
   Widget _heading() => const Column(
@@ -6074,6 +5901,155 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
         const SizedBox(height: 6),
         Text(message, textAlign: TextAlign.center, style: const TextStyle(color: muted, fontSize: 12, height: 1.5)),
       ]),
+    );
+  }
+}
+
+
+/// Shared navigation for every Campus Supply admin section.
+class AdminNavigationSidebar extends StatelessWidget {
+  const AdminNavigationSidebar({
+    super.key,
+    required this.selectedSection,
+    required this.adminName,
+    required this.compact,
+    required this.onNavigate,
+    required this.onSignOut,
+  });
+
+  final AdminSection? selectedSection;
+  final String adminName;
+  final bool compact;
+  final ValueChanged<AdminSection?> onNavigate;
+  final VoidCallback onSignOut;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget navItem(IconData icon, String title, AdminSection? section) {
+      final selected = selectedSection == section;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 5),
+        child: Material(
+          color: selected ? const Color(0xFFE2EDFF) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: selected ? null : () => onNavigate(section),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              child: Row(
+                children: [
+                  Icon(icon, size: 21, color: selected ? const Color(0xFF2563EB) : const Color(0xFF172554)),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        color: selected ? const Color(0xFF2563EB) : const Color(0xFF172554),
+                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final safeName = adminName.trim().isEmpty ? 'Administrator' : adminName.trim();
+    return Container(
+      constraints: const BoxConstraints(minHeight: 540),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(right: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      padding: const EdgeInsets.fromLTRB(17, 24, 17, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 27),
+              ),
+              const SizedBox(width: 11),
+              const Expanded(
+                child: Text(
+                  'Campus\nSupply',
+                  style: TextStyle(
+                    color: Color(0xFF172554),
+                    fontSize: 19,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 31),
+          navItem(Icons.home_rounded, 'Overview', null),
+          navItem(Icons.inventory_2_outlined, 'Products', AdminSection.products),
+          navItem(Icons.grid_view_rounded, 'Categories', AdminSection.categories),
+          navItem(Icons.sell_outlined, 'Bundles', AdminSection.bundles),
+          navItem(Icons.shopping_cart_outlined, 'Orders', AdminSection.orders),
+          navItem(Icons.people_outline_rounded, 'Users', AdminSection.users),
+          navItem(Icons.star_border_rounded, 'Reviews', AdminSection.reviews),
+          if (!compact) const Spacer() else const SizedBox(height: 22),
+          const Divider(color: Color(0xFFE2E8F0)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: const Color(0xFF2563EB),
+                child: Text(
+                  safeName.substring(0, 1).toUpperCase(),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      safeName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Color(0xFF172554), fontWeight: FontWeight.w800, fontSize: 12),
+                    ),
+                    const Text('Administrator', style: TextStyle(color: Color(0xFF64748B), fontSize: 11)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: onSignOut,
+            icon: const Icon(Icons.logout_rounded, size: 18),
+            label: const Text('Sign out'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFB42318),
+              backgroundColor: const Color(0xFFFFF0F2),
+              side: BorderSide.none,
+              minimumSize: const Size.fromHeight(45),
+              alignment: Alignment.centerLeft,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
