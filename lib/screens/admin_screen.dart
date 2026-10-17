@@ -619,7 +619,6 @@ class _AdminScreenState extends State<AdminScreen> {
                   _menu(context, Icons.sell_outlined, 'Bundles', 'Curated student essentials', AdminSection.bundles),
                   _menu(context, Icons.shopping_cart_outlined, 'Orders', 'Review and update status', AdminSection.orders),
                   _menu(context, Icons.people_outline_rounded, 'Users', 'Manage accounts and roles', AdminSection.users),
-                  _menu(context, Icons.star_border_rounded, 'Reviews', 'Moderate customer feedback', AdminSection.reviews),
                 ],
               );
             },
