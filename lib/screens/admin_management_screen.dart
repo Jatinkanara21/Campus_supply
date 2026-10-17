@@ -5931,8 +5931,14 @@ class AdminNavigationSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget navItem(IconData icon, String title, AdminSection? section) {
-      final selected = selectedSection == section;
+    Widget navItem(
+      IconData icon,
+      String title,
+      AdminSection? section, {
+      VoidCallback? onTap,
+      bool? forceSelected,
+    }) {
+      final selected = forceSelected ?? selectedSection == section;
       return Padding(
         padding: const EdgeInsets.only(bottom: 5),
         child: Material(
@@ -5940,7 +5946,7 @@ class AdminNavigationSidebar extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
-            onTap: selected ? null : () => onNavigate(section),
+            onTap: selected ? null : (onTap ?? () => onNavigate(section)),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
               child: Row(
@@ -6009,6 +6015,18 @@ class AdminNavigationSidebar extends StatelessWidget {
           navItem(Icons.sell_outlined, 'Bundles', AdminSection.bundles),
           navItem(Icons.shopping_cart_outlined, 'Orders', AdminSection.orders),
           navItem(Icons.people_outline_rounded, 'Users', AdminSection.users),
+          const SizedBox(height: 10),
+          navItem(
+            Icons.storefront_outlined,
+            'Back to Store',
+            null,
+            forceSelected: false,
+            onTap: () => Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/home',
+              (_) => false,
+            ),
+          ),
           if (!compact) const Spacer() else const SizedBox(height: 22),
           const Divider(color: Color(0xFFE2E8F0)),
           const SizedBox(height: 12),
