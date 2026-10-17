@@ -6078,6 +6078,14 @@ class _UsersWorkspaceState extends State<_UsersWorkspace> {
   static const _purple = Color(0xFF6D4CC3);
 
   String? _updatingUid;
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedRole = 'All roles';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   String get _adminName {
     final user = FirebaseAuth.instance.currentUser;
@@ -6244,32 +6252,32 @@ class _UsersWorkspaceState extends State<_UsersWorkspace> {
         }
 
         final docs = snapshot.data!.docs;
-        if (docs.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(20),
-            child: Center(
-              child: _stateCard(
-                icon: Icons.people_outline_rounded,
-                title: 'No users yet.',
-                message: 'Registered campus store accounts will appear here.',
-              ),
-            ),
-          );
-        }
+        final adminCount = docs.where((doc) =>
+            (doc.data()['role'] ?? 'user').toString().trim().toLowerCase() == 'admin').length;
+        final regularCount = docs.length - adminCount;
+        final query = _searchController.text.trim().toLowerCase();
+        final filteredDocs = docs.where((doc) {
+          final data = doc.data();
+          final email = (data['email'] ?? '').toString().trim().toLowerCase();
+          final role = (data['role'] ?? 'user').toString().trim().toLowerCase();
+          final matchesEmail = query.isEmpty || email.contains(query);
+          final matchesRole = _selectedRole == 'All roles' ||
+              (_selectedRole == 'Admin' && role == 'admin') ||
+              (_selectedRole == 'User' && role != 'admin');
+          return matchesEmail && matchesRole;
+        }).toList();
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 900 ? 2 : 1;
+            final compact = constraints.maxWidth < 560;
+            final horizontalPadding = compact ? 16.0 : 26.0;
+            final columns = constraints.maxWidth >= 760 ? 2 : 1;
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    constraints.maxWidth < 560 ? 16 : 26,
-                    20,
-                    constraints.maxWidth < 560 ? 16 : 26,
-                    12,
-                  ),
+                  padding: EdgeInsets.fromLTRB(horizontalPadding, 20, horizontalPadding, 12),
                   child: Row(
                     children: [
                       const Expanded(
@@ -6282,36 +6290,250 @@ class _UsersWorkspaceState extends State<_UsersWorkspace> {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(color: _softBlue, borderRadius: BorderRadius.circular(10)),
                         child: Text(
-                          docs.length.toString() + (docs.length == 1 ? ' account' : ' accounts'),
+                          '${filteredDocs.length} of ${docs.length}',
                           style: const TextStyle(color: _blue, fontSize: 11, fontWeight: FontWeight.w800),
                         ),
                       ),
                     ],
                   ),
                 ),
-                Expanded(
-                  child: GridView.builder(
-                    padding: EdgeInsets.fromLTRB(
-                      constraints.maxWidth < 560 ? 16 : 26,
-                      4,
-                      constraints.maxWidth < 560 ? 16 : 26,
-                      26,
-                    ),
-                    itemCount: docs.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      mainAxisExtent: 116,
-                    ),
-                    itemBuilder: (context, index) => _userCard(docs[index]),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: Row(
+                    children: [
+                      Expanded(child: _summaryCard(
+                        label: 'Total users',
+                        value: docs.length,
+                        icon: Icons.people_outline_rounded,
+                        color: _blue,
+                        background: _softBlue,
+                        compact: compact,
+                      )),
+                      const SizedBox(width: 10),
+                      Expanded(child: _summaryCard(
+                        label: 'Admins',
+                        value: adminCount,
+                        icon: Icons.admin_panel_settings_outlined,
+                        color: _purple,
+                        background: const Color(0xFFF1ECFF),
+                        compact: compact,
+                      )),
+                      const SizedBox(width: 10),
+                      Expanded(child: _summaryCard(
+                        label: 'Regular users',
+                        value: regularCount,
+                        icon: Icons.person_outline_rounded,
+                        color: const Color(0xFF15803D),
+                        background: const Color(0xFFE8F7EE),
+                        compact: compact,
+                      )),
+                    ],
                   ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(horizontalPadding, 14, horizontalPadding, 14),
+                  child: compact
+                      ? Column(
+                          children: [
+                            _searchField(),
+                            const SizedBox(height: 10),
+                            _roleFilter(),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            Expanded(child: _searchField()),
+                            const SizedBox(width: 12),
+                            SizedBox(width: 190, child: _roleFilter()),
+                          ],
+                        ),
+                ),
+                Expanded(
+                  child: filteredDocs.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: _stateCard(
+                              icon: docs.isEmpty ? Icons.people_outline_rounded : Icons.search_off_rounded,
+                              title: docs.isEmpty
+                                  ? 'No users yet.'
+                                  : 'No matching users.',
+                              message: docs.isEmpty
+                                  ? 'Registered campus store accounts will appear here.'
+                                  : 'Try another email or change the selected role filter.',
+                            ),
+                          ),
+                        )
+                      : GridView.builder(
+                          padding: EdgeInsets.fromLTRB(horizontalPadding, 2, horizontalPadding, 26),
+                          itemCount: filteredDocs.length,
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: columns,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            mainAxisExtent: 116,
+                          ),
+                          itemBuilder: (context, index) => _userCard(filteredDocs[index]),
+                        ),
                 ),
               ],
             );
           },
         );
       },
+    );
+  }
+
+  Widget _searchField() {
+    return TextField(
+      controller: _searchController,
+      onChanged: (_) => setState(() {}),
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'Search by email...',
+        prefixIcon: const Icon(Icons.search_rounded, color: _muted),
+        suffixIcon: _searchController.text.isEmpty
+            ? null
+            : IconButton(
+                tooltip: 'Clear search',
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {});
+                },
+                icon: const Icon(Icons.close_rounded, size: 18),
+              ),
+        filled: true,
+        fillColor: Colors.white,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: _border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: _border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: _blue, width: 1.4),
+        ),
+      ),
+    );
+  }
+
+  Widget _roleFilter() {
+    return DropdownButtonFormField<String>(
+      value: _selectedRole,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: 'Filter by role',
+        labelStyle: const TextStyle(color: _muted, fontSize: 12),
+        filled: true,
+        fillColor: Colors.white,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: _border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: _border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: _blue, width: 1.4),
+        ),
+      ),
+      items: const [
+        DropdownMenuItem(value: 'All roles', child: Text('All roles')),
+        DropdownMenuItem(value: 'Admin', child: Text('Admin')),
+        DropdownMenuItem(value: 'User', child: Text('User')),
+      ],
+      onChanged: (value) {
+        if (value == null) return;
+        setState(() => _selectedRole = value);
+      },
+    );
+  }
+
+  Widget _summaryCard({
+    required String label,
+    required int value,
+    required IconData icon,
+    required Color color,
+    required Color background,
+    required bool compact,
+  }) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 88),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border),
+      ),
+      child: compact
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(9)),
+                  child: Icon(icon, size: 16, color: color),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  value.toString(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: color, fontSize: 17, height: 1.05, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: _muted, fontSize: 9, fontWeight: FontWeight.w700),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(11)),
+                  child: Icon(icon, size: 19, color: color),
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        value.toString(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: color, fontSize: 20, height: 1.05, fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: _muted, fontSize: 10, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
     );
   }
 
