@@ -1143,10 +1143,12 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _stockController = TextEditingController(text: '0');
   final TextEditingController _imageUrlController = TextEditingController();
   final FocusNode _imageUrlFocusNode = FocusNode();
 
   QueryDocumentSnapshot<Map<String, dynamic>>? _editingDoc;
+  String _selectedProductCategory = 'General';
   Uint8List? _selectedImageBytes;
   String? _selectedFileName;
   String _categoryFilter = 'All categories';
@@ -1172,6 +1174,7 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
     _nameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
+    _stockController.dispose();
     _imageUrlController.dispose();
     _imageUrlFocusNode.dispose();
     super.dispose();
@@ -1498,6 +1501,12 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
         final categoryOptions = categories.toList()..sort();
         categoryOptions.remove('All categories');
         categoryOptions.insert(0, 'All categories');
+        final editorCategoryOptions = categoryOptions
+            .where((category) => category != 'All categories')
+            .toSet()
+            .toList()
+          ..add('General');
+        editorCategoryOptions.sort();
         final selectedCategory = categoryOptions.contains(_categoryFilter)
             ? _categoryFilter
             : 'All categories';
@@ -1537,7 +1546,7 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
                   flex: 7,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(0, 18, 22, 18),
-                    child: _buildEditorPanel(),
+                    child: _buildEditorPanel(categories: editorCategoryOptions),
                   ),
                 ),
             ],
@@ -1547,7 +1556,7 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
         if (_mobileEditorOpen) {
           return Padding(
             padding: EdgeInsets.fromLTRB(screenWidth < 560 ? 12 : 22, 10, screenWidth < 560 ? 12 : 22, 18),
-            child: _buildEditorPanel(mobile: true),
+            child: _buildEditorPanel(mobile: true, categories: editorCategoryOptions),
           );
         }
 
@@ -1859,11 +1868,11 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
     );
   }
 
-  Widget _buildEditorPanel({bool mobile = false}) {
+  Widget _buildEditorPanel({
+    bool mobile = false,
+    required List<String> categories,
+  }) {
     final editing = _editingDoc != null;
-    final data = _editingDoc?.data() ?? <String, dynamic>{};
-    final category = (data['category'] ?? 'General').toString().trim();
-    final stock = (data['stock'] ?? 0).toString();
 
     return Container(
       decoration: BoxDecoration(
@@ -1935,8 +1944,7 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
               builder: (context, constraints) {
                 final twoColumns = constraints.maxWidth >= 680;
                 final details = _buildProductFields(
-                  category: category.isEmpty ? 'General' : category,
-                  stock: stock,
+                  categories: categories,
                   compact: !twoColumns,
                 );
                 final imageSection = _buildImageSection(compact: !twoColumns);
@@ -2015,20 +2023,72 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
   }
 
   Widget _buildProductFields({
-    required String category,
-    required String stock,
+    required List<String> categories,
     required bool compact,
   }) {
-    final fields = Column(
+    final options = categories.toSet().toList()..sort();
+    if (options.isEmpty) options.add('General');
+    final selectedCategory = options.contains(_selectedProductCategory)
+        ? _selectedProductCategory
+        : (options.contains('General') ? 'General' : options.first);
+
+    final categoryField = DropdownButtonFormField<String>(
+      value: selectedCategory,
+      isExpanded: true,
+      decoration: _inputDecoration(
+        'Category',
+        icon: Icons.category_outlined,
+      ),
+      items: options
+          .map(
+            (value) => DropdownMenuItem<String>(
+              value: value,
+              child: Text(value, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          )
+          .toList(),
+      onChanged: _saving || _uploading
+          ? null
+          : (value) {
+              if (value != null) {
+                setState(() => _selectedProductCategory = value);
+              }
+            },
+    );
+
+    final stockField = TextField(
+      controller: _stockController,
+      enabled: !_saving && !_uploading,
+      keyboardType: TextInputType.number,
+      decoration: _inputDecoration(
+        'Stock quantity',
+        icon: Icons.inventory_2_outlined,
+        hint: 'e.g. 25',
+      ),
+    );
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('PRODUCT DETAILS', style: TextStyle(color: _blue, fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.w900)),
+        const Text(
+          'PRODUCT DETAILS',
+          style: TextStyle(
+            color: _blue,
+            fontSize: 10,
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
         const SizedBox(height: 11),
         TextField(
           controller: _nameController,
           enabled: !_saving && !_uploading,
           textCapitalization: TextCapitalization.sentences,
-          decoration: _inputDecoration('Product name', hint: 'e.g. Campus backpack', icon: Icons.inventory_2_outlined),
+          decoration: _inputDecoration(
+            'Product name',
+            hint: 'e.g. Campus backpack',
+            icon: Icons.inventory_2_outlined,
+          ),
         ),
         const SizedBox(height: 13),
         TextField(
@@ -2037,48 +2097,44 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
           minLines: 3,
           maxLines: 4,
           textCapitalization: TextCapitalization.sentences,
-          decoration: _inputDecoration('Description', hint: 'Describe the product for students', icon: Icons.notes_rounded, alignLabel: true),
+          decoration: _inputDecoration(
+            'Description',
+            hint: 'Describe the product for students',
+            icon: Icons.notes_rounded,
+            alignLabel: true,
+          ),
         ),
         const SizedBox(height: 13),
         TextField(
           controller: _priceController,
           enabled: !_saving && !_uploading,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: _inputDecoration('Price (₹)', hint: 'Enter price', icon: Icons.currency_rupee_rounded),
+          decoration: _inputDecoration(
+            'Price (₹)',
+            hint: 'Enter price',
+            icon: Icons.currency_rupee_rounded,
+          ),
         ),
         const SizedBox(height: 13),
         if (compact) ...[
-          _readOnlyValue('Category', category),
+          categoryField,
           const SizedBox(height: 13),
-          _readOnlyValue('Stock quantity', stock),
+          stockField,
         ] else
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _readOnlyValue('Category', category)),
+              Expanded(child: categoryField),
               const SizedBox(width: 12),
-              Expanded(child: _readOnlyValue('Stock quantity', stock)),
+              Expanded(child: stockField),
             ],
           ),
         const SizedBox(height: 7),
         const Text(
-          'Category and stock values are preserved as currently stored.',
+          'Choose a category and enter the available stock quantity.',
           style: TextStyle(color: _muted, fontSize: 10.5, height: 1.4),
         ),
       ],
-    );
-    return fields;
-  }
-
-  Widget _readOnlyValue(String label, String value) {
-    return InputDecorator(
-      decoration: _inputDecoration(label, icon: label == 'Category' ? Icons.category_outlined : Icons.inventory_2_outlined)
-          .copyWith(fillColor: const Color(0xFFF5F7FB)),
-      child: Text(
-        value,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: _muted, fontSize: 13, fontWeight: FontWeight.w600),
-      ),
     );
   }
 
@@ -2374,6 +2430,9 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
     _nameController.text = (data['name'] ?? data['title'] ?? '').toString();
     _descriptionController.text = (data['description'] ?? '').toString();
     _priceController.text = (data['price'] ?? '').toString();
+    _stockController.text = (data['stock'] ?? 0).toString();
+    _selectedProductCategory = (data['category'] ?? 'General').toString().trim();
+    if (_selectedProductCategory.isEmpty) _selectedProductCategory = 'General';
     _imageUrlController.text = (data['imageUrl'] ?? '').toString();
     _selectedImageBytes = null;
     _selectedFileName = null;
@@ -2383,6 +2442,8 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
     _nameController.clear();
     _descriptionController.clear();
     _priceController.clear();
+    _stockController.text = '0';
+    _selectedProductCategory = 'General';
     _imageUrlController.clear();
     _selectedImageBytes = null;
     _selectedFileName = null;
@@ -2401,11 +2462,22 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
     final productName = _nameController.text.trim();
     final description = _descriptionController.text.trim();
     final priceText = _priceController.text.trim();
+    final stockText = _stockController.text.trim();
+    final stock = int.tryParse(stockText);
+    final category = _selectedProductCategory.trim().isEmpty
+        ? 'General'
+        : _selectedProductCategory.trim();
     final imageUrl = _imageUrlController.text.trim();
 
     if (productName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a product name.')),
+      );
+      return;
+    }
+    if (stock == null || stock < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a stock quantity of 0 or more.')),
       );
       return;
     }
@@ -2426,8 +2498,8 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
           'name': productName,
           'description': description,
           'price': double.tryParse(priceText) ?? 0,
-          'category': 'General',
-          'stock': 0,
+          'category': category,
+          'stock': stock,
           'imageUrl': imageUrl,
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
@@ -2446,6 +2518,8 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
           'name': productName,
           'description': description,
           'price': double.tryParse(priceText) ?? 0,
+          'category': category,
+          'stock': stock,
           'imageUrl': imageUrl,
           'updatedAt': FieldValue.serverTimestamp(),
         });
