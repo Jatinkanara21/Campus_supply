@@ -6009,7 +6009,6 @@ class AdminNavigationSidebar extends StatelessWidget {
           navItem(Icons.sell_outlined, 'Bundles', AdminSection.bundles),
           navItem(Icons.shopping_cart_outlined, 'Orders', AdminSection.orders),
           navItem(Icons.people_outline_rounded, 'Users', AdminSection.users),
-          navItem(Icons.star_border_rounded, 'Reviews', AdminSection.reviews),
           if (!compact) const Spacer() else const SizedBox(height: 22),
           const Divider(color: Color(0xFFE2E8F0)),
           const SizedBox(height: 12),
