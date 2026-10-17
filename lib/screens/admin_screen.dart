@@ -258,148 +258,32 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Widget _buildSidebar(BuildContext context, {bool compact = false}) {
-    Widget navItem(
-      IconData icon,
-      String title, {
-      AdminSection? section,
-      bool selected = false,
-    }) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 5),
-        child: Material(
-          color: selected ? const Color(0xFFE2EDFF) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: section == null
-                ? null
-                : () {
-                    if (compact) Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AdminManagementScreen(section: section),
-                      ),
-                    );
-                  },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-              child: Row(
-                children: [
-                  Icon(icon, size: 21, color: selected ? blue : ink),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        color: selected ? blue : ink,
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+    return AdminNavigationSidebar(
+      selectedSection: null,
+      adminName: name,
+      compact: compact,
+      onNavigate: (destination) {
+        if (destination == null) return;
+        void navigate() {
+          if (!mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => AdminManagementScreen(section: destination)),
+          );
+        }
 
-    return Container(
-      constraints: const BoxConstraints(minHeight: 540),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(right: BorderSide(color: Color(0xFFE2E8F0))),
-      ),
-      padding: const EdgeInsets.fromLTRB(17, 24, 17, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: blue,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 27),
-              ),
-              const SizedBox(width: 11),
-              const Expanded(
-                child: Text(
-                  'Campus\nSupply',
-                  style: TextStyle(
-                    color: ink,
-                    fontSize: 19,
-                    height: 1.05,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 31),
-          navItem(Icons.home_rounded, 'Overview', selected: true),
-          navItem(Icons.inventory_2_outlined, 'Products', section: AdminSection.products),
-          navItem(Icons.grid_view_rounded, 'Categories', section: AdminSection.categories),
-          navItem(Icons.sell_outlined, 'Bundles', section: AdminSection.bundles),
-          navItem(Icons.shopping_cart_outlined, 'Orders', section: AdminSection.orders),
-          navItem(Icons.people_outline_rounded, 'Users', section: AdminSection.users),
-          navItem(Icons.star_border_rounded, 'Reviews', section: AdminSection.reviews),
-          if (!compact) const Spacer() else const SizedBox(height: 22),
-          const Divider(color: Color(0xFFE2E8F0)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: blue,
-                child: Text(
-                  name.trim().isEmpty ? 'A' : name.trim().substring(0, 1).toUpperCase(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: ink, fontWeight: FontWeight.w800, fontSize: 12),
-                    ),
-                    const Text('Administrator', style: TextStyle(color: muted, fontSize: 11)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () async {
-              await AuthService.logout();
-              if (!mounted) return;
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
-            },
-            icon: const Icon(Icons.logout_rounded, size: 18),
-            label: const Text('Sign out'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFB42318),
-              backgroundColor: const Color(0xFFFFF0F2),
-              side: BorderSide.none,
-              minimumSize: const Size.fromHeight(45),
-              alignment: Alignment.centerLeft,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-              textStyle: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
+        if (compact) {
+          Navigator.pop(context);
+          WidgetsBinding.instance.addPostFrameCallback((_) => navigate());
+        } else {
+          navigate();
+        }
+      },
+      onSignOut: () async {
+        await AuthService.logout();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+      },
     );
   }
 
