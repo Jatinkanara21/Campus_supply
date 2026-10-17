@@ -4385,6 +4385,7 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
   Uint8List? _selectedImageBytes;
   String? _selectedFileName;
   bool _mobileEditorOpen = false;
+  bool _desktopEditorOpen = true;
   bool _saving = false;
   bool _uploading = false;
   int _refreshKey = 0;
@@ -4734,13 +4735,14 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
                 flex: 5,
                 child: _buildBundleListPane(docs: visibleDocs, total: docs.length, width: width),
               ),
-              Expanded(
-                flex: 7,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 18, 22, 18),
-                  child: _buildEditorPanel(),
+              if (_desktopEditorOpen)
+                Expanded(
+                  flex: 7,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 18, 22, 18),
+                    child: _buildEditorPanel(),
+                  ),
                 ),
-              ),
             ],
           );
         }
@@ -5032,8 +5034,20 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
                 ),
                 if (!mobile)
                   IconButton(
-                    tooltip: 'Clear form',
-                    onPressed: _saving || _uploading ? null : _cancelEditing,
+                    tooltip: 'Close editor',
+                    onPressed: _saving || _uploading
+                        ? null
+                        : () {
+                            if (MediaQuery.sizeOf(context).width >= 1120) {
+                              setState(() {
+                                _desktopEditorOpen = false;
+                                _editingDoc = null;
+                                _clearForm();
+                              });
+                            } else {
+                              _closeMobileEditor();
+                            }
+                          },
                     icon: const Icon(Icons.close_rounded, color: _muted),
                   ),
               ],
@@ -5223,7 +5237,11 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
     setState(() {
       _editingDoc = null;
       _clearForm();
-      if (_isCompact) _mobileEditorOpen = true;
+      if (_isCompact) {
+        _mobileEditorOpen = true;
+      } else {
+        _desktopEditorOpen = true;
+      }
     });
   }
 
@@ -5238,7 +5256,11 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
       _imageUrlController.text = (data['imageUrl'] ?? '').toString();
       _selectedImageBytes = null;
       _selectedFileName = null;
-      if (_isCompact) _mobileEditorOpen = true;
+      if (_isCompact) {
+        _mobileEditorOpen = true;
+      } else {
+        _desktopEditorOpen = true;
+      }
     });
   }
 
