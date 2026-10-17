@@ -210,7 +210,7 @@ class _ShopScreenState extends State<ShopScreen> {
                                 ],
                               );
 
-                              final visual = Container(
+                              final defaultVisual = Container(
                                 height: wide ? 190 : 150,
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
@@ -282,6 +282,36 @@ class _ShopScreenState extends State<ShopScreen> {
                                     ),
                                   ],
                                 ),
+                              );
+
+
+                              final visual = StreamBuilder<Map<String, dynamic>>(
+                                stream: FirestoreDatabase.instance.watchHomeSettings(),
+                                builder: (context, snapshot) {
+                                  final imageUrl =
+                                      (snapshot.data?['shopBannerImageUrl'] ?? '').toString().trim();
+                                  if (imageUrl.isEmpty) return defaultVisual;
+
+                                  return Container(
+                                    height: wide ? 190 : 150,
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0x1FFFFFFF),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(color: const Color(0x36FFFFFF)),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(18),
+                                      child: AppImage(
+                                        source: imageUrl,
+                                        fit: BoxFit.contain,
+                                        fallback: const Center(
+                                          child: Icon(Icons.broken_image_outlined, color: Colors.white, size: 32),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               );
 
                               return Container(

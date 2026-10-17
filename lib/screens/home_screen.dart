@@ -767,7 +767,7 @@ class HomeScreen extends StatelessWidget {
       ],
     );
 
-    final visual = Container(
+    final defaultVisual = Container(
       constraints: BoxConstraints(
         minHeight: wide ? 225 : 190,
         maxHeight: wide ? 250 : 210,
@@ -892,6 +892,39 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+
+    final visual = StreamBuilder<Map<String, dynamic>>(
+      stream: FirestoreDatabase.instance.watchHomeSettings(),
+      builder: (context, snapshot) {
+        final imageUrl =
+            (snapshot.data?['homeSecondaryBannerImageUrl'] ?? '').toString().trim();
+        if (imageUrl.isEmpty) return defaultVisual;
+
+        return Container(
+          constraints: BoxConstraints(
+            minHeight: wide ? 225 : 190,
+            maxHeight: wide ? 250 : 210,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0x1FFFFFFF),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0x36FFFFFF)),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: AppImage(
+              source: imageUrl,
+              fit: BoxFit.contain,
+              fallback: const Center(
+                child: Icon(Icons.broken_image_outlined, color: white, size: 36),
+              ),
+            ),
+          ),
+        );
+      },
     );
 
     return Container(

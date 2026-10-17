@@ -506,9 +506,13 @@ class _AdminScreenState extends State<AdminScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildStarterCatalogCard(),
-          const SizedBox(height: 14),
           _heroSettingsCard(),
+          const SizedBox(height: 14),
+          _homeSecondaryBannerSettingsCard(),
+          const SizedBox(height: 14),
+          _shopBannerSettingsCard(),
+          const SizedBox(height: 14),
+          _buildStarterCatalogCard(),
         ],
       ),
     );
@@ -629,10 +633,50 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Widget _heroSettingsCard() {
+    return _bannerSettingsCard(
+      title: 'Home main banner',
+      description: 'The main banner at the top of Home. Replace its image without changing the heading or buttons.',
+      settingsKey: 'heroImageUrl',
+      uploadFolder: 'hero',
+      filePrefix: 'home-main-banner',
+      icon: Icons.image_rounded,
+    );
+  }
+
+  Widget _homeSecondaryBannerSettingsCard() {
+    return _bannerSettingsCard(
+      title: 'Home secondary banner',
+      description: 'Controls the visual beside “Show up ready for every class” further down the Home page.',
+      settingsKey: 'homeSecondaryBannerImageUrl',
+      uploadFolder: 'home-secondary',
+      filePrefix: 'home-secondary-banner',
+      icon: Icons.auto_awesome_rounded,
+    );
+  }
+
+  Widget _shopBannerSettingsCard() {
+    return _bannerSettingsCard(
+      title: 'Shop banner',
+      description: 'Controls the visual beside “Find your next campus essential” on the Shop page.',
+      settingsKey: 'shopBannerImageUrl',
+      uploadFolder: 'shop-banner',
+      filePrefix: 'shop-banner',
+      icon: Icons.storefront_outlined,
+    );
+  }
+
+  Widget _bannerSettingsCard({
+    required String title,
+    required String description,
+    required String settingsKey,
+    required String uploadFolder,
+    required String filePrefix,
+    required IconData icon,
+  }) {
     return StreamBuilder<Map<String, dynamic>>(
       stream: FirestoreDatabase.instance.watchHomeSettings(),
       builder: (context, snapshot) {
-        final imageUrl = (snapshot.data?['heroImageUrl'] ?? '').toString().trim();
+        final imageUrl = (snapshot.data?[settingsKey] ?? '').toString().trim();
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -653,25 +697,63 @@ class _AdminScreenState extends State<AdminScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: imageUrl.isEmpty
-                    ? const Icon(Icons.image_outlined, color: blue, size: 30)
+                    ? Icon(icon, color: blue, size: 30)
                     : _adminAssetImage(imageUrl),
               );
-              final details = const Column(
+
+              final details = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Homepage hero image', style: TextStyle(color: ink, fontWeight: FontWeight.w900, fontSize: 15)),
-                  SizedBox(height: 5),
                   Text(
-                    'Remove the static artwork. Set the hero image with a URL or upload an image file.',
-                    style: TextStyle(color: muted, fontSize: 12, height: 1.4),
+                    title,
+                    style: const TextStyle(
+                      color: ink,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    description,
+                    style: const TextStyle(color: muted, fontSize: 12, height: 1.4),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        imageUrl.isEmpty ? Icons.auto_awesome_outlined : Icons.check_circle_outline_rounded,
+                        size: 15,
+                        color: imageUrl.isEmpty ? const Color(0xFF9A6700) : const Color(0xFF15803D),
+                      ),
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(
+                          imageUrl.isEmpty ? 'Built-in artwork is active' : 'Custom image is connected',
+                          style: TextStyle(
+                            color: imageUrl.isEmpty ? const Color(0xFF9A6700) : const Color(0xFF15803D),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               );
+
               final manageButton = FilledButton.icon(
-                onPressed: () => _editHeroSettings(imageUrl),
+                onPressed: () => _editBannerImage(
+                  title: title,
+                  settingsKey: settingsKey,
+                  uploadFolder: uploadFolder,
+                  filePrefix: filePrefix,
+                  currentImageUrl: imageUrl,
+                ),
                 icon: const Icon(Icons.image_rounded, size: 18),
-                label: const Text('Manage'),
+                label: const Text('Manage image'),
               );
+
               if (compact) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -681,23 +763,17 @@ class _AdminScreenState extends State<AdminScreen> {
                       children: [
                         preview,
                         const SizedBox(width: 12),
-                        const Expanded(child: Text(
-                          'Homepage hero image',
-                          style: TextStyle(color: ink, fontWeight: FontWeight.w900, fontSize: 15),
-                        )),
+                        Expanded(child: details),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Remove the static artwork. Set the hero image with a URL or upload an image file.',
-                      style: TextStyle(color: muted, fontSize: 12, height: 1.4),
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 13),
                     Align(alignment: Alignment.centerRight, child: manageButton),
                   ],
                 );
               }
+
               return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   preview,
                   const SizedBox(width: 14),
@@ -721,132 +797,223 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  Future<void> _editHeroSettings(String currentAsset) async {
-    final controller = TextEditingController(text: currentAsset);
+  Future<void> _editBannerImage({
+    required String title,
+    required String settingsKey,
+    required String uploadFolder,
+    required String filePrefix,
+    required String currentImageUrl,
+  }) async {
+    final controller = TextEditingController(text: currentImageUrl);
     Uint8List? previewBytes;
     bool uploading = false;
+    bool saving = false;
+
+    bool isValidImageUrl(String value) {
+      final uri = Uri.tryParse(value.trim());
+      return uri != null &&
+          (uri.scheme == 'http' || uri.scheme == 'https') &&
+          uri.host.isNotEmpty;
+    }
 
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('Homepage hero image'),
-          content: SizedBox(
-            width: MediaQuery.sizeOf(dialogContext).width < 584
-                              ? MediaQuery.sizeOf(dialogContext).width - 64
-                              : 520,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (previewBytes != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Image.memory(
-                      previewBytes!,
-                      width: double.infinity,
-                      height: 160,
-                      fit: BoxFit.cover,
-                    ),
+        builder: (dialogContext, setDialogState) {
+          final screenSize = MediaQuery.sizeOf(dialogContext);
+          final narrowDialog = screenSize.width < 560;
+          final imageUrl = controller.text.trim();
+
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            insetPadding: EdgeInsets.symmetric(
+              horizontal: narrowDialog ? 14 : 32,
+              vertical: 20,
+            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+            title: Text(
+              title,
+              style: const TextStyle(color: ink, fontWeight: FontWeight.w900),
+            ),
+            content: SizedBox(
+              width: narrowDialog ? screenSize.width - 60 : 520,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: screenSize.height * .70),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        height: 170,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF4F7FC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFDCE6F8)),
+                        ),
+                        child: previewBytes != null
+                            ? Image.memory(previewBytes!, fit: BoxFit.contain)
+                            : imageUrl.isNotEmpty && isValidImageUrl(imageUrl)
+                                ? AppImage(
+                                    source: imageUrl,
+                                    fit: BoxFit.contain,
+                                    fallback: const Center(
+                                      child: Icon(Icons.broken_image_outlined, color: blue, size: 34),
+                                    ),
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.image_outlined, color: blue, size: 35),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        'Built-in artwork will be used',
+                                        style: TextStyle(color: ink, fontWeight: FontWeight.w800, fontSize: 12),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        child: Text(
+                                          'Add an image URL or upload a file to replace this visual.',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(color: muted, fontSize: 11),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                      ),
+                      const SizedBox(height: 13),
+                      OutlinedButton.icon(
+                        onPressed: uploading || saving
+                            ? null
+                            : () async {
+                                try {
+                                  final picker = ImagePicker();
+                                  final file = await picker.pickImage(
+                                    source: ImageSource.gallery,
+                                    imageQuality: 90,
+                                    maxWidth: 1800,
+                                    maxHeight: 1200,
+                                  );
+                                  if (file == null) return;
+
+                                  final bytes = await file.readAsBytes();
+                                  setDialogState(() {
+                                    previewBytes = bytes;
+                                    uploading = true;
+                                  });
+
+                                  final url = await ImageStorageService.upload(
+                                    bytes: bytes,
+                                    folder: uploadFolder,
+                                    fileName: filePrefix + '-' + file.name,
+                                  );
+
+                                  controller.text = url;
+                                  setDialogState(() => uploading = false);
+                                  if (dialogContext.mounted) {
+                                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Image uploaded to the repository. Press Save to connect it to this banner.'),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  setDialogState(() => uploading = false);
+                                  if (dialogContext.mounted) {
+                                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                                      SnackBar(content: Text('Image upload failed: ' + e.toString())),
+                                    );
+                                  }
+                                }
+                              },
+                        icon: uploading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.cloud_upload_outlined),
+                        label: Text(uploading ? 'Uploading...' : 'Upload image'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: controller,
+                        keyboardType: TextInputType.url,
+                        onChanged: (_) => setDialogState(() => previewBytes = null),
+                        decoration: const InputDecoration(
+                          labelText: 'Public image URL',
+                          hintText: 'https://example.com/banner.jpg',
+                          prefixIcon: Icon(Icons.link_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Uploaded files are stored in the Campus Supply GitHub repository under assets/uploaded/. The image URL is saved separately in Firestore at settings/home.',
+                        style: TextStyle(color: muted, fontSize: 11.5, height: 1.45),
+                      ),
+                    ],
                   ),
-                if (previewBytes != null) const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: uploading
-                      ? null
-                      : () async {
-                          try {
-                            final picker = ImagePicker();
-                            final file = await picker.pickImage(
-                              source: ImageSource.gallery,
-                              imageQuality: 90,
-                              maxWidth: 1800,
-                              maxHeight: 1000,
-                            );
-                            if (file == null) return;
-
-                            final bytes = await file.readAsBytes();
-                            setDialogState(() {
-                              previewBytes = bytes;
-                              uploading = true;
-                            });
-
-                            final url = await ImageStorageService.upload(
-                              bytes: bytes,
-                              folder: 'hero',
-                              fileName: file.name,
-                            );
-
-                            controller.text = url;
-                            setDialogState(() => uploading = false);
-                          } catch (e) {
-                            setDialogState(() => uploading = false);
-                            if (dialogContext.mounted) {
-                              ScaffoldMessenger.of(dialogContext).showSnackBar(
-                                SnackBar(content: Text('Hero image upload failed: $e')),
-                              );
-                            }
-                          }
-                        },
-                  icon: uploading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.cloud_upload_outlined),
-                  label: Text(uploading ? 'Uploading...' : 'Choose & upload image'),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: controller,
-                  decoration: const InputDecoration(
-                    labelText: 'Image URL',
-                    hintText: 'https://...',
-                    prefixIcon: Icon(Icons.image_outlined),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Uploaded images are stored in Firebase Storage. You can also paste a public image URL.',
-                  style: TextStyle(color: muted, fontSize: 11.5),
-                ),
-              ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: uploading
-                  ? null
-                  : () {
-                      controller.clear();
-                      Navigator.pop(dialogContext);
-                    },
-              child: const Text('Remove image'),
-            ),
-            TextButton(
-              onPressed: uploading ? null : () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: uploading
-                  ? null
-                  : () async {
-                      try {
-                        await FirestoreDatabase.instance.saveHomeSettings(
-                          heroImageUrl: controller.text.trim(),
-                        );
-                        if (dialogContext.mounted) Navigator.pop(dialogContext);
-                      } catch (e) {
-                        if (dialogContext.mounted) {
+            actions: [
+              TextButton(
+                onPressed: uploading || saving
+                    ? null
+                    : () {
+                        controller.clear();
+                        setDialogState(() => previewBytes = null);
+                      },
+                child: const Text('Use built-in artwork'),
+              ),
+              TextButton(
+                onPressed: uploading || saving ? null : () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: uploading || saving
+                    ? null
+                    : () async {
+                        final value = controller.text.trim();
+                        if (value.isNotEmpty && !isValidImageUrl(value)) {
                           ScaffoldMessenger.of(dialogContext).showSnackBar(
-                            SnackBar(content: Text('Hero image save failed: $e')),
+                            const SnackBar(content: Text('Enter a valid public http:// or https:// image URL.')),
                           );
+                          return;
                         }
-                      }
-                    },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
+
+                        setDialogState(() => saving = true);
+                        try {
+                          await FirestoreDatabase.instance.saveBannerImageSetting(
+                            field: settingsKey,
+                            imageUrl: value,
+                          );
+                          if (!dialogContext.mounted) return;
+                          Navigator.pop(dialogContext);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(value.isEmpty ? title + ' reset to built-in artwork.' : title + ' saved successfully.')),
+                            );
+                          }
+                        } catch (e) {
+                          setDialogState(() => saving = false);
+                          if (dialogContext.mounted) {
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              SnackBar(content: Text('Could not save banner settings: ' + e.toString())),
+                            );
+                          }
+                        }
+                      },
+                child: saving
+                    ? const SizedBox(width: 17, height: 17, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Save banner'),
+              ),
+            ],
+          );
+        },
       ),
     );
 

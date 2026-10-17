@@ -73,6 +73,25 @@ class FirestoreDatabase {
     }, SetOptions(merge: true));
   }
 
+  Future<void> saveBannerImageSetting({
+    required String field,
+    required String imageUrl,
+  }) {
+    const allowedFields = {
+      'heroImageUrl',
+      'homeSecondaryBannerImageUrl',
+      'shopBannerImageUrl',
+    };
+    if (!allowedFields.contains(field)) {
+      throw ArgumentError.value(field, 'field', 'Unsupported banner setting.');
+    }
+
+    return _db.collection('settings').doc('home').set({
+      field: imageUrl.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Stream<List<Map<String, dynamic>>> watchBundles() {
     return bundles.snapshots().map((snapshot) => snapshot.docs
         .map((doc) => {'id': doc.id, ...doc.data()})
