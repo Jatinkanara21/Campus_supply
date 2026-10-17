@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/image_storage_service.dart';
+import '../services/auth_service.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -100,346 +101,6 @@ class AdminManagementScreen extends StatelessWidget {
     );
   }
 
-
-  // Products-only presentation. The other management sections keep their existing UI.
-  Widget _buildProductsPage(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 520;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAF8F3),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFAF8F3),
-        surfaceTintColor: Colors.transparent,
-        title: const Text(
-          'Products',
-          style: TextStyle(
-            color: Color(0xFF172554),
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.4,
-          ),
-        ),
-        actions: [
-          if (!compact)
-            Padding(
-              padding: const EdgeInsets.only(right: 18),
-              child: FilledButton.icon(
-                onPressed: () => _add(context),
-                icon: const Icon(Icons.add_rounded, size: 19),
-                label: const Text('Add product'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 13),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-                  textStyle: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ),
-            )
-          else
-            IconButton(
-              tooltip: 'Add product',
-              onPressed: () => _add(context),
-              icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF2563EB), size: 27),
-            ),
-        ],
-      ),
-      floatingActionButton: compact
-          ? FloatingActionButton.extended(
-              onPressed: () => _add(context),
-              backgroundColor: const Color(0xFF2563EB),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Add product'),
-            )
-          : null,
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance.collection('products').snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return _productState(
-              icon: Icons.cloud_off_outlined,
-              title: 'Unable to load products',
-              message: 'Please check your connection and try again.',
-            );
-          }
-          if (!snapshot.hasData) {
-            return const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 30,
-                    height: 30,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Color(0xFF2563EB),
-                    ),
-                  ),
-                  SizedBox(height: 14),
-                  Text(
-                    'Loading products...',
-                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          final docs = snapshot.data!.docs;
-          if (docs.isEmpty) {
-            return _productState(
-              icon: Icons.inventory_2_outlined,
-              title: 'Your catalog is ready to grow',
-              message: 'Add your first product to start building your campus store catalog.',
-              action: FilledButton.icon(
-                onPressed: () => _add(context),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Add your first product'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-                ),
-              ),
-            );
-          }
-
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final narrow = constraints.maxWidth < 600;
-              return Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1180),
-                  child: ListView.separated(
-                    padding: EdgeInsets.fromLTRB(
-                      narrow ? 14 : 28,
-                      20,
-                      narrow ? 14 : 28,
-                      compact ? 104 : 30,
-                    ),
-                    itemCount: docs.length + 1,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return const Padding(
-                          padding: EdgeInsets.only(bottom: 7),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Manage your campus store catalog',
-                                style: TextStyle(
-                                  color: Color(0xFF172554),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              SizedBox(height: 5),
-                              Text(
-                                'Review product details, update prices, and keep your listings looking their best.',
-                                style: TextStyle(
-                                  color: Color(0xFF64748B),
-                                  height: 1.45,
-                                  fontSize: 12.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                      return _productTile(context, docs[index - 1], compact: narrow);
-                    },
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _productState({
-    required IconData icon,
-    required String title,
-    required String message,
-    Widget? action,
-  }) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 30),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEAF2FF),
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: Icon(icon, size: 34, color: const Color(0xFF2563EB)),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF172554),
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 9),
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF64748B),
-                    height: 1.5,
-                    fontSize: 13,
-                  ),
-                ),
-                if (action != null) ...[
-                  const SizedBox(height: 22),
-                  action,
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _productTile(
-    BuildContext context,
-    QueryDocumentSnapshot<Map<String, dynamic>> doc, {
-    required bool compact,
-  }) {
-    final data = doc.data();
-    final displayName = (data['name'] ?? data['title'] ?? doc.id).toString().trim();
-    final price = (data['price'] ?? '-').toString();
-    final rawCategory = (data['category'] ?? '').toString().trim();
-    final category = rawCategory.isEmpty ? 'General' : rawCategory;
-    final imageUrl = (data['imageUrl'] ?? '').toString().trim();
-    final thumbnailSize = compact ? 68.0 : 82.0;
-
-    return Container(
-      padding: EdgeInsets.all(compact ? 11 : 15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFDCE6F8)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: thumbnailSize,
-            height: thumbnailSize,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF2FF),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: imageUrl.isNotEmpty
-                ? AppImage(
-                    source: imageUrl,
-                    fit: BoxFit.cover,
-                    fallback: const Center(
-                      child: Icon(Icons.image_not_supported_outlined, color: Color(0xFF2563EB), size: 25),
-                    ),
-                  )
-                : Icon(
-                    Icons.inventory_2_outlined,
-                    color: const Color(0xFF2563EB),
-                    size: compact ? 27 : 32,
-                  ),
-          ),
-          SizedBox(width: compact ? 11 : 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  displayName.isEmpty ? 'Untitled product' : displayName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: const Color(0xFF172554),
-                    fontSize: compact ? 13.5 : 15,
-                    height: 1.3,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 9,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      '₹$price',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF2563EB),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Container(
-                      constraints: BoxConstraints(maxWidth: compact ? 120 : 220),
-                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        category,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF64748B),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 4),
-          PopupMenuButton<String>(
-            tooltip: 'Product actions',
-            icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF64748B)),
-            onSelected: (value) {
-              if (value == 'edit') _edit(context, doc);
-              if (value == 'delete') _delete(context, doc);
-            },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_outlined), title: Text('Edit'), contentPadding: EdgeInsets.zero, dense: true)),
-              PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_outline_rounded), title: Text('Delete'), contentPadding: EdgeInsets.zero, dense: true)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<bool?> _showProductItemDialog(
     BuildContext context, {
@@ -1743,7 +1404,7 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: () async {
-              await FirebaseAuth.instance.signOut();
+              await AuthService.logout();
               if (!mounted) return;
               Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
             },
@@ -1801,6 +1462,11 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
             icon: Icons.cloud_off_outlined,
             title: 'Unable to load products',
             message: 'Please check your connection and try again.',
+            action: FilledButton.icon(
+              onPressed: _startAdding,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add product'),
+            ),
           );
         }
         if (!snapshot.hasData) {
@@ -2825,24 +2491,14 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
       ),
     );
     if (yes != true) return;
-    try {
-      await doc.reference.delete();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product deleted successfully')),
-      );
-      if (_editingDoc?.id == doc.id) {
-        setState(() {
-          _editingDoc = null;
-          _clearForm();
-          if (_isCompact) _mobileEditorOpen = false;
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not delete product: $e')),
-      );
+    await doc.reference.delete();
+    if (!mounted) return;
+    if (_editingDoc?.id == doc.id) {
+      setState(() {
+        _editingDoc = null;
+        _clearForm();
+        if (_isCompact) _mobileEditorOpen = false;
+      });
     }
   }
 
