@@ -53,6 +53,9 @@ class AdminManagementScreen extends StatelessWidget {
     if (section == AdminSection.products) {
       return const _ProductsWorkspace();
     }
+    if (section == AdminSection.categories) {
+      return const _CategoriesWorkspace();
+    }
 
     final canAdd = section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles;
     return Scaffold(
@@ -620,23 +623,31 @@ class AdminManagementScreen extends StatelessWidget {
     final description = TextEditingController();
     final price = TextEditingController();
     final imageUrl = TextEditingController();
-    final saved = section == AdminSection.products
-        ? await _showProductItemDialog(
+    final saved = section == AdminSection.categories
+        ? await _showCategoryItemDialog(
             context,
-            title: 'Add product',
+            title: 'Add category',
             name: name,
             description: description,
-            price: price,
             imageUrl: imageUrl,
           )
-        : await _showItemDialog(
-            context,
-            title: section == AdminSection.categories ? 'Add category' : 'Add bundle',
-            name: name,
-            description: description,
-            price: price,
-            imageUrl: imageUrl,
-          );
+        : section == AdminSection.products
+            ? await _showProductItemDialog(
+                context,
+                title: 'Add product',
+                name: name,
+                description: description,
+                price: price,
+                imageUrl: imageUrl,
+              )
+            : await _showItemDialog(
+                context,
+                title: 'Add bundle',
+                name: name,
+                description: description,
+                price: price,
+                imageUrl: imageUrl,
+              );
     if (saved != true || name.text.trim().isEmpty) return;
     final data = <String, dynamic>{
       'name': name.text.trim(),
@@ -679,23 +690,31 @@ class AdminManagementScreen extends StatelessWidget {
     final description = TextEditingController(text: (data['description'] ?? '').toString());
     final price = TextEditingController(text: (data['price'] ?? '').toString());
     final imageUrl = TextEditingController(text: (data['imageUrl'] ?? '').toString());
-    final saved = section == AdminSection.products
-        ? await _showProductItemDialog(
+    final saved = section == AdminSection.categories
+        ? await _showCategoryItemDialog(
             context,
-            title: 'Edit product',
+            title: 'Edit category',
             name: name,
             description: description,
-            price: price,
             imageUrl: imageUrl,
           )
-        : await _showItemDialog(
-            context,
-            title: 'Edit item',
-            name: name,
-            description: description,
-            price: price,
-            imageUrl: imageUrl,
-          );
+        : section == AdminSection.products
+            ? await _showProductItemDialog(
+                context,
+                title: 'Edit product',
+                name: name,
+                description: description,
+                price: price,
+                imageUrl: imageUrl,
+              )
+            : await _showItemDialog(
+                context,
+                title: 'Edit item',
+                name: name,
+                description: description,
+                price: price,
+                imageUrl: imageUrl,
+              );
     if (saved != true) return;
     final update = <String, dynamic>{
       'name': name.text.trim(),
@@ -727,6 +746,387 @@ class AdminManagementScreen extends StatelessWidget {
       price.dispose();
       imageUrl.dispose();
     }
+  }
+
+
+  Future<bool?> _showCategoryItemDialog(
+    BuildContext context, {
+    required String title,
+    required TextEditingController name,
+    required TextEditingController description,
+    required TextEditingController imageUrl,
+  }) {
+    Uint8List? selectedImageBytes;
+    String? selectedFileName;
+    bool isSaving = false;
+    bool isUploading = false;
+
+    bool isValidImageUrl(String value) {
+      final uri = Uri.tryParse(value.trim());
+      return uri != null &&
+          (uri.scheme == 'http' || uri.scheme == 'https') &&
+          uri.host.isNotEmpty;
+    }
+
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          Future<void> enterImageUrl() async {
+            if (isSaving || isUploading) return;
+            final urlController = TextEditingController(text: imageUrl.text.trim());
+            final url = await showDialog<String>(
+              context: dialogContext,
+              builder: (urlContext) => AlertDialog(
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                title: const Text(
+                  'Use image URL',
+                  style: TextStyle(color: Color(0xFF172554), fontWeight: FontWeight.w900),
+                ),
+                content: TextField(
+                  controller: urlController,
+                  autofocus: true,
+                  keyboardType: TextInputType.url,
+                  decoration: const InputDecoration(
+                    labelText: 'Image URL',
+                    hintText: 'https://example.com/category.jpg',
+                    prefixIcon: Icon(Icons.link_rounded),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(urlContext),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      final value = urlController.text.trim();
+                      if (!isValidImageUrl(value)) {
+                        ScaffoldMessenger.of(urlContext).showSnackBar(
+                          const SnackBar(content: Text('Enter a valid http:// or https:// image URL')),
+                        );
+                        return;
+                      }
+                      Navigator.pop(urlContext, value);
+                    },
+                    child: const Text('Use URL'),
+                  ),
+                ],
+              ),
+            );
+            urlController.dispose();
+            if (url == null || url.isEmpty) return;
+            setDialogState(() {
+              imageUrl.text = url;
+              selectedImageBytes = null;
+              selectedFileName = 'Image URL';
+            });
+          }
+
+          Future<void> pickImage() async {
+            if (isSaving || isUploading) return;
+            try {
+              final file = await ImagePicker().pickImage(
+                source: ImageSource.gallery,
+                imageQuality: 90,
+                maxWidth: 1600,
+                maxHeight: 1600,
+              );
+              if (file == null) return;
+              final bytes = await file.readAsBytes();
+              final filename = file.name.trim();
+              final lowerName = filename.toLowerCase();
+              final supported = lowerName.endsWith('.jpg') ||
+                  lowerName.endsWith('.jpeg') ||
+                  lowerName.endsWith('.png') ||
+                  lowerName.endsWith('.webp') ||
+                  lowerName.endsWith('.gif');
+              if (!supported) {
+                throw Exception('Please choose JPG, JPEG, PNG, WEBP or GIF.');
+              }
+              setDialogState(() {
+                isUploading = true;
+                selectedImageBytes = bytes;
+                selectedFileName = filename;
+              });
+
+              final downloadUrl = await ImageStorageService.upload(
+                bytes: bytes,
+                folder: 'categories',
+                fileName: filename,
+              );
+              setDialogState(() {
+                imageUrl.text = downloadUrl;
+                selectedFileName = '$filename • uploaded';
+                isUploading = false;
+              });
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Image uploaded to GitHub Storage successfully')),
+                );
+              }
+            } catch (e) {
+              setDialogState(() => isUploading = false);
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text('Image upload failed: $e')),
+                );
+              }
+            }
+          }
+
+          final screenSize = MediaQuery.sizeOf(dialogContext);
+          final narrow = screenSize.width < 560;
+
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            insetPadding: EdgeInsets.symmetric(horizontal: narrow ? 14 : 32, vertical: 18),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+            titlePadding: const EdgeInsets.fromLTRB(23, 22, 23, 7),
+            contentPadding: const EdgeInsets.fromLTRB(23, 8, 23, 12),
+            actionsPadding: const EdgeInsets.fromLTRB(18, 2, 18, 17),
+            title: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF2FF),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: const Icon(Icons.category_outlined, color: Color(0xFF2563EB), size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(color: Color(0xFF172554), fontSize: 20, fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 3),
+                      const Text(
+                        'Organize your campus store.',
+                        style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: narrow ? screenSize.width - 60 : 520,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: screenSize.height * 0.68),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'CATEGORY DETAILS',
+                        style: TextStyle(color: Color(0xFF2563EB), fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: name,
+                        enabled: !isSaving && !isUploading,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'Category name',
+                          hintText: 'e.g. Stationery',
+                          prefixIcon: Icon(Icons.category_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: 13),
+                      TextField(
+                        controller: description,
+                        enabled: !isSaving && !isUploading,
+                        minLines: 2,
+                        maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                          hintText: 'Describe the items in this category',
+                          alignLabelWithHint: true,
+                          prefixIcon: Icon(Icons.notes_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 19),
+                      const Text(
+                        'CATEGORY IMAGE',
+                        style: TextStyle(color: Color(0xFF2563EB), fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7FAFF),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: const Color(0xFFDCE6F8)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              height: 145,
+                              clipBehavior: Clip.antiAlias,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF2FF),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: selectedImageBytes != null
+                                  ? Image.memory(selectedImageBytes!, fit: BoxFit.contain)
+                                  : isValidImageUrl(imageUrl.text)
+                                      ? AppImage(
+                                          source: imageUrl.text.trim(),
+                                          fit: BoxFit.contain,
+                                          placeholder: const Center(
+                                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2563EB)),
+                                          ),
+                                          fallback: const Center(
+                                            child: Icon(Icons.broken_image_outlined, color: Color(0xFF64748B), size: 34),
+                                          ),
+                                        )
+                                      : const Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.cloud_upload_outlined, color: Color(0xFF2563EB), size: 37),
+                                            SizedBox(height: 8),
+                                            Text(
+                                              'Category image preview',
+                                              style: TextStyle(color: Color(0xFF172554), fontWeight: FontWeight.w800, fontSize: 12),
+                                            ),
+                                            SizedBox(height: 4),
+                                            Text(
+                                              'Upload an image or paste a URL',
+                                              style: TextStyle(color: Color(0xFF64748B), fontSize: 11),
+                                            ),
+                                          ],
+                                        ),
+                            ),
+                            if (selectedFileName != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                selectedFileName!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                            const SizedBox(height: 12),
+                            if (narrow)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed: isSaving || isUploading ? null : pickImage,
+                                    icon: const Icon(Icons.upload_file_rounded, size: 18),
+                                    label: Text(isUploading ? 'Uploading...' : 'Upload from device'),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  OutlinedButton.icon(
+                                    onPressed: isSaving || isUploading ? null : enterImageUrl,
+                                    icon: const Icon(Icons.link_rounded, size: 18),
+                                    label: const Text('Use image URL'),
+                                  ),
+                                ],
+                              )
+                            else
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: isSaving || isUploading ? null : pickImage,
+                                      icon: const Icon(Icons.upload_file_rounded, size: 18),
+                                      label: Text(isUploading ? 'Uploading...' : 'Upload from device'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 9),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: isSaving || isUploading ? null : enterImageUrl,
+                                      icon: const Icon(Icons.link_rounded, size: 18),
+                                      label: const Text('Use image URL'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: imageUrl,
+                              enabled: !isSaving && !isUploading,
+                              keyboardType: TextInputType.url,
+                              decoration: InputDecoration(
+                                labelText: 'Image URL (optional)',
+                                hintText: 'https://example.com/category.jpg',
+                                prefixIcon: const Icon(Icons.link_rounded),
+                                suffixIcon: imageUrl.text.trim().isEmpty
+                                    ? null
+                                    : IconButton(
+                                        tooltip: 'Clear image URL',
+                                        onPressed: isSaving || isUploading
+                                            ? null
+                                            : () => setDialogState(() {
+                                                  imageUrl.clear();
+                                                  selectedImageBytes = null;
+                                                  selectedFileName = null;
+                                                }),
+                                        icon: const Icon(Icons.clear_rounded),
+                                      ),
+                              ),
+                              onChanged: (_) => setDialogState(() {}),
+                            ),
+                            const SizedBox(height: 7),
+                            const Text(
+                              'Use a JPG, PNG, WEBP or GIF image, or paste a public direct image URL.',
+                              style: TextStyle(color: Color(0xFF64748B), fontSize: 11, height: 1.4),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSaving || isUploading ? null : () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.icon(
+                onPressed: isSaving || isUploading
+                    ? null
+                    : () {
+                        final url = imageUrl.text.trim();
+                        if (name.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            const SnackBar(content: Text('Please enter a category name.')),
+                          );
+                          return;
+                        }
+                        if (url.isNotEmpty && !isValidImageUrl(url)) {
+                          ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            const SnackBar(content: Text('Please enter a valid public http:// or https:// image URL.')),
+                          );
+                          return;
+                        }
+                        setDialogState(() => isSaving = true);
+                        Navigator.pop(dialogContext, true);
+                      },
+                icon: const Icon(Icons.check_rounded, size: 18),
+                label: const Text('Save category'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   Future<bool?> _showItemDialog(
@@ -2616,6 +3016,516 @@ class _ProductsWorkspaceState extends State<_ProductsWorkspace> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: _muted, fontSize: 12.5, height: 1.5),
                 ),
+                if (action != null) ...[
+                  const SizedBox(height: 18),
+                  action,
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+class _CategoriesWorkspace extends StatefulWidget {
+  const _CategoriesWorkspace();
+
+  @override
+  State<_CategoriesWorkspace> createState() => _CategoriesWorkspaceState();
+}
+
+class _CategoriesWorkspaceState extends State<_CategoriesWorkspace> {
+  static const _canvas = Color(0xFFFAF8F3);
+  static const _ink = Color(0xFF172554);
+  static const _blue = Color(0xFF2563EB);
+  static const _muted = Color(0xFF64748B);
+  static const _border = Color(0xFFDCE6F8);
+  static const _softBlue = Color(0xFFEAF2FF);
+
+  final _actions = const AdminManagementScreen(section: AdminSection.categories);
+  int _refreshKey = 0;
+
+  String get _adminName {
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) return displayName;
+    final emailName = user?.email?.split('@').first.trim() ?? '';
+    return emailName.isNotEmpty ? emailName : 'Administrator';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final showSidebar = screenWidth >= 1280;
+
+    return Scaffold(
+      backgroundColor: _canvas,
+      drawer: showSidebar
+          ? null
+          : Drawer(
+              backgroundColor: Colors.white,
+              child: SafeArea(
+                child: SingleChildScrollView(child: _buildSidebar(compact: true)),
+              ),
+            ),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showSidebar) SizedBox(width: 238, child: _buildSidebar()),
+          Expanded(
+            child: Column(
+              children: [
+                _buildHeader(screenWidth: screenWidth, showSidebar: showSidebar),
+                Expanded(child: _buildCategoryContent(screenWidth)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader({required double screenWidth, required bool showSidebar}) {
+    final compact = screenWidth < 560;
+    return Container(
+      height: compact ? 76 : 100,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 10 : (showSidebar ? 30 : 24)),
+      decoration: const BoxDecoration(
+        color: _canvas,
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Row(
+        children: [
+          if (!showSidebar)
+            Builder(
+              builder: (drawerContext) => IconButton(
+                tooltip: 'Open navigation',
+                onPressed: () => Scaffold.of(drawerContext).openDrawer(),
+                icon: const Icon(Icons.menu_rounded, color: _ink),
+              ),
+            ),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!compact)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 3),
+                    child: Text(
+                      'Admin   /   Categories',
+                      style: TextStyle(color: _muted, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                Text(
+                  'Categories',
+                  style: TextStyle(color: _ink, fontSize: compact ? 21 : 28, fontWeight: FontWeight.w900, letterSpacing: -0.7),
+                ),
+                if (!compact)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Text('Organize your campus store', style: TextStyle(color: _muted, fontSize: 12.5)),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (compact)
+            IconButton(
+              tooltip: 'Refresh categories',
+              onPressed: () => setState(() => _refreshKey++),
+              icon: const Icon(Icons.refresh_rounded, color: _blue),
+            )
+          else ...[
+            OutlinedButton.icon(
+              onPressed: () => setState(() => _refreshKey++),
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Refresh'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _blue,
+                backgroundColor: Colors.white,
+                side: const BorderSide(color: Color(0xFFB9D0FF)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 14),
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.icon(
+              onPressed: () => _actions._add(context),
+              icon: const Icon(Icons.add_rounded, size: 19),
+              label: const Text('Add category'),
+              style: FilledButton.styleFrom(
+                backgroundColor: _blue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                textStyle: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar({bool compact = false}) {
+    Widget navItem(IconData icon, String title, {AdminSection? section, bool selected = false}) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 5),
+        child: Material(
+          color: selected ? const Color(0xFFE2EDFF) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _navigate(section, compact: compact),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              child: Row(
+                children: [
+                  Icon(icon, size: 21, color: selected ? _blue : _ink),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(color: selected ? _blue : _ink, fontWeight: selected ? FontWeight.w800 : FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 540),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(right: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      padding: const EdgeInsets.fromLTRB(17, 24, 17, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(color: _blue, borderRadius: BorderRadius.circular(14)),
+                child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 27),
+              ),
+              const SizedBox(width: 11),
+              const Expanded(
+                child: Text(
+                  'Campus\nSupply',
+                  style: TextStyle(color: _ink, fontSize: 19, height: 1.05, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 31),
+          navItem(Icons.home_rounded, 'Overview'),
+          navItem(Icons.inventory_2_outlined, 'Products', section: AdminSection.products),
+          navItem(Icons.grid_view_rounded, 'Categories', section: AdminSection.categories, selected: true),
+          navItem(Icons.sell_outlined, 'Bundles', section: AdminSection.bundles),
+          navItem(Icons.shopping_cart_outlined, 'Orders', section: AdminSection.orders),
+          navItem(Icons.people_outline_rounded, 'Users', section: AdminSection.users),
+          navItem(Icons.star_border_rounded, 'Reviews', section: AdminSection.reviews),
+          if (!compact) const Spacer() else const SizedBox(height: 22),
+          const Divider(color: Color(0xFFE2E8F0)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: _blue,
+                child: Text(
+                  _adminName.isEmpty ? 'A' : _adminName.substring(0, 1).toUpperCase(),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_adminName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: _ink, fontWeight: FontWeight.w800, fontSize: 12)),
+                    const Text('Administrator', style: TextStyle(color: _muted, fontSize: 11)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await AuthService.logout();
+              if (!mounted) return;
+              Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+            },
+            icon: const Icon(Icons.logout_rounded, size: 18),
+            label: const Text('Sign out'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFB42318),
+              backgroundColor: const Color(0xFFFFF0F2),
+              side: BorderSide.none,
+              minimumSize: const Size.fromHeight(45),
+              alignment: Alignment.centerLeft,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigate(AdminSection? section, {required bool compact}) {
+    if (compact) Navigator.pop(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (section == null) {
+        Navigator.pushNamedAndRemoveUntil(context, '/admin', (_) => false);
+      } else if (section != AdminSection.categories) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => AdminManagementScreen(section: section)),
+        );
+      }
+    });
+  }
+
+  Widget _buildCategoryContent(double screenWidth) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      key: ValueKey(_refreshKey),
+      stream: FirebaseFirestore.instance.collection('categories').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _stateCard(
+            icon: Icons.cloud_off_outlined,
+            title: 'Unable to load categories',
+            message: 'Please check your connection and try again.',
+            action: FilledButton.icon(
+              onPressed: () => _actions._add(context),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add category'),
+              style: FilledButton.styleFrom(backgroundColor: _blue, foregroundColor: Colors.white),
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(width: 30, height: 30, child: CircularProgressIndicator(strokeWidth: 2.5, color: _blue)),
+                SizedBox(height: 14),
+                Text('Loading categories...', style: TextStyle(color: _muted, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 560;
+            final columns = constraints.maxWidth >= 1040 ? 2 : 1;
+
+            if (docs.isEmpty) {
+              return _stateCard(
+                icon: Icons.category_outlined,
+                title: 'Start organizing your store',
+                message: 'Add your first category to help students browse products more easily.',
+                action: FilledButton.icon(
+                  onPressed: () => _actions._add(context),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Add your first category'),
+                  style: FilledButton.styleFrom(backgroundColor: _blue, foregroundColor: Colors.white),
+                ),
+              );
+            }
+
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1380),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(compact ? 14 : 26, 22, compact ? 14 : 26, compact ? 100 : 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Store categories', style: TextStyle(color: _ink, fontSize: 19, fontWeight: FontWeight.w900)),
+                                SizedBox(height: 4),
+                                Text('Keep your catalog clear and easy to browse.', style: TextStyle(color: _muted, fontSize: 12.5)),
+                              ],
+                            ),
+                          ),
+                          if (compact)
+                            IconButton.filled(
+                              tooltip: 'Add category',
+                              onPressed: () => _actions._add(context),
+                              icon: const Icon(Icons.add_rounded),
+                              style: IconButton.styleFrom(backgroundColor: _blue, foregroundColor: Colors.white),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 17),
+                      Expanded(
+                        child: columns == 1
+                            ? ListView.separated(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                itemCount: docs.length,
+                                separatorBuilder: (_, __) => const SizedBox(height: 11),
+                                itemBuilder: (context, index) => _categoryCard(docs[index], compact: compact),
+                              )
+                            : GridView.builder(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                itemCount: docs.length,
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 14,
+                                  crossAxisSpacing: 14,
+                                  mainAxisExtent: 156,
+                                ),
+                                itemBuilder: (context, index) => _categoryCard(docs[index], compact: false),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _categoryCard(QueryDocumentSnapshot<Map<String, dynamic>> doc, {required bool compact}) {
+    final data = doc.data();
+    final name = (data['name'] ?? data['title'] ?? doc.id).toString().trim();
+    final description = (data['description'] ?? '').toString().trim();
+    final imageUrl = (data['imageUrl'] ?? '').toString().trim();
+    final imageSize = compact ? 70.0 : 84.0;
+
+    return Container(
+      padding: EdgeInsets.all(compact ? 11 : 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: _border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: imageSize,
+            height: imageSize,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(color: _softBlue, borderRadius: BorderRadius.circular(13)),
+            child: imageUrl.isNotEmpty
+                ? AppImage(
+                    source: imageUrl,
+                    fit: BoxFit.contain,
+                    fallback: const Center(child: Icon(Icons.category_outlined, color: _blue, size: 30)),
+                  )
+                : Icon(Icons.category_outlined, color: _blue, size: compact ? 29 : 33),
+          ),
+          SizedBox(width: compact ? 11 : 14),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name.isEmpty ? 'Untitled category' : name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: _ink, fontSize: compact ? 13.5 : 15, height: 1.25, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  description.isEmpty ? 'No description added.' : description,
+                  maxLines: compact ? 2 : 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: _muted, fontSize: 11.5, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Category actions',
+            icon: const Icon(Icons.more_vert_rounded, color: _muted),
+            onSelected: (value) {
+              if (value == 'edit') _actions._edit(context, doc);
+              if (value == 'delete') _actions._delete(context, doc);
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'edit',
+                child: Row(children: [
+                  Icon(Icons.edit_outlined, size: 18),
+                  SizedBox(width: 9),
+                  Text('Edit category'),
+                ]),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(children: [
+                  Icon(Icons.delete_outline_rounded, size: 18),
+                  SizedBox(width: 9),
+                  Text('Delete category'),
+                ]),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stateCard({
+    required IconData icon,
+    required String title,
+    required String message,
+    Widget? action,
+  }) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(21),
+              border: Border.all(color: _border),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 66,
+                  height: 66,
+                  decoration: BoxDecoration(color: _softBlue, borderRadius: BorderRadius.circular(20)),
+                  child: Icon(icon, size: 32, color: _blue),
+                ),
+                const SizedBox(height: 17),
+                Text(title, textAlign: TextAlign.center, style: const TextStyle(color: _ink, fontSize: 18, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                Text(message, textAlign: TextAlign.center, style: const TextStyle(color: _muted, fontSize: 12.5, height: 1.5)),
                 if (action != null) ...[
                   const SizedBox(height: 18),
                   action,
