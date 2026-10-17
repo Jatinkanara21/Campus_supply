@@ -59,6 +59,9 @@ class AdminManagementScreen extends StatelessWidget {
     if (section == AdminSection.bundles) {
       return const _BundlesWorkspace();
     }
+    if (section == AdminSection.orders) {
+      return _OrdersWorkspace(onStatusChanged: _setOrderStatus);
+    }
 
     final canAdd = section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles;
     return Scaffold(
@@ -5540,6 +5543,537 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
           ),
         ),
       ),
+    );
+  }
+}
+
+
+/// Dedicated Orders UI: desktop split view and mobile list/details navigation.
+class _OrdersWorkspace extends StatefulWidget {
+  const _OrdersWorkspace({required this.onStatusChanged});
+  final Future<void> Function(String id, String status) onStatusChanged;
+
+  @override
+  State<_OrdersWorkspace> createState() => _OrdersWorkspaceState();
+}
+
+class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
+  static const cream = Color(0xFFFAF8F3);
+  static const ink = Color(0xFF172554);
+  static const blue = Color(0xFF2563EB);
+  static const muted = Color(0xFF64748B);
+  static const border = Color(0xFFDCE6F8);
+  static const softBlue = Color(0xFFEAF2FF);
+  static const amber = Color(0xFF9A6700);
+  static const green = Color(0xFF15803D);
+  static const red = Color(0xFFB42318);
+  static const purple = Color(0xFF5B4BDB);
+  static const statuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+
+  String? selectedId;
+  bool mobileDetailOpen = false;
+  String? updatingId;
+
+  bool get compact => MediaQuery.sizeOf(context).width < 980;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: cream,
+      appBar: AppBar(
+        backgroundColor: cream,
+        surfaceTintColor: Colors.transparent,
+        title: Text(compact && mobileDetailOpen ? 'Order details' : 'Orders',
+            style: const TextStyle(color: ink, fontWeight: FontWeight.w900)),
+        leading: compact && mobileDetailOpen
+            ? IconButton(
+                tooltip: 'Back to orders',
+                onPressed: () => setState(() => mobileDetailOpen = false),
+                icon: const Icon(Icons.arrow_back_rounded, color: ink),
+              )
+            : null,
+      ),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance.collection('orders').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Padding(
+              padding: const EdgeInsets.all(22),
+              child: _stateCard(Icons.cloud_off_outlined, 'Unable to load orders', 'Please check your connection and try again.', isError: true),
+            ));
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(width: 30, height: 30, child: CircularProgressIndicator(strokeWidth: 2.5, color: blue)),
+                SizedBox(height: 14),
+                Text('Loading orders…', style: TextStyle(color: muted, fontSize: 13, fontWeight: FontWeight.w600)),
+              ],
+            ));
+          }
+
+          final docs = snapshot.data!.docs;
+          final pending = docs.where((d) => (d.data()['status'] ?? 'pending').toString().toLowerCase() == 'pending').length;
+          final delivered = docs.where((d) => (d.data()['status'] ?? 'pending').toString().toLowerCase() == 'delivered').length;
+
+          if (docs.isEmpty) {
+            return ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                _heading(),
+                const SizedBox(height: 18),
+                _stats(docs.length, pending, delivered),
+                const SizedBox(height: 22),
+                _stateCard(Icons.receipt_long_outlined, 'No orders yet.', 'Customer orders will appear here when they place an order.'),
+              ],
+            );
+          }
+
+          QueryDocumentSnapshot<Map<String, dynamic>> chosen = docs.first;
+          for (final doc in docs) {
+            if (doc.id == selectedId) {
+              chosen = doc;
+              break;
+            }
+          }
+
+          if (compact && mobileDetailOpen) return _detailsScreen(chosen);
+          if (compact) return _mobileList(docs, chosen, pending, delivered);
+          return _desktopView(docs, chosen, pending, delivered);
+        },
+      ),
+    );
+  }
+
+  Widget _heading() => const Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Orders', style: TextStyle(color: ink, fontSize: 27, height: 1.14, letterSpacing: -.7, fontWeight: FontWeight.w900)),
+      SizedBox(height: 7),
+      Text('View and manage customer orders.', style: TextStyle(color: muted, fontSize: 13, height: 1.5)),
+    ],
+  );
+
+  Widget _stats(int all, int pending, int delivered) => Row(
+    children: [
+      Expanded(child: _statCard('All orders', all, Icons.receipt_long_outlined, blue, softBlue)),
+      const SizedBox(width: 9),
+      Expanded(child: _statCard('Pending', pending, Icons.schedule_rounded, amber, const Color(0xFFFFF4D6))),
+      const SizedBox(width: 9),
+      Expanded(child: _statCard('Delivered', delivered, Icons.check_circle_outline_rounded, green, const Color(0xFFE8F7EE))),
+    ],
+  );
+
+  Widget _statCard(String label, int value, IconData icon, Color color, Color fill) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: border)),
+    child: Row(children: [
+      Container(width: 33, height: 33, decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(10)),
+        child: Icon(icon, size: 18, color: color)),
+      const SizedBox(width: 8),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(value.toString(), maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: color, fontSize: 19, height: 1.05, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 4),
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w700)),
+      ])),
+    ]),
+  );
+
+  Widget _desktopView(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+      QueryDocumentSnapshot<Map<String, dynamic>> chosen, int pending, int delivered) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _heading(),
+        const SizedBox(height: 17),
+        _stats(docs.length, pending, delivered),
+        const SizedBox(height: 18),
+        Expanded(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Expanded(flex: 5, child: _listPane(docs, chosen.id)),
+          const SizedBox(width: 18),
+          Expanded(flex: 6, child: _detailPane(chosen)),
+        ])),
+      ]),
+    );
+  }
+
+  Widget _mobileList(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+      QueryDocumentSnapshot<Map<String, dynamic>> chosen, int pending, int delivered) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+      children: [
+        _heading(),
+        const SizedBox(height: 17),
+        _stats(docs.length, pending, delivered),
+        const SizedBox(height: 22),
+        Row(children: [
+          const Expanded(child: Text('Order list', style: TextStyle(color: ink, fontSize: 16, fontWeight: FontWeight.w900))),
+          Text(docs.length.toString() + ' total', style: const TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w700)),
+        ]),
+        const SizedBox(height: 12),
+        ...docs.map((doc) => Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _orderCard(doc, selected: chosen.id == doc.id, onTap: () => setState(() {
+            selectedId = doc.id;
+            mobileDetailOpen = true;
+          })),
+        )),
+      ],
+    );
+  }
+
+  Widget _listPane(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, String chosenId) => Container(
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: border)),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(17, 17, 16, 14),
+        child: Row(children: [
+          const Expanded(child: Text('Order list', style: TextStyle(color: ink, fontSize: 16, fontWeight: FontWeight.w900))),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(color: softBlue, borderRadius: BorderRadius.circular(9)),
+            child: Text(docs.length.toString(), style: const TextStyle(color: blue, fontSize: 11, fontWeight: FontWeight.w900)),
+          ),
+        ]),
+      ),
+      const Divider(height: 1, color: border),
+      Expanded(child: ListView.separated(
+        padding: const EdgeInsets.all(12),
+        itemCount: docs.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 9),
+        itemBuilder: (_, i) => _orderCard(docs[i], selected: docs[i].id == chosenId,
+          onTap: () => setState(() => selectedId = docs[i].id)),
+      )),
+    ]),
+  );
+
+  Widget _orderCard(QueryDocumentSnapshot<Map<String, dynamic>> doc, {required bool selected, required VoidCallback onTap}) {
+    final data = doc.data();
+    final status = (data['status'] ?? 'pending').toString();
+    final itemCount = _itemCount(data['items']);
+    return Material(
+      color: selected ? const Color(0xFFF2F6FF) : Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: selected ? const Color(0xFF8CB5FF) : const Color(0xFFE8EDF5), width: selected ? 1.4 : 1),
+          ),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(width: 39, height: 39, decoration: BoxDecoration(color: softBlue, borderRadius: BorderRadius.circular(12)),
+              child: const Icon(Icons.receipt_long_outlined, color: blue, size: 20)),
+            const SizedBox(width: 11),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('ORDER ID', style: TextStyle(color: muted, fontSize: 9, letterSpacing: .7, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 4),
+              Text('#' + doc.id, maxLines: 2, overflow: TextOverflow.ellipsis, softWrap: true,
+                  style: const TextStyle(color: ink, fontSize: 12, height: 1.25, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 7),
+              Text(_total(data['total']), maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 4),
+              Text(itemCount.toString() + (itemCount == 1 ? ' item' : ' items'),
+                  style: const TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w600)),
+            ])),
+            const SizedBox(width: 7),
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              _statusBadge(status),
+              const SizedBox(height: 10),
+              Icon(selected ? Icons.chevron_right_rounded : Icons.arrow_forward_ios_rounded, size: 14,
+                  color: selected ? blue : const Color(0xFF94A3B8)),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailsScreen(QueryDocumentSnapshot<Map<String, dynamic>> doc) => Padding(
+    padding: const EdgeInsets.fromLTRB(14, 12, 14, 18),
+    child: _detailPane(doc),
+  );
+
+  Widget _detailPane(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    final status = (data['status'] ?? 'pending').toString();
+    final items = data['items'] is List ? data['items'] as List : const <dynamic>[];
+    final userId = (data['userId'] ?? '').toString().trim();
+    final date = _date(data['createdAt']);
+    final updating = updatingId == doc.id;
+
+    return Container(
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: border)),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            Container(width: 43, height: 43, decoration: BoxDecoration(color: softBlue, borderRadius: BorderRadius.circular(14)),
+              child: const Icon(Icons.receipt_long_rounded, color: blue, size: 22)),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('Order details', style: TextStyle(color: ink, fontSize: 18, fontWeight: FontWeight.w900))),
+            _statusBadge(status),
+          ]),
+          const SizedBox(height: 21),
+          _sectionLabel('ORDER ID'),
+          const SizedBox(height: 6),
+          Text('#' + doc.id, maxLines: 3, overflow: TextOverflow.ellipsis, softWrap: true,
+              style: const TextStyle(color: ink, fontSize: 14, height: 1.4, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 17),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: const Color(0xFFF7FAFF), borderRadius: BorderRadius.circular(17), border: Border.all(color: border)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('ORDER TOTAL', style: TextStyle(color: muted, fontSize: 10, letterSpacing: .8, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 5),
+              Text(_total(data['total']), style: const TextStyle(color: ink, fontSize: 28, letterSpacing: -.5, fontWeight: FontWeight.w900)),
+              if (date != null) ...[
+                const SizedBox(height: 11),
+                const Divider(height: 1, color: border),
+                const SizedBox(height: 11),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Icon(Icons.calendar_today_outlined, color: muted, size: 15),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(date, style: const TextStyle(color: muted, fontSize: 12, fontWeight: FontWeight.w600))),
+                ]),
+              ],
+            ]),
+          ),
+          if (userId.isNotEmpty) ...[
+            const SizedBox(height: 17),
+            _sectionLabel('CUSTOMER ACCOUNT ID'),
+            const SizedBox(height: 6),
+            Text(userId, maxLines: 2, overflow: TextOverflow.ellipsis, softWrap: true,
+                style: const TextStyle(color: muted, fontSize: 12, height: 1.4, fontWeight: FontWeight.w600)),
+          ],
+          const SizedBox(height: 22),
+          Row(children: [
+            const Expanded(child: Text('Items in this order', style: TextStyle(color: ink, fontSize: 15, fontWeight: FontWeight.w900))),
+            Text(items.length.toString() + (items.length == 1 ? ' item' : ' items'),
+                style: const TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w700)),
+          ]),
+          const SizedBox(height: 10),
+          if (items.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(13)),
+              child: const Text('No item details are available for this order.', style: TextStyle(color: muted, fontSize: 12, height: 1.4)),
+            )
+          else
+            ...items.map((item) {
+              if (item is Map) return Padding(padding: const EdgeInsets.only(bottom: 9), child: _itemCard(item));
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 9),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(13)),
+                  child: Text(item.toString(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: ink, fontSize: 12)),
+                ),
+              );
+            }),
+          const SizedBox(height: 14),
+          _sectionLabel('UPDATE ORDER STATUS'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+            decoration: BoxDecoration(color: const Color(0xFFFAFBFE), borderRadius: BorderRadius.circular(15), border: Border.all(color: border)),
+            child: Row(children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Current status', style: TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 7),
+                _statusBadge(status),
+              ])),
+              const SizedBox(width: 8),
+              PopupMenuButton<String>(
+                enabled: !updating,
+                tooltip: 'Update order status',
+                onSelected: (value) => _changeStatus(doc.id, value),
+                itemBuilder: (_) => statuses.map((value) {
+                  final current = value == status.toLowerCase().trim();
+                  final color = _statusColor(value);
+                  return PopupMenuItem<String>(
+                    value: value,
+                    child: SizedBox(width: 190, child: Row(children: [
+                      Icon(current ? Icons.check_circle_rounded : Icons.circle_outlined,
+                          color: current ? color : const Color(0xFF94A3B8), size: 17),
+                      const SizedBox(width: 9),
+                      Expanded(child: Text(_displayStatus(value), style: TextStyle(
+                          color: current ? color : ink, fontSize: 13, fontWeight: current ? FontWeight.w800 : FontWeight.w600))),
+                      if (current) Text('Current', style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800)),
+                    ])),
+                  );
+                }).toList(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(color: blue, borderRadius: BorderRadius.circular(12)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (updating) ...[
+                      const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                      const SizedBox(width: 7),
+                    ],
+                    Text(updating ? 'Saving' : 'Change', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
+                    const SizedBox(width: 5),
+                    const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 18),
+                  ]),
+                ),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _itemCard(Map item) {
+    final itemName = (item['name'] ?? item['title'] ?? '').toString().trim();
+    final quantity = item['quantity'];
+    final price = item['price'];
+    String? priceLabel;
+    if (price is num) priceLabel = _currency(price.toDouble());
+    if (priceLabel == null && price != null && double.tryParse(price.toString()) != null) {
+      priceLabel = _currency(double.parse(price.toString()));
+    }
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(13), border: Border.all(color: const Color(0xFFE8EDF5))),
+      child: Row(children: [
+        Container(width: 34, height: 34, decoration: BoxDecoration(color: softBlue, borderRadius: BorderRadius.circular(10)),
+          child: const Icon(Icons.shopping_bag_outlined, color: blue, size: 17)),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(itemName.isEmpty ? 'Order item' : itemName, maxLines: 2, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: ink, fontSize: 12, height: 1.3, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text(quantity is num ? 'Quantity: ' + quantity.toInt().toString() : 'Quantity not provided',
+              style: const TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w600)),
+        ])),
+        if (priceLabel != null) ...[
+          const SizedBox(width: 8),
+          Text(priceLabel, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: ink, fontSize: 12, fontWeight: FontWeight.w900)),
+        ],
+      ]),
+    );
+  }
+
+  Widget _sectionLabel(String label) => Text(label,
+      style: const TextStyle(color: blue, fontSize: 10, letterSpacing: .9, fontWeight: FontWeight.w900));
+
+  Widget _statusBadge(String status) {
+    final color = _statusColor(status);
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 120),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(color: color.withValues(alpha: .10), borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: color.withValues(alpha: .18))),
+      child: Text(_displayStatus(status), maxLines: 1, overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: color, fontSize: 10, letterSpacing: .15, fontWeight: FontWeight.w900)),
+    );
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase().trim()) {
+      case 'pending': return amber;
+      case 'confirmed': return blue;
+      case 'shipped': return purple;
+      case 'delivered': return green;
+      case 'cancelled': return red;
+      default: return muted;
+    }
+  }
+
+  String _displayStatus(String status) {
+    final normalized = status.toLowerCase().trim();
+    switch (normalized) {
+      case 'pending': return 'Pending';
+      case 'confirmed': return 'Confirmed';
+      case 'shipped': return 'Shipped';
+      case 'delivered': return 'Delivered';
+      case 'cancelled': return 'Cancelled';
+      default: return normalized.isEmpty ? 'Unknown' : normalized[0].toUpperCase() + normalized.substring(1);
+    }
+  }
+
+  int _itemCount(dynamic value) {
+    if (value is! List) return 0;
+    return value.fold<int>(0, (count, item) {
+      if (item is Map && item['quantity'] is num) {
+        final quantity = (item['quantity'] as num).toInt();
+        return count + (quantity < 0 ? 0 : quantity);
+      }
+      return count + 1;
+    });
+  }
+
+  String _total(dynamic value) {
+    if (value is num) return _currency(value.toDouble());
+    final parsed = double.tryParse((value ?? '').toString());
+    return parsed == null ? 'Total unavailable' : _currency(parsed);
+  }
+
+  String _currency(double value) => '₹' + (value == value.roundToDouble()
+      ? value.toStringAsFixed(0)
+      : value.toStringAsFixed(2));
+
+  String? _date(dynamic value) {
+    DateTime? date;
+    if (value is Timestamp) date = value.toDate();
+    if (value is DateTime) date = value;
+    if (date == null) return null;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final period = date.hour >= 12 ? 'PM' : 'AM';
+    return date.day.toString() + ' ' + months[date.month - 1] + ' ' + date.year.toString() +
+        ' • ' + hour.toString() + ':' + minute + ' ' + period;
+  }
+
+  Future<void> _changeStatus(String id, String status) async {
+    if (updatingId != null) return;
+    setState(() => updatingId = id);
+    try {
+      await widget.onStatusChanged(id, status);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Order status updated to ' + _displayStatus(status) + '.'),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Could not update order status: ' + error.toString()),
+        behavior: SnackBarBehavior.floating,
+      ));
+    } finally {
+      if (mounted) setState(() => updatingId = null);
+    }
+  }
+
+  Widget _errorScreen() => Padding(
+    padding: const EdgeInsets.all(20),
+    child: Center(child: _stateCard(Icons.cloud_off_outlined, 'Unable to load orders',
+        'Please check your connection and try again.', isError: true)),
+  );
+
+  Widget _stateCard(IconData icon, String title, String message, {bool isError = false}) {
+    final tint = isError ? red : blue;
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: border)),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 62, height: 62, decoration: BoxDecoration(color: tint.withValues(alpha: .09), borderRadius: BorderRadius.circular(19)),
+          child: Icon(icon, size: 30, color: tint)),
+        const SizedBox(height: 15),
+        Text(title, textAlign: TextAlign.center, style: const TextStyle(color: ink, fontSize: 16, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        Text(message, textAlign: TextAlign.center, style: const TextStyle(color: muted, fontSize: 12, height: 1.5)),
+      ]),
     );
   }
 }
