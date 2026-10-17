@@ -49,6 +49,10 @@ class AdminManagementScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (section == AdminSection.products) {
+      return _buildProductsPage(context);
+    }
+
     final canAdd = section == AdminSection.products || section == AdminSection.categories || section == AdminSection.bundles;
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8F3),
@@ -90,6 +94,710 @@ class AdminManagementScreen extends StatelessWidget {
               }
               return _tile(context, docs[index - 1]);
             },
+          );
+        },
+      ),
+    );
+  }
+
+
+  // Products-only presentation. The other management sections keep their existing UI.
+  Widget _buildProductsPage(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 520;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAF8F3),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFAF8F3),
+        surfaceTintColor: Colors.transparent,
+        title: const Text(
+          'Products',
+          style: TextStyle(
+            color: Color(0xFF172554),
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.4,
+          ),
+        ),
+        actions: [
+          if (!compact)
+            Padding(
+              padding: const EdgeInsets.only(right: 18),
+              child: FilledButton.icon(
+                onPressed: () => _add(context),
+                icon: const Icon(Icons.add_rounded, size: 19),
+                label: const Text('Add product'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              tooltip: 'Add product',
+              onPressed: () => _add(context),
+              icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF2563EB), size: 27),
+            ),
+        ],
+      ),
+      floatingActionButton: compact
+          ? FloatingActionButton.extended(
+              onPressed: () => _add(context),
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add product'),
+            )
+          : null,
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance.collection('products').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return _productState(
+              icon: Icons.cloud_off_outlined,
+              title: 'Unable to load products',
+              message: 'Please check your connection and try again.',
+            );
+          }
+          if (!snapshot.hasData) {
+            return const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Color(0xFF2563EB),
+                    ),
+                  ),
+                  SizedBox(height: 14),
+                  Text(
+                    'Loading products...',
+                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final docs = snapshot.data!.docs;
+          if (docs.isEmpty) {
+            return _productState(
+              icon: Icons.inventory_2_outlined,
+              title: 'Your catalog is ready to grow',
+              message: 'Add your first product to start building your campus store catalog.',
+              action: FilledButton.icon(
+                onPressed: () => _add(context),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Add your first product'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                ),
+              ),
+            );
+          }
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 600;
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1180),
+                  child: ListView.separated(
+                    padding: EdgeInsets.fromLTRB(
+                      narrow ? 14 : 28,
+                      20,
+                      narrow ? 14 : 28,
+                      compact ? 104 : 30,
+                    ),
+                    itemCount: docs.length + 1,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return const Padding(
+                          padding: EdgeInsets.only(bottom: 7),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Manage your campus store catalog',
+                                style: TextStyle(
+                                  color: Color(0xFF172554),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                'Review product details, update prices, and keep your listings looking their best.',
+                                style: TextStyle(
+                                  color: Color(0xFF64748B),
+                                  height: 1.45,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return _productTile(context, docs[index - 1], compact: narrow);
+                    },
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _productState({
+    required IconData icon,
+    required String title,
+    required String message,
+    Widget? action,
+  }) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 30),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF2FF),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Icon(icon, size: 34, color: const Color(0xFF2563EB)),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF172554),
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    height: 1.5,
+                    fontSize: 13,
+                  ),
+                ),
+                if (action != null) ...[
+                  const SizedBox(height: 22),
+                  action,
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _productTile(
+    BuildContext context,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc, {
+    required bool compact,
+  }) {
+    final data = doc.data();
+    final displayName = (data['name'] ?? data['title'] ?? doc.id).toString().trim();
+    final price = (data['price'] ?? '-').toString();
+    final rawCategory = (data['category'] ?? '').toString().trim();
+    final category = rawCategory.isEmpty ? 'General' : rawCategory;
+    final imageUrl = (data['imageUrl'] ?? '').toString().trim();
+    final thumbnailSize = compact ? 68.0 : 82.0;
+
+    return Container(
+      padding: EdgeInsets.all(compact ? 11 : 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDCE6F8)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: thumbnailSize,
+            height: thumbnailSize,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF2FF),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: imageUrl.isNotEmpty
+                ? AppImage(
+                    source: imageUrl,
+                    fit: BoxFit.cover,
+                    fallback: const Center(
+                      child: Icon(Icons.image_not_supported_outlined, color: Color(0xFF2563EB), size: 25),
+                    ),
+                  )
+                : Icon(
+                    Icons.inventory_2_outlined,
+                    color: const Color(0xFF2563EB),
+                    size: compact ? 27 : 32,
+                  ),
+          ),
+          SizedBox(width: compact ? 11 : 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  displayName.isEmpty ? 'Untitled product' : displayName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: const Color(0xFF172554),
+                    fontSize: compact ? 13.5 : 15,
+                    height: 1.3,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 9,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      '₹$price',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF2563EB),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Container(
+                      constraints: BoxConstraints(maxWidth: compact ? 120 : 220),
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        category,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          PopupMenuButton<String>(
+            tooltip: 'Product actions',
+            icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF64748B)),
+            onSelected: (value) {
+              if (value == 'edit') _edit(context, doc);
+              if (value == 'delete') _delete(context, doc);
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_outlined), title: Text('Edit'), contentPadding: EdgeInsets.zero, dense: true)),
+              PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_outline_rounded), title: Text('Delete'), contentPadding: EdgeInsets.zero, dense: true)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _showProductItemDialog(
+    BuildContext context, {
+    required String title,
+    required TextEditingController name,
+    required TextEditingController description,
+    required TextEditingController price,
+    required TextEditingController imageUrl,
+  }) {
+    Uint8List? selectedImageBytes;
+    String? selectedFileName;
+    bool isSaving = false;
+
+    bool isValidImageUrl(String value) {
+      final uri = Uri.tryParse(value.trim());
+      return uri != null &&
+          (uri.scheme == 'http' || uri.scheme == 'https') &&
+          uri.host.isNotEmpty;
+    }
+
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          Future<void> enterImageUrl() async {
+            if (isSaving) return;
+            final urlController = TextEditingController(text: imageUrl.text.trim());
+            final url = await showDialog<String>(
+              context: dialogContext,
+              builder: (urlContext) => AlertDialog(
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                title: const Text('Use image URL', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF172554))),
+                content: TextField(
+                  controller: urlController,
+                  autofocus: true,
+                  keyboardType: TextInputType.url,
+                  decoration: const InputDecoration(
+                    labelText: 'Image URL',
+                    hintText: 'https://example.com/image.jpg',
+                    prefixIcon: Icon(Icons.link_rounded),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(urlContext),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      final value = urlController.text.trim();
+                      if (!isValidImageUrl(value)) {
+                        ScaffoldMessenger.of(urlContext).showSnackBar(
+                          const SnackBar(content: Text('Enter a valid http:// or https:// image URL')),
+                        );
+                        return;
+                      }
+                      Navigator.pop(urlContext, value);
+                    },
+                    child: const Text('Use URL'),
+                  ),
+                ],
+              ),
+            );
+            urlController.dispose();
+            if (url == null || url.isEmpty) return;
+            setDialogState(() {
+              imageUrl.text = url;
+              selectedImageBytes = null;
+              selectedFileName = 'Image URL';
+            });
+          }
+
+          Future<void> pickImage() async {
+            if (isSaving) return;
+
+            try {
+              final picker = ImagePicker();
+              final file = await picker.pickImage(
+                source: ImageSource.gallery,
+                imageQuality: 90,
+                maxWidth: 1600,
+                maxHeight: 1600,
+              );
+              if (file == null) return;
+
+              final bytes = await file.readAsBytes();
+              final filename = file.name.trim();
+              final lowerName = filename.toLowerCase();
+              final supported = lowerName.endsWith('.jpg') ||
+                  lowerName.endsWith('.jpeg') ||
+                  lowerName.endsWith('.png') ||
+                  lowerName.endsWith('.webp') ||
+                  lowerName.endsWith('.gif');
+              if (!supported) {
+                throw Exception('Please choose JPG, JPEG, PNG, WEBP or GIF.');
+              }
+
+              setDialogState(() {
+                selectedImageBytes = bytes;
+                selectedFileName = filename;
+              });
+
+              final downloadUrl = await ImageStorageService.upload(
+                bytes: bytes,
+                folder: 'products',
+                fileName: filename,
+              );
+
+              setDialogState(() {
+                imageUrl.text = downloadUrl;
+                selectedFileName = '$filename • uploaded';
+              });
+
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Image uploaded to GitHub Storage successfully')),
+                );
+              }
+            } catch (e) {
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text('Image upload failed: $e')),
+                );
+              }
+            }
+          }
+
+          final screenSize = MediaQuery.sizeOf(dialogContext);
+          final narrowDialog = screenSize.width < 560;
+
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            insetPadding: EdgeInsets.symmetric(
+              horizontal: narrowDialog ? 14 : 32,
+              vertical: 20,
+            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+            titlePadding: const EdgeInsets.fromLTRB(24, 22, 24, 8),
+            contentPadding: const EdgeInsets.fromLTRB(24, 10, 24, 12),
+            actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(color: Color(0xFF172554), fontSize: 21, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 5),
+                const Text(
+                  'Add clear details so students can find the right item.',
+                  style: TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: narrowDialog ? screenSize.width - 60 : 540,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: screenSize.height * 0.66),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('PRODUCT DETAILS', style: TextStyle(color: Color(0xFF2563EB), fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: name,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          labelText: 'Product name',
+                          hintText: 'e.g. Campus backpack',
+                          prefixIcon: Icon(Icons.inventory_2_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: 13),
+                      TextField(
+                        controller: description,
+                        maxLines: 3,
+                        minLines: 2,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                          hintText: 'Describe the product for students',
+                          alignLabelWithHint: true,
+                          prefixIcon: Icon(Icons.notes_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 13),
+                      TextField(
+                        controller: price,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Price',
+                          hintText: '0.00',
+                          prefixIcon: Icon(Icons.currency_rupee_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text('PRODUCT IMAGE', style: TextStyle(color: Color(0xFF2563EB), fontSize: 10, letterSpacing: 1.2, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(13),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7FAFF),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFDCE6F8)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              height: 150,
+                              clipBehavior: Clip.antiAlias,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF2FF),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: selectedImageBytes != null
+                                  ? Image.memory(selectedImageBytes!, fit: BoxFit.contain)
+                                  : isValidImageUrl(imageUrl.text)
+                                      ? AppImage(
+                                          source: imageUrl.text.trim(),
+                                          fit: BoxFit.contain,
+                                          placeholder: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2563EB))),
+                                          fallback: const Center(child: Icon(Icons.broken_image_outlined, color: Color(0xFF64748B), size: 34)),
+                                        )
+                                      : const Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.add_photo_alternate_outlined, color: Color(0xFF2563EB), size: 38),
+                                            SizedBox(height: 8),
+                                            Text('Product image preview', style: TextStyle(color: Color(0xFF172554), fontWeight: FontWeight.w800, fontSize: 12)),
+                                            SizedBox(height: 3),
+                                            Text('Upload a file or use a public image URL', style: TextStyle(color: Color(0xFF64748B), fontSize: 11)),
+                                          ],
+                                        ),
+                            ),
+                            if (selectedFileName != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                selectedFileName!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                            const SizedBox(height: 12),
+                            if (narrowDialog)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed: isSaving ? null : pickImage,
+                                    icon: const Icon(Icons.upload_file_rounded, size: 18),
+                                    label: const Text('Upload from device'),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  OutlinedButton.icon(
+                                    onPressed: isSaving ? null : enterImageUrl,
+                                    icon: const Icon(Icons.link_rounded, size: 18),
+                                    label: const Text('Use image URL'),
+                                  ),
+                                ],
+                              )
+                            else
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: isSaving ? null : pickImage,
+                                      icon: const Icon(Icons.upload_file_rounded, size: 18),
+                                      label: const Text('Upload from device'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: isSaving ? null : enterImageUrl,
+                                      icon: const Icon(Icons.link_rounded, size: 18),
+                                      label: const Text('Use image URL'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: imageUrl,
+                              keyboardType: TextInputType.url,
+                              decoration: InputDecoration(
+                                labelText: 'Image URL',
+                                hintText: 'https://example.com/image.jpg',
+                                prefixIcon: const Icon(Icons.link_rounded),
+                                suffixIcon: imageUrl.text.trim().isNotEmpty
+                                    ? IconButton(
+                                        tooltip: 'Clear image URL',
+                                        onPressed: isSaving ? null : () {
+                                          setDialogState(() {
+                                            imageUrl.clear();
+                                            selectedImageBytes = null;
+                                            selectedFileName = null;
+                                          });
+                                        },
+                                        icon: const Icon(Icons.clear_rounded),
+                                      )
+                                    : null,
+                              ),
+                              onChanged: (_) => setDialogState(() {}),
+                            ),
+                            const SizedBox(height: 7),
+                            const Text(
+                              'Accepted formats: JPG, JPEG, PNG, WEBP or GIF. You can also paste a direct public image URL.',
+                              style: TextStyle(color: Color(0xFF64748B), fontSize: 11, height: 1.4),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSaving ? null : () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.icon(
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        final value = imageUrl.text.trim();
+                        if (value.isNotEmpty && !isValidImageUrl(value)) {
+                          ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter a valid public http:// or https:// image URL.'),
+                              duration: Duration(seconds: 4),
+                            ),
+                          );
+                          return;
+                        }
+                        setDialogState(() => isSaving = true);
+                        try {
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext, true);
+                          }
+                        } catch (e) {
+                          if (dialogContext.mounted) {
+                            setDialogState(() => isSaving = false);
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              SnackBar(content: Text('Save failed: ${e.toString().replaceFirst('Exception: ', '')}')),
+                            );
+                          }
+                        }
+                      },
+                icon: isSaving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.check_rounded, size: 18),
+                label: const Text('Save product'),
+              ),
+            ],
           );
         },
       ),
@@ -251,18 +959,23 @@ class AdminManagementScreen extends StatelessWidget {
     final description = TextEditingController();
     final price = TextEditingController();
     final imageUrl = TextEditingController();
-    final saved = await _showItemDialog(
-      context,
-      title: section == AdminSection.products
-          ? 'Add product'
-          : section == AdminSection.categories
-              ? 'Add category'
-              : 'Add bundle',
-      name: name,
-      description: description,
-      price: price,
-      imageUrl: imageUrl,
-    );
+    final saved = section == AdminSection.products
+        ? await _showProductItemDialog(
+            context,
+            title: 'Add product',
+            name: name,
+            description: description,
+            price: price,
+            imageUrl: imageUrl,
+          )
+        : await _showItemDialog(
+            context,
+            title: section == AdminSection.categories ? 'Add category' : 'Add bundle',
+            name: name,
+            description: description,
+            price: price,
+            imageUrl: imageUrl,
+          );
     if (saved != true || name.text.trim().isEmpty) return;
     final data = <String, dynamic>{
       'name': name.text.trim(),
@@ -305,14 +1018,23 @@ class AdminManagementScreen extends StatelessWidget {
     final description = TextEditingController(text: (data['description'] ?? '').toString());
     final price = TextEditingController(text: (data['price'] ?? '').toString());
     final imageUrl = TextEditingController(text: (data['imageUrl'] ?? '').toString());
-    final saved = await _showItemDialog(
-      context,
-      title: 'Edit item',
-      name: name,
-      description: description,
-      price: price,
-      imageUrl: imageUrl,
-    );
+    final saved = section == AdminSection.products
+        ? await _showProductItemDialog(
+            context,
+            title: 'Edit product',
+            name: name,
+            description: description,
+            price: price,
+            imageUrl: imageUrl,
+          )
+        : await _showItemDialog(
+            context,
+            title: 'Edit item',
+            name: name,
+            description: description,
+            price: price,
+            imageUrl: imageUrl,
+          );
     if (saved != true) return;
     final update = <String, dynamic>{
       'name': name.text.trim(),
