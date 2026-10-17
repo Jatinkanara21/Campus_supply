@@ -5470,10 +5470,10 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
           if (compact) return _mobileList(docs, chosen, pending, delivered);
           return _desktopView(docs, chosen, pending, delivered);
         },
-      ),;
+      );
   }
 
-  Widget _heading() => const Column(
+  Widget _heading => const Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text('Orders', style: TextStyle(color: ink, fontSize: 27, height: 1.14, letterSpacing: -.7, fontWeight: FontWeight.w900)),
