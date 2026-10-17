@@ -915,11 +915,13 @@ class HomeScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(18),
-            child: AppImage(
-              source: imageUrl,
-              fit: BoxFit.contain,
-              fallback: const Center(
-                child: Icon(Icons.broken_image_outlined, color: white, size: 36),
+            child: SizedBox.expand(
+              child: AppImage(
+                source: imageUrl,
+                fit: BoxFit.cover,
+                fallback: const Center(
+                  child: Icon(Icons.broken_image_outlined, color: white, size: 36),
+                ),
               ),
             ),
           ),
