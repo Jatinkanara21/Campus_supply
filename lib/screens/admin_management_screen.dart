@@ -59,6 +59,9 @@ class AdminManagementScreen extends StatelessWidget {
     if (section == AdminSection.bundles) {
       return const _BundlesWorkspace();
     }
+    if (section == AdminSection.users) {
+      return _UsersWorkspace(onRoleChanged: _setRole);
+    }
     if (section == AdminSection.orders) {
       return _OrdersWorkspace(onStatusChanged: _setOrderStatus);
     }
@@ -6053,3 +6056,439 @@ class AdminNavigationSidebar extends StatelessWidget {
     );
   }
 }
+
+
+/// Dedicated Users UI. Role changes still use the existing Firestore callback.
+class _UsersWorkspace extends StatefulWidget {
+  const _UsersWorkspace({required this.onRoleChanged});
+
+  final Future<void> Function(String uid, String role) onRoleChanged;
+
+  @override
+  State<_UsersWorkspace> createState() => _UsersWorkspaceState();
+}
+
+class _UsersWorkspaceState extends State<_UsersWorkspace> {
+  static const _canvas = Color(0xFFFAF8F3);
+  static const _ink = Color(0xFF172554);
+  static const _blue = Color(0xFF2563EB);
+  static const _muted = Color(0xFF64748B);
+  static const _border = Color(0xFFDCE6F8);
+  static const _softBlue = Color(0xFFEAF2FF);
+  static const _purple = Color(0xFF6D4CC3);
+
+  String? _updatingUid;
+
+  String get _adminName {
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) return displayName;
+    final emailName = user?.email?.split('@').first.trim() ?? '';
+    return emailName.isNotEmpty ? emailName : 'Administrator';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final showSidebar = width >= 1100;
+
+    return Scaffold(
+      backgroundColor: _canvas,
+      drawer: showSidebar
+          ? null
+          : Drawer(
+              backgroundColor: Colors.white,
+              child: SafeArea(
+                child: SingleChildScrollView(child: _buildSidebar(compact: true)),
+              ),
+            ),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showSidebar) SizedBox(width: 238, child: _buildSidebar()),
+          Expanded(
+            child: Column(
+              children: [
+                _buildHeader(width: width, showSidebar: showSidebar),
+                Expanded(child: _buildUsersContent()),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader({required double width, required bool showSidebar}) {
+    final compactWidth = width < 560;
+    return Container(
+      height: compactWidth ? 76 : 100,
+      padding: EdgeInsets.symmetric(horizontal: compactWidth ? 10 : (showSidebar ? 30 : 24)),
+      decoration: const BoxDecoration(
+        color: _canvas,
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Row(
+        children: [
+          if (!showSidebar)
+            Builder(
+              builder: (drawerContext) => IconButton(
+                tooltip: 'Open navigation',
+                onPressed: () => Scaffold.of(drawerContext).openDrawer(),
+                icon: const Icon(Icons.menu_rounded, color: _ink),
+              ),
+            ),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!compactWidth)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 3),
+                    child: Text(
+                      'Admin   /   Users',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: _muted, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                Text(
+                  'Users',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: compactWidth ? 19 : 27,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.6,
+                    height: 1.1,
+                  ),
+                ),
+                if (!compactWidth)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Manage campus store accounts and roles.',
+                      style: TextStyle(color: _muted, fontSize: 12),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar({bool compact = false}) {
+    return AdminNavigationSidebar(
+      selectedSection: AdminSection.users,
+      adminName: _adminName,
+      compact: compact,
+      onNavigate: (section) => _navigate(section, compact: compact),
+      onSignOut: () async {
+        await AuthService.logout();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+      },
+    );
+  }
+
+  void _navigate(AdminSection? section, {required bool compact}) {
+    if (compact) Navigator.pop(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (section == null) {
+        Navigator.pushNamedAndRemoveUntil(context, '/admin', (_) => false);
+      } else if (section != AdminSection.users) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => AdminManagementScreen(section: section)),
+        );
+      }
+    });
+  }
+
+  Widget _buildUsersContent() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _stateCard(
+            icon: Icons.cloud_off_outlined,
+            title: 'Unable to load users',
+            message: 'Please check your connection and try again.',
+            isError: true,
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 30,
+                  height: 30,
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: _blue),
+                ),
+                SizedBox(height: 14),
+                Text(
+                  'Loading users…',
+                  style: TextStyle(color: _muted, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+        if (docs.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: _stateCard(
+                icon: Icons.people_outline_rounded,
+                title: 'No users yet.',
+                message: 'Registered campus store accounts will appear here.',
+              ),
+            ),
+          );
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final columns = constraints.maxWidth >= 900 ? 2 : 1;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    constraints.maxWidth < 560 ? 16 : 26,
+                    20,
+                    constraints.maxWidth < 560 ? 16 : 26,
+                    12,
+                  ),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'User accounts',
+                          style: TextStyle(color: _ink, fontSize: 16, fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: _softBlue, borderRadius: BorderRadius.circular(10)),
+                        child: Text(
+                          docs.length.toString() + (docs.length == 1 ? ' account' : ' accounts'),
+                          style: const TextStyle(color: _blue, fontSize: 11, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: GridView.builder(
+                    padding: EdgeInsets.fromLTRB(
+                      constraints.maxWidth < 560 ? 16 : 26,
+                      4,
+                      constraints.maxWidth < 560 ? 16 : 26,
+                      26,
+                    ),
+                    itemCount: docs.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 116,
+                    ),
+                    itemBuilder: (context, index) => _userCard(docs[index]),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _userCard(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    final email = (data['email'] ?? '').toString().trim();
+    final role = (data['role'] ?? 'user').toString().trim().toLowerCase();
+    final isAdmin = role == 'admin';
+    final roleColor = isAdmin ? _purple : _blue;
+    final isUpdating = _updatingUid == doc.id;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 13, 8, 13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _border),
+        boxShadow: const [
+          BoxShadow(color: Color(0x06172554), blurRadius: 14, offset: Offset(0, 3)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 43,
+            height: 43,
+            decoration: BoxDecoration(
+              color: isAdmin ? const Color(0xFFF1ECFF) : _softBlue,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              isAdmin ? Icons.admin_panel_settings_outlined : Icons.person_outline_rounded,
+              color: roleColor,
+              size: 23,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  email.isEmpty ? 'Email not available' : email,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 12,
+                    height: 1.3,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: roleColor.withValues(alpha: .09),
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(color: roleColor.withValues(alpha: .15)),
+                    ),
+                    child: Text(
+                      isAdmin ? 'Admin' : 'User',
+                      style: TextStyle(color: roleColor, fontSize: 10, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          PopupMenuButton<String>(
+            tooltip: 'Change account role',
+            enabled: !isUpdating,
+            onSelected: (value) => _changeRole(doc.id, value.substring(5)),
+            itemBuilder: (context) => ['user', 'admin'].map((value) {
+              final isCurrent = value == role;
+              final color = value == 'admin' ? _purple : _blue;
+              final label = value == 'admin' ? 'Make admin' : 'Make user';
+              return PopupMenuItem<String>(
+                value: 'role:' + value,
+                child: SizedBox(
+                  width: 160,
+                  child: Row(
+                    children: [
+                      Icon(
+                        isCurrent ? Icons.check_circle_rounded : Icons.circle_outlined,
+                        color: isCurrent ? color : const Color(0xFF94A3B8),
+                        size: 17,
+                      ),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            color: isCurrent ? color : _ink,
+                            fontSize: 12,
+                            fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      if (isCurrent)
+                        Text(
+                          'Current',
+                          style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w800),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+            icon: isUpdating
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: _blue),
+                  )
+                : const Icon(Icons.more_vert_rounded, color: _muted),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _changeRole(String uid, String role) async {
+    setState(() => _updatingUid = uid);
+    try {
+      await widget.onRoleChanged(uid, role);
+    } finally {
+      if (mounted) setState(() => _updatingUid = null);
+    }
+  }
+
+  Widget _stateCard({
+    required IconData icon,
+    required String title,
+    required String message,
+    bool isError = false,
+  }) {
+    final tint = isError ? const Color(0xFFB42318) : _blue;
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 480),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              color: tint.withValues(alpha: .09),
+              borderRadius: BorderRadius.circular(19),
+            ),
+            child: Icon(icon, size: 30, color: tint),
+          ),
+          const SizedBox(height: 15),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: _ink, fontSize: 16, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: _muted, fontSize: 12, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
