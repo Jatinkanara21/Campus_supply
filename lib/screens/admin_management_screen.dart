@@ -5284,6 +5284,7 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
   static const statuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
 
   String? selectedId;
+  String selectedStatusFilter = 'all';
   bool mobileDetailOpen = false;
   String? updatingId;
 
@@ -5448,8 +5449,17 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
           }
 
           final docs = snapshot.data!.docs;
-          final pending = docs.where((d) => (d.data()['status'] ?? 'pending').toString().toLowerCase() == 'pending').length;
-          final delivered = docs.where((d) => (d.data()['status'] ?? 'pending').toString().toLowerCase() == 'delivered').length;
+          String orderStatus(QueryDocumentSnapshot<Map<String, dynamic>> doc) =>
+              (doc.data()['status'] ?? 'pending').toString().toLowerCase().trim();
+
+          final statusCounts = <String, int>{
+            'all': docs.length,
+            'pending': docs.where((doc) => orderStatus(doc) == 'pending').length,
+            'confirmed': docs.where((doc) => orderStatus(doc) == 'confirmed').length,
+            'shipped': docs.where((doc) => orderStatus(doc) == 'shipped').length,
+            'delivered': docs.where((doc) => orderStatus(doc) == 'delivered').length,
+            'cancelled': docs.where((doc) => orderStatus(doc) == 'cancelled').length,
+          };
 
           if (docs.isEmpty) {
             return ListView(
@@ -5457,15 +5467,36 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
               children: [
                 _heading(),
                 const SizedBox(height: 18),
-                _stats(docs.length, pending, delivered),
+                _stats(statusCounts),
                 const SizedBox(height: 22),
                 _stateCard(Icons.receipt_long_outlined, 'No orders yet.', 'Customer orders will appear here when they place an order.'),
               ],
             );
           }
 
-          QueryDocumentSnapshot<Map<String, dynamic>> chosen = docs.first;
-          for (final doc in docs) {
+          final filteredDocs = selectedStatusFilter == 'all'
+              ? docs
+              : docs.where((doc) => orderStatus(doc) == selectedStatusFilter).toList();
+
+          if (filteredDocs.isEmpty) {
+            return ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                _heading(),
+                const SizedBox(height: 18),
+                _stats(statusCounts),
+                const SizedBox(height: 22),
+                _stateCard(
+                  Icons.filter_alt_off_rounded,
+                  'No ' + _displayStatus(selectedStatusFilter).toLowerCase() + ' orders',
+                  'Orders with this status will appear here when they are available.',
+                ),
+              ],
+            );
+          }
+
+          QueryDocumentSnapshot<Map<String, dynamic>> chosen = filteredDocs.first;
+          for (final doc in filteredDocs) {
             if (doc.id == selectedId) {
               chosen = doc;
               break;
@@ -5473,8 +5504,8 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
           }
 
           if (compact && mobileDetailOpen) return _detailsScreen(chosen);
-          if (compact) return _mobileList(docs, chosen, pending, delivered);
-          return _desktopView(docs, chosen, pending, delivered);
+          if (compact) return _mobileList(filteredDocs, chosen, statusCounts);
+          return _desktopView(filteredDocs, chosen, statusCounts);
         },
       );
   }
@@ -5488,41 +5519,105 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
     ],
   );
 
-  Widget _stats(int all, int pending, int delivered) => Row(
-    children: [
-      Expanded(child: _statCard('All orders', all, Icons.receipt_long_outlined, blue, softBlue)),
-      const SizedBox(width: 9),
-      Expanded(child: _statCard('Pending', pending, Icons.schedule_rounded, amber, const Color(0xFFFFF4D6))),
-      const SizedBox(width: 9),
-      Expanded(child: _statCard('Delivered', delivered, Icons.check_circle_outline_rounded, green, const Color(0xFFE8F7EE))),
-    ],
+  Widget _stats(Map<String, int> counts) => LayoutBuilder(
+    builder: (context, constraints) {
+      final columns = constraints.maxWidth >= 1280
+          ? 6
+          : constraints.maxWidth >= 720
+              ? 3
+              : 2;
+      const spacing = 9.0;
+      final cardWidth = (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+      Widget card(String key, String label, IconData icon, Color color, Color fill) {
+        return SizedBox(
+          width: cardWidth,
+          child: _statCard(
+            label,
+            counts[key] ?? 0,
+            icon,
+            color,
+            fill,
+            isSelected: selectedStatusFilter == key,
+            onTap: () => setState(() {
+              selectedStatusFilter = key;
+              mobileDetailOpen = false;
+            }),
+          ),
+        );
+      }
+
+      return Wrap(
+        spacing: spacing,
+        runSpacing: spacing,
+        children: [
+          card('all', 'All orders', Icons.receipt_long_outlined, blue, softBlue),
+          card('pending', 'Pending', Icons.schedule_rounded, amber, const Color(0xFFFFF4D6)),
+          card('confirmed', 'Confirmed', Icons.verified_outlined, const Color(0xFF0F766E), const Color(0xFFE6FFFB)),
+          card('shipped', 'Shipped', Icons.local_shipping_outlined, purple, const Color(0xFFF0EDFF)),
+          card('delivered', 'Delivered', Icons.check_circle_outline_rounded, green, const Color(0xFFE8F7EE)),
+          card('cancelled', 'Cancelled', Icons.cancel_outlined, red, const Color(0xFFFFE9E6)),
+        ],
+      );
+    },
   );
 
-  Widget _statCard(String label, int value, IconData icon, Color color, Color fill) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: border)),
-    child: Row(children: [
-      Container(width: 33, height: 33, decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, size: 18, color: color)),
-      const SizedBox(width: 8),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(value.toString(), maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: color, fontSize: 19, height: 1.05, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 4),
-        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w700)),
-      ])),
-    ]),
+  Widget _statCard(
+    String label,
+    int value,
+    IconData icon,
+    Color color,
+    Color fill, {
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) => Material(
+    color: Colors.transparent,
+    borderRadius: BorderRadius.circular(16),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? fill.withValues(alpha: .34) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? color.withValues(alpha: .6) : border,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(children: [
+          Container(
+            width: 33,
+            height: 33,
+            decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(value.toString(), maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: color, fontSize: 19, height: 1.05, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 4),
+            Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w700)),
+          ])),
+        ]),
+      ),
+    ),
   );
 
-  Widget _desktopView(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-      QueryDocumentSnapshot<Map<String, dynamic>> chosen, int pending, int delivered) {
+  Widget _desktopView(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    QueryDocumentSnapshot<Map<String, dynamic>> chosen,
+    Map<String, int> statusCounts,
+  ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _heading(),
         const SizedBox(height: 17),
-        _stats(docs.length, pending, delivered),
+        _stats(statusCounts),
         const SizedBox(height: 18),
         Expanded(child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Expanded(flex: 5, child: _listPane(docs, chosen.id)),
@@ -5533,18 +5628,27 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
     );
   }
 
-  Widget _mobileList(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-      QueryDocumentSnapshot<Map<String, dynamic>> chosen, int pending, int delivered) {
+  Widget _mobileList(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+    QueryDocumentSnapshot<Map<String, dynamic>> chosen,
+    Map<String, int> statusCounts,
+  ) {
+    final listTitle = selectedStatusFilter == 'all'
+        ? 'Order list'
+        : _displayStatus(selectedStatusFilter) + ' orders';
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
       children: [
         _heading(),
         const SizedBox(height: 17),
-        _stats(docs.length, pending, delivered),
+        _stats(statusCounts),
         const SizedBox(height: 22),
         Row(children: [
-          const Expanded(child: Text('Order list', style: TextStyle(color: ink, fontSize: 16, fontWeight: FontWeight.w900))),
-          Text(docs.length.toString() + ' total', style: const TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w700)),
+          Expanded(child: Text(listTitle, style: const TextStyle(color: ink, fontSize: 16, fontWeight: FontWeight.w900))),
+          Text(
+            docs.length.toString() + (docs.length == 1 ? ' order' : ' orders'),
+            style: const TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w700),
+          ),
         ]),
         const SizedBox(height: 12),
         ...docs.map((doc) => Padding(
@@ -5564,7 +5668,10 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
       Padding(
         padding: const EdgeInsets.fromLTRB(17, 17, 16, 14),
         child: Row(children: [
-          const Expanded(child: Text('Order list', style: TextStyle(color: ink, fontSize: 16, fontWeight: FontWeight.w900))),
+          Expanded(child: Text(
+            selectedStatusFilter == 'all' ? 'Order list' : _displayStatus(selectedStatusFilter) + ' orders',
+            style: const TextStyle(color: ink, fontSize: 16, fontWeight: FontWeight.w900),
+          )),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(color: softBlue, borderRadius: BorderRadius.circular(9)),
@@ -5943,6 +6050,10 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
     try {
       await widget.onStatusChanged(id, status);
       if (!mounted) return;
+      setState(() {
+        selectedStatusFilter = status.toLowerCase().trim();
+        selectedId = id;
+      });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Order status updated to ' + _displayStatus(status) + '.'),
         behavior: SnackBarBehavior.floating,
