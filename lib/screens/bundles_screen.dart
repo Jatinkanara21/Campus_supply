@@ -349,7 +349,7 @@ class BundlesScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: 190,
+            height: 250,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -375,7 +375,7 @@ class BundlesScreen extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 28, 22, 14),
+                  padding: const EdgeInsets.fromLTRB(14, 28, 14, 12),
                   child: _bundleImage(bundle),
                 ),
                 Positioned(
