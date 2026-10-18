@@ -527,14 +527,17 @@ class HomeScreen extends StatelessWidget {
             border: Border.all(color: const Color(0x36FFFFFF)),
           ),
           alignment: Alignment.center,
-          padding: const EdgeInsets.all(15),
+          padding: const EdgeInsets.all(10),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              AppImage(
-                source: imageSource,
-                fit: BoxFit.contain,
-                fallback: const _HeroFallbackVisual(),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: AppImage(
+                  source: imageSource,
+                  fit: BoxFit.cover,
+                  fallback: const _HeroFallbackVisual(),
+                ),
               ),
               Positioned(
                 right: 2,
