@@ -5685,6 +5685,39 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
             Text(userId, maxLines: 2, overflow: TextOverflow.ellipsis, softWrap: true,
                 style: const TextStyle(color: muted, fontSize: 12, height: 1.4, fontWeight: FontWeight.w600)),
           ],
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(color: border),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(color: softBlue, borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.person_outline_rounded, color: blue, size: 20),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Customer details', style: TextStyle(color: ink, fontSize: 15, fontWeight: FontWeight.w900)),
+                  SizedBox(height: 3),
+                  Text('Delivery information provided at checkout',
+                      style: TextStyle(color: muted, fontSize: 11, height: 1.35)),
+                ])),
+              ]),
+              const SizedBox(height: 16),
+              _customerDetailRow(icon: Icons.person_outline_rounded, label: 'Full name', value: data['customerName']),
+              _customerDetailRow(icon: Icons.phone_outlined, label: 'Phone number', value: data['customerPhone']),
+              _customerDetailRow(icon: Icons.mail_outline_rounded, label: 'Email address', value: data['customerEmail']),
+              _customerDetailRow(icon: Icons.location_on_outlined, label: 'Delivery address', value: data['deliveryAddress']),
+              _customerDetailRow(icon: Icons.location_city_outlined, label: 'City', value: data['deliveryCity']),
+              _customerDetailRow(icon: Icons.markunread_mailbox_outlined, label: 'PIN code', value: data['deliveryPinCode']),
+            ]),
+          ),
           const SizedBox(height: 22),
           Row(children: [
             const Expanded(child: Text('Items in this order', style: TextStyle(color: ink, fontSize: 15, fontWeight: FontWeight.w900))),
@@ -5791,6 +5824,43 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
           Text(priceLabel, maxLines: 1, overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: ink, fontSize: 12, fontWeight: FontWeight.w900)),
         ],
+      ]),
+    );
+  }
+
+  Widget _customerDetailRow({
+    required IconData icon,
+    required String label,
+    required Object? value,
+  }) {
+    final text = (value ?? '').toString().trim();
+    final hasValue = text.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 13),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, color: blue, size: 17),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label.toUpperCase(),
+              style: const TextStyle(color: muted, fontSize: 9, letterSpacing: .6, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 4),
+          Text(
+            hasValue ? text : 'Not available for this order',
+            softWrap: true,
+            style: TextStyle(
+              color: hasValue ? ink : muted,
+              fontSize: 12,
+              height: 1.4,
+              fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,
+            ),
+          ),
+        ])),
       ]),
     );
   }

@@ -78,6 +78,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         items: items,
         total: total,
         status: 'pending',
+        customerName: name.text.trim(),
+        customerPhone: phone.text.trim(),
+        customerEmail: FirebaseAuth.instance.currentUser?.email?.trim() ?? '',
+        deliveryAddress: address.text.trim(),
+        deliveryCity: city.text.trim(),
+        deliveryPinCode: pin.text.trim(),
       );
       orderCreated = true;
 
