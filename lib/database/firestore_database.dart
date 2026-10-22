@@ -98,28 +98,44 @@ class FirestoreDatabase {
         .toList());
   }
 
+  DocumentReference<Map<String, dynamic>> _cartReference({
+    required String uid,
+    required String itemId,
+    required String itemType,
+  }) => itemType == 'bundle'
+      ? carts.doc('${uid}_bundle_${itemId}')
+      : carts.doc('${uid}_${itemId}');
+
   Future<void> updateCartQuantity({
     required String uid,
-    required String productId,
+    required String itemId,
     required int quantity,
+    String itemType = 'product',
   }) async {
-    final ref = carts.doc('${uid}_${productId}');
+    final ref = _cartReference(uid: uid, itemId: itemId, itemType: itemType);
     if (quantity <= 0) {
       await ref.delete();
       return;
     }
-    await ref.set({
+    final data = <String, dynamic>{
       'userId': uid,
-      'productId': productId,
+      'itemType': itemType,
       'quantity': quantity,
       'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    };
+    if (itemType == 'bundle') {
+      data['bundleId'] = itemId;
+    } else {
+      data['productId'] = itemId;
+    }
+    await ref.set(data, SetOptions(merge: true));
   }
 
   Future<void> removeFromCart({
     required String uid,
-    required String productId,
-  }) => carts.doc('${uid}_${productId}').delete();
+    required String itemId,
+    String itemType = 'product',
+  }) => _cartReference(uid: uid, itemId: itemId, itemType: itemType).delete();
 
   Future<void> clearCart(String uid) async {
     final snapshot = await carts.where('userId', isEqualTo: uid).get();
@@ -188,10 +204,72 @@ class FirestoreDatabase {
   }) {
     return carts.doc('${uid}_${productId}').set({
       'userId': uid,
+      'itemType': 'product',
       'productId': productId,
       'quantity': quantity,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  /// Adds a complete bundle as one cart row, at the bundle's package price.
+  Future<void> addBundleToCart({
+    required String uid,
+    required Map<String, dynamic> bundle,
+    int quantity = 1,
+  }) async {
+    final bundleId = (bundle['id'] ?? '').toString().trim();
+    if (bundleId.isEmpty) {
+      throw ArgumentError.value(bundleId, 'bundle.id', 'A bundle ID is required.');
+    }
+    if (quantity < 1) {
+      throw ArgumentError.value(quantity, 'quantity', 'Quantity must be at least one.');
+    }
+    final rawProductIds = bundle['productIds'];
+    final productIds = rawProductIds is List
+        ? rawProductIds.map((value) => value.toString().trim()).where((value) => value.isNotEmpty).toSet().toList()
+        : <String>[];
+    if (productIds.isEmpty) {
+      throw StateError('Select included products for this bundle in Admin > Bundles before buying it.');
+    }
+    final bundleName = (bundle['name'] ?? bundle['title'] ?? 'Student Bundle').toString().trim();
+    final rawPrice = bundle['price'];
+    final bundlePrice = rawPrice is num
+        ? rawPrice.toDouble()
+        : double.tryParse((rawPrice ?? '').toString());
+    if (bundlePrice == null || bundlePrice < 0) {
+      throw StateError('This bundle has an invalid package price. Please contact the store admin.');
+    }
+
+    final productSnapshots = await Future.wait(productIds.map((id) => products.doc(id).get()));
+    final includedItems = productSnapshots.map((snapshot) {
+      final product = snapshot.data() ?? <String, dynamic>{};
+      return <String, dynamic>{
+        'productId': snapshot.id,
+        'name': (product['name'] ?? snapshot.id).toString(),
+        'price': product['price'] ?? 0,
+        'imageUrl': (product['imageUrl'] ?? '').toString(),
+      };
+    }).toList();
+
+    final ref = carts.doc('${uid}_bundle_${bundleId}');
+    await _db.runTransaction((transaction) async {
+      final existing = await transaction.get(ref);
+      final storedQuantity = existing.data()?['quantity'];
+      final currentQuantity = storedQuantity is num ? storedQuantity.toInt() : 0;
+      transaction.set(ref, {
+        'userId': uid,
+        'itemType': 'bundle',
+        'bundleId': bundleId,
+        'bundleName': bundleName,
+        'bundleDescription': (bundle['description'] ?? '').toString().trim(),
+        'bundlePrice': bundlePrice,
+        'bundleImageUrl': (bundle['imageUrl'] ?? bundle['image'] ?? '').toString().trim(),
+        'includedProductIds': productIds,
+        'includedItems': includedItems,
+        'quantity': currentQuantity + quantity,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    });
   }
 
   Stream<List<Map<String, dynamic>>> watchCart(String uid) {

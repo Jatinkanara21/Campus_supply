@@ -4209,6 +4209,7 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _imageUrlController = TextEditingController();
+  final Set<String> _selectedProductIds = <String>{};
 
   QueryDocumentSnapshot<Map<String, dynamic>>? _editingDoc;
   Uint8List? _selectedImageBytes;
@@ -4797,6 +4798,8 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
                     decoration: _fieldDecoration(label: 'Price (₹)', hint: '0.00', icon: Icons.currency_rupee_rounded),
                   ),
                   const SizedBox(height: 20),
+                  _includedProductsPicker(),
+                  const SizedBox(height: 20),
                   const Text('Bundle image', style: TextStyle(color: _ink, fontWeight: FontWeight.w800, fontSize: 13)),
                   const SizedBox(height: 10),
                   ClipRRect(
@@ -4970,6 +4973,11 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
       _descriptionController.text = (data['description'] ?? '').toString();
       _priceController.text = (data['price'] ?? '').toString();
       _imageUrlController.text = (data['imageUrl'] ?? '').toString();
+      _selectedProductIds
+        ..clear()
+        ..addAll(data['productIds'] is List
+            ? (data['productIds'] as List).map((value) => value.toString())
+            : const <String>[]);
       _selectedImageBytes = null;
       _selectedFileName = null;
       if (_isCompact) {
@@ -4985,6 +4993,7 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
     _descriptionController.clear();
     _priceController.clear();
     _imageUrlController.clear();
+    _selectedProductIds.clear();
     _selectedImageBytes = null;
     _selectedFileName = null;
   }
@@ -5105,6 +5114,98 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
     }
   }
 
+  Widget _includedProductsPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          const Expanded(child: Text(
+            'Products included in this bundle',
+            style: TextStyle(color: _ink, fontWeight: FontWeight.w800, fontSize: 13),
+          )),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(color: _softBlue, borderRadius: BorderRadius.circular(9)),
+            child: Text('${_selectedProductIds.length} selected',
+                style: const TextStyle(color: _blue, fontSize: 10, fontWeight: FontWeight.w900)),
+          ),
+        ]),
+        const SizedBox(height: 5),
+        const Text('Choose the catalog products that customers receive in this package.',
+            style: TextStyle(color: _muted, fontSize: 11, height: 1.4)),
+        const SizedBox(height: 10),
+        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance.collection('products').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(13), border: Border.all(color: _border)),
+                child: const Text('Could not load catalog products. Please try again.',
+                    style: TextStyle(color: _muted, fontSize: 12)),
+              );
+            }
+            if (!snapshot.hasData) {
+              return const SizedBox(height: 100, child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: _blue)));
+            }
+            final docs = snapshot.data!.docs;
+            if (docs.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(13), border: Border.all(color: _border)),
+                child: const Text('Add products to the catalog before creating a bundle.',
+                    style: TextStyle(color: _muted, fontSize: 12)),
+              );
+            }
+            return Container(
+              height: 260,
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: _border)),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                itemCount: docs.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, indent: 14, endIndent: 14, color: Color(0xFFEFF3F9)),
+                itemBuilder: (context, index) {
+                  final doc = docs[index];
+                  final data = doc.data();
+                  final productName = (data['name'] ?? data['title'] ?? doc.id).toString();
+                  final rawPrice = data['price'];
+                  final priceLabel = rawPrice is num
+                      ? '₹${rawPrice.toStringAsFixed(0)}'
+                      : (rawPrice == null ? 'Price unavailable' : '₹${rawPrice.toString()}');
+                  return CheckboxListTile(
+                    value: _selectedProductIds.contains(doc.id),
+                    onChanged: _saving || _uploading
+                        ? null
+                        : (checked) => setState(() {
+                              if (checked == true) {
+                                _selectedProductIds.add(doc.id);
+                              } else {
+                                _selectedProductIds.remove(doc.id);
+                              }
+                            }),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    dense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                    activeColor: _blue,
+                    title: Text(productName, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: _ink, fontSize: 12, fontWeight: FontWeight.w700)),
+                    subtitle: Text(priceLabel, style: const TextStyle(color: _muted, fontSize: 11)),
+                    secondary: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(color: _softBlue, borderRadius: BorderRadius.circular(10)),
+                      child: const Icon(Icons.inventory_2_outlined, color: _blue, size: 17),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
   Future<void> _saveBundle() async {
     if (_saving || _uploading) return;
     final name = _nameController.text.trim();
@@ -5118,6 +5219,19 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
       );
       return;
     }
+    if (_selectedProductIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least one product to include in this bundle.')),
+      );
+      return;
+    }
+    final parsedPrice = double.tryParse(priceText);
+    if (parsedPrice == null || parsedPrice <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid bundle price greater than zero.')),
+      );
+      return;
+    }
     if (imageUrl.isNotEmpty && !_isValidImageUrl(imageUrl)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -5127,35 +5241,37 @@ class _BundlesWorkspaceState extends State<_BundlesWorkspace> {
       );
       return;
     }
-
+    final productIds = _selectedProductIds.toList();
     setState(() => _saving = true);
     try {
       if (_editingDoc == null) {
         await FirebaseFirestore.instance.collection('bundles').add({
           'name': name,
           'description': description,
-          'price': double.tryParse(priceText) ?? 0,
+          'price': parsedPrice,
           'category': 'General',
           'stock': 0,
           'imageUrl': imageUrl,
+          'productIds': productIds,
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Item saved successfully')),
+          const SnackBar(content: Text('Bundle saved successfully')),
         );
       } else {
         await _editingDoc!.reference.update({
           'name': name,
           'description': description,
-          'price': double.tryParse(priceText) ?? 0,
+          'price': parsedPrice,
           'imageUrl': imageUrl,
+          'productIds': productIds,
           'updatedAt': FieldValue.serverTimestamp(),
         });
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product updated successfully')),
+          const SnackBar(content: Text('Bundle updated successfully')),
         );
       }
 
@@ -5905,8 +6021,15 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
 
   Widget _itemCard(Map item) {
     final itemName = (item['name'] ?? item['title'] ?? '').toString().trim();
+    final isBundle = (item['itemType'] ?? '').toString() == 'bundle';
     final quantity = item['quantity'];
     final price = item['price'];
+    final includedItems = item['includedItems'] is List ? item['includedItems'] as List : const <dynamic>[];
+    final includedNames = includedItems.whereType<Map>()
+        .map((entry) => (entry['name'] ?? '').toString().trim())
+        .where((name) => name.isNotEmpty)
+        .toList();
+    final includedLabel = includedNames.join(', ');
     String? priceLabel;
     if (price is num) priceLabel = _currency(price.toDouble());
     if (priceLabel == null && price != null && double.tryParse(price.toString()) != null) {
@@ -5917,14 +6040,21 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
       decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(13), border: Border.all(color: const Color(0xFFE8EDF5))),
       child: Row(children: [
         Container(width: 34, height: 34, decoration: BoxDecoration(color: softBlue, borderRadius: BorderRadius.circular(10)),
-          child: const Icon(Icons.shopping_bag_outlined, color: blue, size: 17)),
+          child: Icon(isBundle ? Icons.all_inbox_rounded : Icons.shopping_bag_outlined, color: blue, size: 17)),
         const SizedBox(width: 10),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(itemName.isEmpty ? 'Order item' : itemName, maxLines: 2, overflow: TextOverflow.ellipsis,
+          Text(itemName.isEmpty ? (isBundle ? 'Student bundle' : 'Order item') : itemName, maxLines: 2, overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: ink, fontSize: 12, height: 1.3, fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
-          Text(quantity is num ? 'Quantity: ' + quantity.toInt().toString() : 'Quantity not provided',
-              style: const TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w600)),
+          Text(
+            quantity is num ? (isBundle ? 'Bundle quantity: ' : 'Quantity: ') + quantity.toInt().toString() : 'Quantity not provided',
+            style: const TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+          if (isBundle && includedLabel.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text('Includes: ' + includedLabel, maxLines: 2, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: muted, fontSize: 10, height: 1.35)),
+          ],
         ])),
         if (priceLabel != null) ...[
           const SizedBox(width: 8),

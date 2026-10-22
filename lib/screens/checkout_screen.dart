@@ -63,8 +63,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => loading = true);
     var orderCreated = false;
     final items = cart.map((item) {
+      final isBundle = (item['itemType'] ?? 'product').toString() == 'bundle';
+      if (isBundle) {
+        return <String, dynamic>{
+          'itemType': 'bundle',
+          'bundleId': item['bundleId'],
+          'name': item['bundleName'] ?? 'Student Bundle',
+          'price': item['bundlePrice'] ?? 0,
+          'imageUrl': item['bundleImageUrl'] ?? '',
+          'quantity': item['quantity'] ?? 1,
+          'includedProductIds': item['includedProductIds'] is List ? item['includedProductIds'] : <dynamic>[],
+          'includedItems': item['includedItems'] is List ? item['includedItems'] : <dynamic>[],
+        };
+      }
       final product = byId[item['productId']?.toString()];
-      return {
+      return <String, dynamic>{
+        'itemType': 'product',
         'productId': item['productId'],
         'name': product?['name'] ?? 'Product',
         'price': product?['price'] ?? 0,
@@ -174,13 +188,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   product['id'].toString(): product,
               };
 
-              // Preserve the existing total: current product price × cart quantity.
+              // Product lines use catalog prices; bundle lines use their own package price.
               double total = 0;
               var totalUnits = 0;
               for (final item in cart) {
-                final product = byId[item['productId']?.toString()];
+                final isBundle = (item['itemType'] ?? 'product').toString() == 'bundle';
+                final product = isBundle ? null : byId[item['productId']?.toString()];
+                final rawPrice = isBundle ? item['bundlePrice'] : product?['price'];
+                final price = rawPrice is num ? rawPrice.toDouble() : double.tryParse((rawPrice ?? '').toString()) ?? 0;
                 final quantity = (item['quantity'] as num?)?.toInt() ?? 1;
-                total += ((product?['price'] as num?)?.toDouble() ?? 0) * quantity;
+                total += price * quantity;
                 totalUnits += quantity;
               }
 
@@ -434,7 +451,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
         const SizedBox(height: 9),
         const Text(
-          'The amount is based on current product prices and quantities.',
+          'Product lines use catalog prices; bundle lines use the package price shown in your bag.',
           style: TextStyle(color: muted, fontSize: 11, height: 1.5),
         ),
       ],

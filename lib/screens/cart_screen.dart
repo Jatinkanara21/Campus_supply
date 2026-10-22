@@ -70,9 +70,12 @@ class CartScreen extends StatelessWidget {
               double total = 0;
               var totalUnits = 0;
               for (final item in cart) {
-                final product = byId[item['productId']?.toString()];
+                final isBundle = (item['itemType'] ?? 'product').toString() == 'bundle';
+                final product = isBundle ? null : byId[item['productId']?.toString()];
+                final rawPrice = isBundle ? item['bundlePrice'] : product?['price'];
+                final price = rawPrice is num ? rawPrice.toDouble() : double.tryParse((rawPrice ?? '').toString()) ?? 0;
                 final qty = (item['quantity'] as num?)?.toInt() ?? 1;
-                total += ((product?['price'] as num?)?.toDouble() ?? 0) * qty;
+                total += price * qty;
                 totalUnits += qty;
               }
 
@@ -124,7 +127,7 @@ class CartScreen extends StatelessWidget {
 
   Widget _heading(int totalUnits, int productCount) {
     final itemWord = totalUnits == 1 ? 'item' : 'items';
-    final productWord = productCount == 1 ? 'product' : 'products';
+    final entryWord = productCount == 1 ? 'cart entry' : 'cart entries';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -134,7 +137,7 @@ class CartScreen extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          '$totalUnits $itemWord across $productCount $productWord',
+          '$totalUnits $itemWord across $productCount $entryWord',
           style: const TextStyle(color: muted, fontSize: 13, fontWeight: FontWeight.w600),
         ),
       ],
@@ -142,14 +145,27 @@ class CartScreen extends StatelessWidget {
   }
 
   Widget _item(BuildContext context, String uid, Map<String, dynamic> item, Map<String, dynamic>? product) {
-    final id = item['productId']?.toString() ?? '';
+    final isBundle = (item['itemType'] ?? 'product').toString() == 'bundle';
+    final id = isBundle ? (item['bundleId'] ?? '').toString() : (item['productId'] ?? '').toString();
+    final itemType = isBundle ? 'bundle' : 'product';
     final qty = (item['quantity'] as num?)?.toInt() ?? 1;
-    final rawPrice = product?['price'];
+    final rawPrice = isBundle ? item['bundlePrice'] : product?['price'];
     final price = rawPrice is num ? rawPrice.toDouble() : double.tryParse((rawPrice ?? '').toString());
-    final storedImage = (product?['imageUrl'] ?? '').toString().trim();
-    final image = storedImage.isNotEmpty ? storedImage : _fallbackImagePath(product);
-    final name = (product?['name'] ?? '').toString().trim();
-    final category = (product?['category'] ?? '').toString().trim();
+    final storedImage = (isBundle ? (item['bundleImageUrl'] ?? '') : (product?['imageUrl'] ?? '')).toString().trim();
+    final name = isBundle ? (item['bundleName'] ?? 'Student Bundle').toString().trim() : (product?['name'] ?? '').toString().trim();
+    final includedItems = item['includedItems'] is List ? item['includedItems'] as List : const <dynamic>[];
+    final includedNames = includedItems.whereType<Map>()
+        .map((entry) => (entry['name'] ?? '').toString().trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+    final category = isBundle
+        ? (includedNames.isEmpty ? 'Student bundle' : 'Includes: ' + includedNames.join(', '))
+        : (product?['category'] ?? '').toString().trim();
+    final image = storedImage.isNotEmpty
+        ? storedImage
+        : isBundle
+            ? _fallbackBundleImagePath(name)
+            : _fallbackImagePath(product);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -187,7 +203,7 @@ class CartScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        name.isEmpty ? 'Product unavailable' : name,
+                        name.isEmpty ? (isBundle ? 'Student Bundle' : 'Product unavailable') : name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(color: ink, fontSize: 14, height: 1.3, fontWeight: FontWeight.w900),
@@ -202,6 +218,7 @@ class CartScreen extends StatelessWidget {
                         context,
                         uid: uid,
                         productId: id,
+                        itemType: itemType,
                         productName: name.isEmpty ? 'this item' : name,
                       ),
                       style: IconButton.styleFrom(
@@ -215,8 +232,8 @@ class CartScreen extends StatelessWidget {
                 ),
                 if (category.isNotEmpty) ...[
                   const SizedBox(height: 3),
-                  Text(category, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w600)),
+                  Text(category, maxLines: isBundle ? 2 : 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: muted, fontSize: 11, height: 1.35, fontWeight: FontWeight.w600)),
                 ],
                 const SizedBox(height: 7),
                 Text(
@@ -232,7 +249,7 @@ class CartScreen extends StatelessWidget {
                     _qtyButton(
                       tooltip: 'Decrease quantity',
                       icon: Icons.remove_rounded,
-                      onTap: id.isEmpty ? null : () => _updateQuantity(context, uid, id, qty - 1),
+                      onTap: id.isEmpty ? null : () => _updateQuantity(context, uid, id, qty - 1, itemType: itemType),
                     ),
                     SizedBox(
                       width: 24,
@@ -242,7 +259,7 @@ class CartScreen extends StatelessWidget {
                     _qtyButton(
                       tooltip: 'Increase quantity',
                       icon: Icons.add_rounded,
-                      onTap: id.isEmpty ? null : () => _updateQuantity(context, uid, id, qty + 1),
+                      onTap: id.isEmpty ? null : () => _updateQuantity(context, uid, id, qty + 1, itemType: itemType),
                     ),
                     if (price != null)
                       Text('Line total ₹' + (price * qty).toStringAsFixed(0),
@@ -255,6 +272,14 @@ class CartScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _fallbackBundleImagePath(String name) {
+    final value = name.toLowerCase();
+    if (value.contains('exam')) return 'assets/image/products/calculator.svg';
+    if (value.contains('study')) return 'assets/image/products/lamp.svg';
+    if (value.contains('campus') || value.contains('daily')) return 'assets/image/products/backpack.svg';
+    return 'assets/image/products/notebook.svg';
   }
 
   String _fallbackImagePath(Map<String, dynamic>? product) {
@@ -290,9 +315,20 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _updateQuantity(BuildContext context, String uid, String id, int qty) async {
+  Future<void> _updateQuantity(
+    BuildContext context,
+    String uid,
+    String id,
+    int qty, {
+    String itemType = 'product',
+  }) async {
     try {
-      await FirestoreDatabase.instance.updateCartQuantity(uid: uid, productId: id, quantity: qty);
+      await FirestoreDatabase.instance.updateCartQuantity(
+        uid: uid,
+        itemId: id,
+        quantity: qty,
+        itemType: itemType,
+      );
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -306,6 +342,7 @@ class CartScreen extends StatelessWidget {
     BuildContext context, {
     required String uid,
     required String productId,
+    required String itemType,
     required String productName,
   }) async {
     final confirmed = await showDialog<bool>(
@@ -326,7 +363,7 @@ class CartScreen extends StatelessWidget {
     if (confirmed != true || !context.mounted) return;
 
     try {
-      await FirestoreDatabase.instance.removeFromCart(uid: uid, productId: productId);
+      await FirestoreDatabase.instance.removeFromCart(uid: uid, itemId: productId, itemType: itemType);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Item removed from your bag.')));
       }
@@ -373,7 +410,7 @@ class CartScreen extends StatelessWidget {
           ]),
           const SizedBox(height: 8),
           Text(
-            'Based on $productCount ' + (productCount == 1 ? 'product' : 'products') + ' in your bag.',
+            'Based on $productCount ' + (productCount == 1 ? 'cart entry' : 'cart entries') + ' in your bag.',
             style: const TextStyle(color: muted, fontSize: 11, height: 1.45),
           ),
           const SizedBox(height: 18),

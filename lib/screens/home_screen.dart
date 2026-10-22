@@ -1520,32 +1520,23 @@ class _HomeBundleCard extends StatelessWidget {
       return;
     }
     final rawIds = bundle['productIds'];
-    var productIds = rawIds is List
-        ? rawIds.map((id) => id.toString()).where((id) => id.trim().isNotEmpty).toSet().toList()
+    final productIds = rawIds is List
+        ? rawIds.map((id) => id.toString().trim()).where((id) => id.isNotEmpty).toSet().toList()
         : <String>[];
-
     if (productIds.isEmpty) {
-      final bundleName = (bundle['name'] ?? bundle['title'] ?? '').toString().toLowerCase();
-      if (bundleName.contains('architecture')) {
-        productIds = ['premium_notebook', 'gel_pen_pack', 'laptop_sleeve'];
-      } else if (bundleName.contains('first-year') || bundleName.contains('first year') || bundleName.contains('essential')) {
-        productIds = ['premium_notebook', 'gel_pen_pack', 'campus_pro_backpack'];
-      } else if (bundleName.contains('exam')) {
-        productIds = ['premium_notebook', 'gel_pen_pack', 'scientific_calculator'];
-      }
-    }
-
-    if (productIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This bundle has no products configured yet.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This bundle needs included products. Please ask the store admin to update it.')),
+      );
       return;
     }
     try {
-      for (final productId in productIds) {
-        await FirestoreDatabase.instance.addToCart(uid: uid, productId: productId, quantity: 1);
-      }
+      await FirestoreDatabase.instance.addBundleToCart(uid: uid, bundle: bundle);
       if (!context.mounted) return;
+      final name = (bundle['name'] ?? bundle['title'] ?? 'Student Bundle').toString();
+      final rawPrice = bundle['price'];
+      final price = rawPrice is num ? rawPrice.toDouble() : double.tryParse((rawPrice ?? '').toString()) ?? 0;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('${productIds.length} bundle item(s) added to your bag.'),
+        content: Text('$name added to your bag at ₹${price.toStringAsFixed(0)}.'),
         action: SnackBarAction(label: 'VIEW BAG', onPressed: () => Navigator.pushNamed(context, '/cart')),
       ));
     } catch (e) {
