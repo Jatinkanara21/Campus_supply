@@ -556,7 +556,7 @@ class AdminManagementScreen extends StatelessWidget {
         subtitle = 'Total: ₹${(data['total'] ?? '-').toString()} • $count item(s)';
         break;
       case AdminSection.users:
-        subtitle = 'Account role';
+        subtitle = data['isDemo'] == true ? 'Faculty demo account' : 'Account role';
         break;
       case AdminSection.reviews:
         subtitle = (data['comment'] ?? '').toString().trim().isEmpty
@@ -573,15 +573,17 @@ class AdminManagementScreen extends StatelessWidget {
     final badgeText = section == AdminSection.orders
         ? status.toUpperCase()
         : section == AdminSection.users
-            ? (role == 'admin' ? 'ADMIN' : 'USER')
+            ? (data['isDemo'] == true ? 'DEMO USER' : (role == 'admin' ? 'ADMIN' : 'USER'))
             : section == AdminSection.reviews && rating.isNotEmpty
                 ? '★ $rating'
                 : null;
     final badgeColor = section == AdminSection.orders && status.toLowerCase() == 'delivered'
         ? const Color(0xFF15803D)
-        : section == AdminSection.users && role == 'admin'
-            ? const Color(0xFF7C3AED)
-            : const Color(0xFF2563EB);
+        : section == AdminSection.users && data['isDemo'] == true
+            ? const Color(0xFF946200)
+            : section == AdminSection.users && role == 'admin'
+                ? const Color(0xFF7C3AED)
+                : const Color(0xFF2563EB);
 
     return Container(
       padding: const EdgeInsets.all(12),

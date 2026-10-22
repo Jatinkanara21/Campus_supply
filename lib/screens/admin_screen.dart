@@ -24,6 +24,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
   bool loading = true;
   bool admin = false;
+  bool seedingDemoData = false;
   String name = 'Admin';
 
   @override
@@ -513,6 +514,8 @@ class _AdminScreenState extends State<AdminScreen> {
           _shopBannerSettingsCard(),
           const SizedBox(height: 14),
           _buildStarterCatalogCard(),
+          const SizedBox(height: 14),
+          _buildFacultyDemoDataCard(),
         ],
       ),
     );
@@ -1018,6 +1021,155 @@ class _AdminScreenState extends State<AdminScreen> {
     );
 
     controller.dispose();
+  }
+
+  Widget _buildFacultyDemoDataCard() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 440;
+        const details = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Faculty demo data', style: TextStyle(color: ink, fontSize: 14, fontWeight: FontWeight.w900)),
+            SizedBox(height: 5),
+            Text(
+              'Create 5 regular demo logins. Each gets 5 orders (one per status), 3 cart entries and 3 wishlist items.',
+              style: TextStyle(color: muted, fontSize: 12, height: 1.45),
+            ),
+            SizedBox(height: 6),
+            Text(
+              'Sample-only contact details are used. Existing non-demo records will not be overwritten.',
+              style: TextStyle(color: muted, fontSize: 11, height: 1.4),
+            ),
+          ],
+        );
+
+        final button = FilledButton.icon(
+          onPressed: seedingDemoData ? null : _seedFacultyDemoData,
+          icon: seedingDemoData
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.people_alt_outlined, size: 17),
+          label: Text(seedingDemoData ? 'Preparing demo data...' : 'Create demo data'),
+        );
+
+        return Container(
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFBF0),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: const Color(0xFFF4D99A)),
+          ),
+          child: compact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: const BoxDecoration(color: Color(0xFFFFF0BF), shape: BoxShape.circle),
+                          child: const Icon(Icons.school_outlined, color: Color(0xFF946200), size: 25),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(child: details),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Align(alignment: Alignment.centerRight, child: button),
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: const BoxDecoration(color: Color(0xFFFFF0BF), shape: BoxShape.circle),
+                      child: const Icon(Icons.school_outlined, color: Color(0xFF946200), size: 25),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(child: details),
+                    const SizedBox(width: 12),
+                    button,
+                  ],
+                ),
+        );
+      },
+    );
+  }
+
+  Future<void> _seedFacultyDemoData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Create faculty demo data?'),
+        content: const Text(
+          'This creates five Firebase sign-in accounts, plus 25 sample orders, 15 cart entries and 15 wishlist entries. All sample records are labelled demo. Existing non-demo records will not be overwritten.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Create demo data')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => seedingDemoData = true);
+    try {
+      final summary = await seedFacultyDemoData();
+      if (!mounted) return;
+
+      final credentials = summary.accounts
+          .map((account) => account.name + '\n' + account.email + '\nPassword: ' + account.password)
+          .join('\n\n');
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Faculty demo accounts ready'),
+          content: SizedBox(
+            width: 520,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Firebase accounts: ' + summary.accountsCreated.toString() + ' created, ' + summary.accountsReused.toString() + ' reused\n'
+                    'Profiles created: ' + summary.profilesCreated.toString() + '\n'
+                    'Orders added: ' + summary.ordersCreated.toString() + '\n'
+                    'Cart entries added: ' + summary.cartEntriesCreated.toString() + '\n'
+                    'Wishlist entries added: ' + summary.wishlistEntriesCreated.toString() + '\n'
+                    'Starter catalog records added: ' + summary.catalogRecordsAdded.toString(),
+                    style: const TextStyle(height: 1.55, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Demo login credentials', style: TextStyle(fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 8),
+                  SelectableText(credentials, style: const TextStyle(fontSize: 12, height: 1.55)),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Shared password for all five accounts: CampusDemo@2026\nThese accounts and addresses are for faculty demonstration only.',
+                    style: TextStyle(fontSize: 12, height: 1.5, color: muted),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            FilledButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Done')),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not create faculty demo data: ' + e.toString()), duration: const Duration(seconds: 6)),
+      );
+    } finally {
+      if (mounted) setState(() => seedingDemoData = false);
+    }
   }
 
   Future<void> _seedCatalog() async {
