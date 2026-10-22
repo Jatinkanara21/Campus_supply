@@ -1,8 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../widgets/customer_bottom_nav.dart';
 
 import '../database/firestore_database.dart';
+import '../widgets/app_image.dart';
 
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
@@ -58,25 +60,36 @@ class OrdersScreen extends StatelessWidget {
             );
           }
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final horizontal = constraints.maxWidth >= 900 ? 30.0 : 16.0;
+          return StreamBuilder<List<Map<String, dynamic>>>(
+            stream: FirestoreDatabase.instance.watchProducts(),
+            builder: (context, productSnapshot) {
+              final productsById = <String, Map<String, dynamic>>{
+                if (productSnapshot.hasData)
+                  for (final product in productSnapshot.data!)
+                    product['id'].toString(): product,
+              };
 
-              return Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1040),
-                  child: ListView(
-                    padding: EdgeInsets.fromLTRB(horizontal, 22, horizontal, 36),
-                    children: [
-                      _pageIntro(orders.length),
-                      const SizedBox(height: 22),
-                      ...orders.map((order) => Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: _orderCard(order),
-                      )),
-                    ],
-                  ),
-                ),
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final horizontal = constraints.maxWidth >= 900 ? 30.0 : 16.0;
+
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1040),
+                      child: ListView(
+                        padding: EdgeInsets.fromLTRB(horizontal, 22, horizontal, 36),
+                        children: [
+                          _pageIntro(orders.length),
+                          const SizedBox(height: 22),
+                          ...orders.map((order) => Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: _orderCard(order, productsById),
+                          )),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               );
             },
           );
@@ -136,7 +149,10 @@ class OrdersScreen extends StatelessWidget {
     );
   }
 
-  Widget _orderCard(Map<String, dynamic> order) {
+  Widget _orderCard(
+    Map<String, dynamic> order,
+    Map<String, Map<String, dynamic>> productsById,
+  ) {
     final id = (order['id'] ?? '').toString();
     final status = (order['status'] ?? 'pending').toString();
     final normalizedStatus = status.toLowerCase().trim();
@@ -145,20 +161,28 @@ class OrdersScreen extends StatelessWidget {
     final total = rawTotal is num
         ? rawTotal.toDouble()
         : double.tryParse((rawTotal ?? '').toString()) ?? 0;
-    final items = order['items'] as List?;
-    final itemCount = items?.fold<int>(0, (sum, entry) {
-          if (entry is Map) {
-            final quantity = entry['quantity'];
-            if (quantity is num) {
-              final safeQuantity = quantity.toInt();
-              return sum + (safeQuantity < 0 ? 0 : safeQuantity);
-            }
-          }
-          return sum + 1;
-        }) ??
-        0;
-    final progress = _statusProgress(normalizedStatus);
+    final rawItems = order['items'] is List ? order['items'] as List : const <dynamic>[];
+    final items = rawItems.whereType<Map>().toList();
+    final itemCount = items.fold<int>(0, (sum, entry) {
+      final quantity = entry['quantity'];
+      if (quantity is num) return sum + (quantity.toInt() < 0 ? 0 : quantity.toInt());
+      return sum + 1;
+    });
+    final date = _formatOrderDate(order['createdAt']);
     final cancelled = normalizedStatus == 'cancelled';
+    final firstItem = items.isEmpty ? null : items.first;
+    final previewName = firstItem == null
+        ? 'Item details unavailable'
+        : (firstItem['name'] ?? firstItem['title'] ?? 'Order item').toString();
+    final firstIsBundle = firstItem != null && (firstItem['itemType'] ?? '').toString() == 'bundle';
+    final previewIncluded = firstIsBundle ? _includedItemNames(firstItem!) : <String>[];
+    final previewText = firstIsBundle && previewIncluded.isNotEmpty
+        ? 'Bundle · Includes ' + previewIncluded.join(', ')
+        : items.length > 1
+            ? 'Plus ' + (items.length - 1).toString() + (items.length == 2 ? ' more item' : ' more items')
+            : firstIsBundle
+                ? 'Bundle package'
+                : 'Purchased item';
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -180,7 +204,7 @@ class OrdersScreen extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(color: softBlue, borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.receipt_long_rounded, color: blue, size: 21),
+                child: Icon(cancelled ? Icons.receipt_long_rounded : Icons.inventory_2_outlined, color: blue, size: 21),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -200,6 +224,19 @@ class OrdersScreen extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w900),
                       ),
+                      if (date != null) ...[
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_today_outlined, color: muted, size: 12),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(date, maxLines: 1, overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w600)),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -209,7 +246,7 @@ class OrdersScreen extends StatelessWidget {
             ],
           ),
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 17),
+            padding: EdgeInsets.symmetric(vertical: 16),
             child: Divider(height: 1),
           ),
           Wrap(
@@ -229,7 +266,92 @@ class OrdersScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 15),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: const Color(0xFFE8EDF5)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 42,
+                  decoration: BoxDecoration(color: softBlue, borderRadius: BorderRadius.circular(11)),
+                  child: Icon(firstIsBundle ? Icons.all_inbox_rounded : Icons.shopping_bag_outlined, color: blue, size: 20),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        previewName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: ink, fontSize: 12, fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        previewText,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: muted, fontSize: 10, height: 1.35, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right_rounded, color: muted, size: 20),
+              ],
+            ),
+          ),
+          const SizedBox(height: 7),
+          Theme(
+            data: Theme.of(context).copyWith(
+              dividerColor: Colors.transparent,
+              splashColor: softBlue,
+              highlightColor: softBlue.withValues(alpha: .4),
+            ),
+            child: ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(horizontal: 2),
+              childrenPadding: const EdgeInsets.only(top: 6, bottom: 4),
+              shape: const Border(),
+              collapsedShape: const Border(),
+              title: const Text(
+                'View full order details',
+                style: TextStyle(color: blue, fontSize: 12, fontWeight: FontWeight.w900),
+              ),
+              subtitle: Text(
+                items.isEmpty
+                    ? 'No item details were saved for this order'
+                    : items.length.toString() + (items.length == 1 ? ' order line' : ' order lines'),
+                style: const TextStyle(color: muted, fontSize: 10, height: 1.4),
+              ),
+              children: [
+                if (items.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      'Item names are not available in this historical order record.',
+                      style: TextStyle(color: muted, fontSize: 12, height: 1.5),
+                    ),
+                  )
+                else
+                  ...items.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 9),
+                    child: _orderLineItem(item, productsById),
+                  )),
+                if ((order['customerName'] ?? '').toString().trim().isNotEmpty ||
+                    (order['deliveryAddress'] ?? '').toString().trim().isNotEmpty)
+                  _deliverySummary(order),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           if (cancelled)
             Container(
               width: double.infinity,
@@ -248,43 +370,222 @@ class OrdersScreen extends StatelessWidget {
                 ],
               ),
             )
-          else if (progress != null)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'ORDER STATUS',
-                        style: TextStyle(color: muted, fontSize: 9, letterSpacing: .8, fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                    Text(
-                      _displayStatus(status),
-                      style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w900),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 9),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 7,
-                    backgroundColor: softBlue,
-                    color: statusColor,
-                  ),
-                ),
-              ],
-            )
+          else if (_statusProgress(normalizedStatus) != null)
+            _statusTimeline(normalizedStatus)
           else
             Text(
-              'Current status: ' + status,
+              'Current status: ' + _displayStatus(status),
               style: const TextStyle(color: muted, fontSize: 12, fontWeight: FontWeight.w600),
             ),
         ],
       ),
+    );
+  }
+
+  Widget _orderLineItem(Map item, Map<String, Map<String, dynamic>> productsById) {
+    final isBundle = (item['itemType'] ?? '').toString() == 'bundle';
+    final productId = (item['productId'] ?? '').toString();
+    final product = isBundle ? null : productsById[productId];
+    final name = (item['name'] ?? item['title'] ?? (isBundle ? 'Student Bundle' : 'Product')).toString();
+    final rawPrice = item['price'];
+    final price = rawPrice is num
+        ? rawPrice.toDouble()
+        : double.tryParse((rawPrice ?? '').toString());
+    final rawQuantity = item['quantity'];
+    final quantity = rawQuantity is num ? rawQuantity.toInt() : 1;
+    final lineTotal = price == null ? null : price * quantity;
+    final savedImage = (item['imageUrl'] ?? item['bundleImageUrl'] ?? '').toString().trim();
+    final image = savedImage.isNotEmpty
+        ? savedImage
+        : (product?['imageUrl'] ?? '').toString().trim();
+    final imageSource = image.isNotEmpty ? image : _fallbackOrderImage(name, product, isBundle);
+    final includedNames = isBundle ? _includedItemNames(item) : <String>[];
+    final category = isBundle
+        ? (includedNames.isNotEmpty ? 'Bundle · ' + includedNames.join(', ') : 'Bundle package')
+        : (product?['category'] ?? 'Product').toString();
+
+    return Container(
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: const Color(0xFFE8EDF5)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 68,
+            height: 72,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(color: softBlue, borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(5),
+              child: AppImage(
+                source: imageSource,
+                fit: BoxFit.contain,
+                fallback: Center(child: Icon(isBundle ? Icons.all_inbox_rounded : Icons.shopping_bag_outlined, color: blue, size: 27)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: ink, fontSize: 12, height: 1.35, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 4),
+                Text(category, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: muted, fontSize: 10, height: 1.35, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                Text(
+                  price == null ? 'Price unavailable' : '₹' + price.toStringAsFixed(0) + ' each · Qty ' + quantity.toString(),
+                  style: const TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+          if (lineTotal != null) ...[
+            const SizedBox(width: 8),
+            Text(
+              '₹' + lineTotal.toStringAsFixed(0),
+              style: const TextStyle(color: blue, fontSize: 13, fontWeight: FontWeight.w900),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<String> _includedItemNames(Map item) {
+    final raw = item['includedItems'];
+    if (raw is! List) return <String>[];
+    return raw.whereType<Map>()
+        .map((entry) => (entry['name'] ?? entry['title'] ?? '').toString().trim())
+        .where((name) => name.isNotEmpty)
+        .toList();
+  }
+
+  String _fallbackOrderImage(String name, Map<String, dynamic>? product, bool isBundle) {
+    final value = (name + ' ' + (product?['category'] ?? '').toString()).toLowerCase();
+    if (value.contains('backpack') || value.contains('bag') || value.contains('campus daily')) return 'assets/image/products/backpack.svg';
+    if (value.contains('headphone')) return 'assets/image/products/headphones.svg';
+    if (value.contains('bottle') || value.contains('tumbler')) return 'assets/image/products/bottle.svg';
+    if (value.contains('calculator') || value.contains('exam')) return 'assets/image/products/calculator.svg';
+    if (value.contains('lamp') || value.contains('study smart')) return 'assets/image/products/lamp.svg';
+    if (value.contains('sleeve')) return 'assets/image/products/sleeve.svg';
+    if (value.contains('pen')) return 'assets/image/products/pen.svg';
+    if (value.contains('notebook') || value.contains('stationery')) return 'assets/image/products/notebook.svg';
+    return isBundle ? 'assets/image/products/backpack.svg' : '';
+  }
+
+  String? _formatOrderDate(Object? value) {
+    DateTime? date;
+    if (value is Timestamp) date = value.toDate();
+    if (value is DateTime) date = value;
+    if (date == null) return null;
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final period = date.hour >= 12 ? 'PM' : 'AM';
+    return '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]} ${date.year} • $hour:$minute $period';
+  }
+
+  Widget _deliverySummary(Map<String, dynamic> order) {
+    final name = (order['customerName'] ?? '').toString().trim();
+    final phone = (order['customerPhone'] ?? '').toString().trim();
+    final email = (order['customerEmail'] ?? '').toString().trim();
+    final address = (order['deliveryAddress'] ?? '').toString().trim();
+    final city = (order['deliveryCity'] ?? '').toString().trim();
+    final pin = (order['deliveryPinCode'] ?? '').toString().trim();
+    final parts = [address, city, pin].where((value) => value.isNotEmpty).toList();
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: softBlue, borderRadius: BorderRadius.circular(13)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('DELIVERY DETAILS', style: TextStyle(color: ink, fontSize: 10, letterSpacing: .7, fontWeight: FontWeight.w900)),
+        if (name.isNotEmpty) ...[
+          const SizedBox(height: 7),
+          Text(name, style: const TextStyle(color: ink, fontSize: 12, fontWeight: FontWeight.w800)),
+        ],
+        if (phone.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(phone, style: const TextStyle(color: ink, fontSize: 11, fontWeight: FontWeight.w600)),
+        ],
+        if (email.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(email, style: const TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w600)),
+        ],
+        if (parts.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(parts.join(', '), style: const TextStyle(color: ink, fontSize: 11, height: 1.45)),
+        ],
+      ]),
+    );
+  }
+
+  Widget _statusTimeline(String status) {
+    const labels = ['Pending', 'Confirmed', 'Shipped', 'Delivered'];
+    const icons = [
+      Icons.schedule_rounded,
+      Icons.verified_outlined,
+      Icons.local_shipping_outlined,
+      Icons.check_circle_outline_rounded,
+    ];
+    final currentStep = labels.indexWhere((label) => label.toLowerCase() == status);
+    if (currentStep < 0) {
+      return Text('Current status: ' + _displayStatus(status),
+          style: const TextStyle(color: muted, fontSize: 12, fontWeight: FontWeight.w600));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('ORDER PROGRESS',
+            style: TextStyle(color: muted, fontSize: 9, letterSpacing: .8, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 13),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: List.generate(labels.length, (index) {
+            final completed = index < currentStep;
+            final active = index == currentStep;
+            final dotColor = active ? blue : completed ? green : const Color(0xFFE2E8F0);
+            final iconColor = active || completed ? Colors.white : muted;
+            return Expanded(
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      if (index > 0)
+                        Expanded(
+                          child: Container(height: 2, color: index <= currentStep ? green : const Color(0xFFE2E8F0)),
+                        ),
+                      Container(
+                        width: 23,
+                        height: 23,
+                        decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+                        child: Icon(completed ? Icons.check_rounded : icons[index], color: iconColor, size: 13),
+                      ),
+                      if (index < labels.length - 1)
+                        Expanded(
+                          child: Container(height: 2, color: index < currentStep ? green : const Color(0xFFE2E8F0)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(labels[index], maxLines: 1, overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: active ? blue : completed ? green : muted, fontSize: 9, fontWeight: active ? FontWeight.w900 : FontWeight.w700)),
+                ],
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 
@@ -362,21 +663,6 @@ class OrdersScreen extends StatelessWidget {
         return red;
       default:
         return muted;
-    }
-  }
-
-  static double? _statusProgress(String status) {
-    switch (status) {
-      case 'pending':
-        return 0.2;
-      case 'confirmed':
-        return 0.45;
-      case 'shipped':
-        return 0.75;
-      case 'delivered':
-        return 1;
-      default:
-        return null;
     }
   }
 
