@@ -83,7 +83,7 @@ class OrdersScreen extends StatelessWidget {
                           const SizedBox(height: 22),
                           ...orders.map((order) => Padding(
                             padding: const EdgeInsets.only(bottom: 14),
-                            child: _orderCard(order, productsById),
+                            child: _orderCard(context, order, productsById),
                           )),
                         ],
                       ),
@@ -150,6 +150,7 @@ class OrdersScreen extends StatelessWidget {
   }
 
   Widget _orderCard(
+    BuildContext context,
     Map<String, dynamic> order,
     Map<String, Map<String, dynamic>> productsById,
   ) {
@@ -370,7 +371,7 @@ class OrdersScreen extends StatelessWidget {
                 ],
               ),
             )
-          else if (_statusProgress(normalizedStatus) != null)
+          else if (const ['pending', 'confirmed', 'shipped', 'delivered'].contains(normalizedStatus))
             _statusTimeline(normalizedStatus)
           else
             Text(
