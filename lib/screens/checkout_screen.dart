@@ -325,6 +325,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           controller: address,
           label: 'Delivery address',
           icon: Icons.location_on_outlined,
+          keyboardType: TextInputType.multiline,
           alignLabelWithHint: true,
           maxLines: 3,
           textInputAction: TextInputAction.newline,
