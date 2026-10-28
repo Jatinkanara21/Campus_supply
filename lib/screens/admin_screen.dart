@@ -25,6 +25,8 @@ class _AdminScreenState extends State<AdminScreen> {
   bool loading = true;
   bool admin = false;
   bool seedingDemoData = false;
+  bool refreshingDashboard = false;
+  int _dashboardRefreshVersion = 0;
   String name = 'Admin';
 
   @override
@@ -42,6 +44,52 @@ class _AdminScreenState extends State<AdminScreen> {
       name = userName;
       loading = false;
     });
+  }
+
+  Future<void> _refreshDashboard() async {
+    if (refreshingDashboard) return;
+    setState(() => refreshingDashboard = true);
+
+    try {
+      final db = FirebaseFirestore.instance;
+      await Future.wait<void>([
+        db.collection('products')
+            .get(const GetOptions(source: Source.server))
+            .then<void>((_) {}),
+        db.collection('orders')
+            .get(const GetOptions(source: Source.server))
+            .then<void>((_) {}),
+        db.collection('users')
+            .get(const GetOptions(source: Source.server))
+            .then<void>((_) {}),
+      ]);
+
+      if (!mounted) return;
+      setState(() => _dashboardRefreshVersion++);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Dashboard data refreshed successfully.')),
+      );
+    } on FirebaseException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Could not refresh dashboard. ${error.message ?? 'Check your connection and permissions.'}',
+          ),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not refresh dashboard. Please check your connection and try again.'),
+          duration: Duration(seconds: 5),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => refreshingDashboard = false);
+    }
   }
 
   @override
@@ -236,14 +284,26 @@ class _AdminScreenState extends State<AdminScreen> {
           if (compact)
             IconButton(
               tooltip: 'Refresh dashboard',
-              onPressed: _load,
-              icon: const Icon(Icons.refresh_rounded, color: blue),
+              onPressed: refreshingDashboard ? null : _refreshDashboard,
+              icon: refreshingDashboard
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: blue),
+                    )
+                  : const Icon(Icons.refresh_rounded, color: blue),
             )
           else
             OutlinedButton.icon(
-              onPressed: _load,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Refresh'),
+              onPressed: refreshingDashboard ? null : _refreshDashboard,
+              icon: refreshingDashboard
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: blue),
+                    )
+                  : const Icon(Icons.refresh_rounded, size: 18),
+              label: Text(refreshingDashboard ? 'Refreshing...' : 'Refresh'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: blue,
                 backgroundColor: Colors.white,
@@ -396,6 +456,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _buildDashboardContent(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      key: ValueKey('dashboard-refresh-$_dashboardRefreshVersion'),
       stream: FirebaseFirestore.instance.collection('products').snapshots(),
       builder: (context, products) {
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
