@@ -99,7 +99,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       'deliveryPinCode': pin.text.trim(),
     };
 
-    // Demo failure stays local. The backend is called only after simulated success.
+    // UPI/Card demo payments use the local SharedPreferences order store.
     if (_paymentMethod != 'cash_on_delivery') {
       setState(() => loading = true);
       try {
