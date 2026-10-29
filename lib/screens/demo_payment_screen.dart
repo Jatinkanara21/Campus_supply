@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../database/firestore_database.dart';
+import '../database/local_demo_orders.dart';
 
 class DemoPaymentScreen extends StatefulWidget {
   const DemoPaymentScreen({
@@ -115,33 +116,50 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
 
       // Only the selected payment method is sent to the backend.
       // The entered demo UPI ID/card number is kept on this screen and is not saved.
-      final result = await FirestoreDatabase.instance.createOrder(
-        uid: uid,
-        items: items,
-        total: total,
-        paymentMethod: paymentMethod,
-        customerName:
+      // Demo checkout is saved locally so it can work without a deployed Cloud Function.
+      // Never persist a full card number; store only the masked display value.
+      final now = DateTime.now();
+      final localOrderId = 'LOCAL-${now.millisecondsSinceEpoch}';
+      final localTransactionId =
+          'DEMO-TXN-${now.millisecondsSinceEpoch.toString()}';
+      final localOrder = <String, dynamic>{
+        'id': localOrderId,
+        'userId': uid,
+        'items': items,
+        'total': total,
+        'status': 'pending',
+        'paymentMethod': paymentMethod,
+        'paymentMode': 'demo',
+        'paymentStatus': 'success',
+        'demoTransactionId': localTransactionId,
+        'paymentIdentifier': displayedIdentifier,
+        'isLocalDemo': true,
+        'customerName':
             (widget.checkoutData['customerName'] ?? '').toString(),
-        customerPhone:
+        'customerPhone':
             (widget.checkoutData['customerPhone'] ?? '').toString(),
-        customerEmail:
+        'customerEmail':
             (widget.checkoutData['customerEmail'] ?? '').toString(),
-        deliveryAddress:
+        'deliveryAddress':
             (widget.checkoutData['deliveryAddress'] ?? '').toString(),
-        deliveryCity: (widget.checkoutData['deliveryCity'] ?? '').toString(),
-        deliveryPinCode:
+        'deliveryCity':
+            (widget.checkoutData['deliveryCity'] ?? '').toString(),
+        'deliveryPinCode':
             (widget.checkoutData['deliveryPinCode'] ?? '').toString(),
-      );
+        'createdAt': now.toIso8601String(),
+        'updatedAt': now.toIso8601String(),
+      };
+      await LocalDemoOrders.saveForUser(uid, localOrder);
 
       if (!mounted) return;
       setState(() {
         completed = true;
-        orderId = result.orderId;
-        transactionId = result.demoTransactionId;
+        orderId = localOrderId;
+        transactionId = localTransactionId;
       });
 
       try {
-        await FirestoreDatabase.instance.clearCart(uid);
+        await FirestoreDatabase.instance.clearCart(uid).timeout(const Duration(seconds: 5));
       } catch (_) {
         if (!mounted) return;
         setState(() => cartClearFailed = true);
