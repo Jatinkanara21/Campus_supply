@@ -73,17 +73,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: FirestoreDatabase.instance.watchOrders(uid),
         builder: (context, snapshot) {
-          if (snapshot.hasError) {
+          if (snapshot.hasError && !_localOrdersLoaded) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError && _localOrders.isEmpty) {
             return _state(
               icon: Icons.cloud_off_outlined,
               title: 'Unable to load orders',
               subtitle: 'Please try again in a moment.',
             );
           }
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData && !snapshot.hasError) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
           final orders = <Map<String, dynamic>>[
-            ...snapshot.data!,
+            ...(snapshot.data ?? const <Map<String, dynamic>>[]),
             ..._localOrders,
           ]..sort((a, b) {
               final aDate = _dateTimeValue(a['createdAt']) ??
