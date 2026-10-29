@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../database/firestore_database.dart';
-import '../database/local_demo_orders.dart';
 
 class DemoPaymentScreen extends StatefulWidget {
   const DemoPaymentScreen({
@@ -27,6 +26,10 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
 
   final _formKey = GlobalKey<FormState>();
   final _paymentIdentifierController = TextEditingController();
+
+  /// One idempotency key per checkout attempt: pressing Pay Now again after
+  /// an error re-uses it, so the order can never be saved twice.
+  late final String _orderKey = FirestoreDatabase.instance.newOrderKey();
 
   bool processing = false;
   bool completed = false;
@@ -113,60 +116,55 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
         );
       }
 
-      // Local demo flow: no Cloud Function or real payment gateway is called.
-      // A full card number is never saved; only the masked display value is stored.
-      final now = DateTime.now();
-      final localOrderId = 'LOCAL-' + now.millisecondsSinceEpoch.toString();
-      final localTransactionId =
-          'DEMO-TXN-' + now.millisecondsSinceEpoch.toString();
-      final localOrder = <String, dynamic>{
-        'id': localOrderId,
-        'userId': uid,
-        'items': items,
-        'total': total,
-        'status': 'pending',
-        'paymentMethod': paymentMethod,
-        'paymentMode': 'demo',
-        'paymentStatus': 'success',
-        'demoTransactionId': localTransactionId,
-        'paymentIdentifier': displayedIdentifier,
-        'isLocalDemo': true,
-        'customerName': (widget.checkoutData['customerName'] ?? '').toString(),
-        'customerPhone': (widget.checkoutData['customerPhone'] ?? '').toString(),
-        'customerEmail': (widget.checkoutData['customerEmail'] ?? '').toString(),
-        'deliveryAddress':
+      // Demo payment only: no real gateway is called and the card/UPI value is
+      // never saved. The order and the stock change are written to Firestore
+      // in ONE transaction; success is shown only after it commits.
+      final result = await FirestoreDatabase.instance.createOrder(
+        uid: uid,
+        orderKey: _orderKey,
+        items: items,
+        total: total,
+        paymentMethod: paymentMethod,
+        customerName: (widget.checkoutData['customerName'] ?? '').toString(),
+        customerPhone: (widget.checkoutData['customerPhone'] ?? '').toString(),
+        customerEmail: (widget.checkoutData['customerEmail'] ?? '').toString(),
+        deliveryAddress:
             (widget.checkoutData['deliveryAddress'] ?? '').toString(),
-        'deliveryCity': (widget.checkoutData['deliveryCity'] ?? '').toString(),
-        'deliveryPinCode':
+        deliveryCity: (widget.checkoutData['deliveryCity'] ?? '').toString(),
+        deliveryPinCode:
             (widget.checkoutData['deliveryPinCode'] ?? '').toString(),
-        'createdAt': now.toIso8601String(),
-        'updatedAt': now.toIso8601String(),
-      };
-      await LocalDemoOrders.saveForUser(uid, localOrder);
+      );
 
       if (!mounted) return;
       setState(() {
         completed = true;
-        orderId = localOrderId;
-        transactionId = localTransactionId;
+        orderId = result.orderId;
+        transactionId = result.demoTransactionId;
       });
 
-      // Clear the remote bag if reachable, but do not undo a locally saved order
-      // if the Firestore call is unavailable.
+      // The order is already saved in Firestore. Clearing the bag is a
+      // separate step; if it fails we say so, but the order stays valid.
       try {
         await FirestoreDatabase.instance
             .clearCart(uid)
-            .timeout(const Duration(seconds: 5));
-      } catch (_) {
+            .timeout(const Duration(seconds: 10));
+      } catch (error) {
+        debugPrint('clearCart after order ${result.orderId} failed: $error');
         if (!mounted) return;
         setState(() => cartClearFailed = true);
       }
-    } catch (error) {
+    } on OrderException catch (error) {
+      debugPrint('Pay Now failed [${error.code}]: ${error.message}');
+      if (!mounted) return;
+      setState(() => errorMessage = error.message);
+    } catch (error, stackTrace) {
+      debugPrint('Pay Now failed (unexpected): $error');
+      debugPrintStack(stackTrace: stackTrace, maxFrames: 8);
       if (!mounted) return;
       setState(() {
         errorMessage = error is StateError
-            ? error.toString().replaceFirst('Bad state: ', '')
-            : 'Could not save the demo order on this device. Please try again.';
+            ? error.message
+            : 'The order could not be saved. Please try again.';
       });
     } finally {
       if (mounted) setState(() => processing = false);
@@ -291,7 +289,7 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
                 SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Demo payment only · No real money charged · Saved on this device',
+                    'Demo payment only · No real money charged',
                     style: TextStyle(color: muted, fontSize: 11),
                   ),
                 ),
@@ -382,7 +380,7 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
         const LinearProgressIndicator(minHeight: 3, color: blue),
         const SizedBox(height: 9),
         const Text(
-          'Saving your demo order on this device…',
+          'Saving your order and updating stock…',
           textAlign: TextAlign.center,
           style: TextStyle(color: muted, fontSize: 12),
         ),
@@ -443,14 +441,14 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
       ),
       const SizedBox(height: 7),
       const Text(
-        'Your order has been saved locally. This was a demo payment; no real money was charged, and the order will not sync to the admin dashboard.',
+        'Your order has been saved. This was a demo payment; no real money was charged.',
         style: TextStyle(color: muted, fontSize: 13, height: 1.6),
       ),
       const SizedBox(height: 22),
       _messagePanel(
         success: true,
         title: 'Order confirmed',
-        message: 'Your payment details and order confirmation are saved on this browser/device only.',
+        message: 'Your order is saved to your account and visible in My Orders and the admin dashboard. Card/UPI details are not stored.',
       ),
       const SizedBox(height: 17),
       Container(
@@ -500,7 +498,7 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
       if (cartClearFailed) ...[
         const SizedBox(height: 13),
         const Text(
-          'Your order is saved locally, but the bag could not be cleared. Check My Orders before ordering again.',
+          'Your order is saved, but the bag could not be cleared. Check My Orders before ordering again.',
           style: TextStyle(color: red, fontSize: 12, height: 1.5),
         ),
       ],

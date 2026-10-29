@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import 'firebase_options.dart';
 import 'screens/about_screen.dart';
@@ -26,6 +29,16 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Local testing only. Normal builds (GitHub Actions) never set this flag, so
+  // the live app always talks to the real Firebase project.
+  // flutter build web --dart-define=USE_FIREBASE_EMULATOR=true
+  const useEmulator = bool.fromEnvironment('USE_FIREBASE_EMULATOR');
+  if (useEmulator) {
+    FirebaseFirestore.instance.useFirestoreEmulator('127.0.0.1', 8085);
+    await FirebaseAuth.instance.useAuthEmulator('127.0.0.1', 9099);
+    SemanticsBinding.instance.ensureSemantics();
+  }
 
   runApp(const CampusSupplyApp());
 }

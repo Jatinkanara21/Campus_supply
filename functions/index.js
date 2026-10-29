@@ -1,8 +1,9 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
-const { getAuth, getFirestore } = require("firebase-admin");
-const { FieldValue } = require("firebase-admin/firestore");
+// firebase-admin v12+/v13 exposes these only from their sub-modules.
+const { getAuth } = require("firebase-admin/auth");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { Buffer } = require("buffer");
 
 initializeApp();
