@@ -71,8 +71,13 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
+      // Real orders are created by the authenticated placeOrder Cloud Function,
+      // which validates prices and decrements inventory atomically.
+      // Allow only explicitly marked faculty-demo orders from the client SDK.
       allow create: if signedIn()
-        && request.resource.data.userId == request.auth.uid;
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.isDemo == true
+        && request.resource.data.demoBatch == 'faculty_demo_v1';
       allow read: if signedIn()
         && (resource.data.userId == request.auth.uid || isAdmin());
       allow update: if isAdmin();

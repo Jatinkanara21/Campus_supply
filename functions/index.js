@@ -2,6 +2,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
 const { getAuth, getFirestore } = require("firebase-admin");
+const { FieldValue } = require("firebase-admin/firestore");
 const { Buffer } = require("buffer");
 
 initializeApp();
@@ -94,6 +95,383 @@ function getRequestBody(req) {
   }
   return {};
 }
+
+
+class ApiError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
+function parseBearer(req) {
+  const header = String(req.get("authorization") || "").trim();
+  if (header.substring(0, 6).toLowerCase() !== "bearer") {
+    throw new ApiError(401, "Please sign in to continue.");
+  }
+  const token = header.substring(6).trim();
+  if (!token) throw new ApiError(401, "Please sign in to continue.");
+  return token;
+}
+
+async function authenticatedUser(req) {
+  try {
+    return await getAuth().verifyIdToken(parseBearer(req));
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(401, "Your session is invalid or expired. Please sign in again.");
+  }
+}
+
+async function requireAdmin(uid) {
+  const userSnapshot = await getFirestore().collection("users").doc(uid).get();
+  const userData = userSnapshot.exists ? userSnapshot.data() : {};
+  if (userData.role !== "admin" && userData.admin !== true) {
+    throw new ApiError(403, "Only an administrator can update order status.");
+  }
+}
+
+function cleanText(value) {
+  return String(value == null ? "" : value).trim();
+}
+
+function numberValue(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function stockValue(productData) {
+  return Math.max(0, Math.floor(numberValue(productData && productData.stock, 0)));
+}
+
+function addRequiredStock(required, productId, quantity) {
+  const cleanId = cleanText(productId);
+  if (!cleanId) throw new ApiError(400, "An order item is missing its product information.");
+  required.set(cleanId, (required.get(cleanId) || 0) + quantity);
+}
+
+function orderStockRequirements(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new ApiError(400, "Your bag is empty. Add an item before checkout.");
+  }
+  const required = new Map();
+  for (const item of items) {
+    const quantity = Number(item && item.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+      throw new ApiError(400, "Each order quantity must be between 1 and 99.");
+    }
+    const isBundle = item && item.itemType === "bundle";
+    if (isBundle) {
+      const rawIds = Array.isArray(item.includedProductIds) && item.includedProductIds.length
+        ? item.includedProductIds
+        : Array.isArray(item.includedItems)
+          ? item.includedItems.map((entry) => entry && entry.productId).filter(Boolean)
+          : [];
+      if (!rawIds.length) {
+        throw new ApiError(400, cleanText(item.name) + " has no included products configured.");
+      }
+      for (const productId of rawIds) addRequiredStock(required, productId, quantity);
+    } else {
+      addRequiredStock(required, item && item.productId, quantity);
+    }
+  }
+  return required;
+}
+
+async function readProductInTransaction(transaction, db, productSnapshots, productId) {
+  if (productSnapshots.has(productId)) return productSnapshots.get(productId);
+  const snapshot = await transaction.get(db.collection("products").doc(productId));
+  productSnapshots.set(productId, snapshot);
+  return snapshot;
+}
+
+exports.placeOrder = onRequest(
+  { region: "us-central1", timeoutSeconds: 60, memory: "256MiB", cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") return sendError(res, 405, "POST is required.");
+
+    try {
+      const identity = await authenticatedUser(req);
+      const payload = getRequestBody(req);
+      const customerName = cleanText(payload.customerName);
+      const customerPhone = cleanText(payload.customerPhone);
+      const deliveryAddress = cleanText(payload.deliveryAddress);
+      const deliveryCity = cleanText(payload.deliveryCity);
+      const deliveryPinCode = cleanText(payload.deliveryPinCode);
+      if (!customerName || !customerPhone || !deliveryAddress || !deliveryCity || !deliveryPinCode) {
+        throw new ApiError(400, "Please complete all required delivery details.");
+      }
+
+      const requestedTotal = Number(payload.total);
+      if (!Number.isFinite(requestedTotal) || requestedTotal < 0) {
+        throw new ApiError(400, "The order total is invalid. Please review your bag.");
+      }
+
+      const requestedLines = Array.isArray(payload.items) ? payload.items : [];
+      const db = getFirestore();
+      const orderRef = db.collection("orders").doc();
+      let finalTotal = 0;
+
+      await db.runTransaction(async (transaction) => {
+        const productSnapshots = new Map();
+        const bundleSnapshots = new Map();
+        const requiredStock = new Map();
+        const resolvedLines = [];
+
+        for (const line of requestedLines) {
+          const quantity = Number(line && line.quantity);
+          if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+            throw new ApiError(400, "Each order quantity must be between 1 and 99.");
+          }
+
+          if (line && line.itemType === "bundle") {
+            const bundleId = cleanText(line.bundleId);
+            if (!bundleId) throw new ApiError(400, "A bundle in your bag is missing its ID.");
+            let bundleSnapshot = bundleSnapshots.get(bundleId);
+            if (!bundleSnapshot) {
+              bundleSnapshot = await transaction.get(db.collection("bundles").doc(bundleId));
+              bundleSnapshots.set(bundleId, bundleSnapshot);
+            }
+            if (!bundleSnapshot.exists) {
+              throw new ApiError(409, "A bundle in your bag is no longer available. Please refresh your bag.");
+            }
+            const bundleData = bundleSnapshot.data() || {};
+            const productIds = Array.isArray(bundleData.productIds)
+              ? bundleData.productIds.map((id) => cleanText(id)).filter(Boolean)
+              : [];
+            if (!productIds.length) {
+              throw new ApiError(409, cleanText(bundleData.name || bundleData.title || "This bundle") + " has no included products configured.");
+            }
+            const bundlePrice = numberValue(bundleData.price, NaN);
+            if (!Number.isFinite(bundlePrice) || bundlePrice < 0) {
+              throw new ApiError(409, "This bundle has an invalid package price. Please contact the store admin.");
+            }
+            for (const productId of productIds) {
+              addRequiredStock(requiredStock, productId, quantity);
+            }
+            resolvedLines.push({
+              itemType: "bundle",
+              bundleId,
+              bundleData,
+              productIds,
+              quantity,
+              unitPrice: bundlePrice,
+            });
+          } else {
+            const productId = cleanText(line && line.productId);
+            if (!productId) throw new ApiError(400, "A product in your bag is missing its ID.");
+            const productSnapshot = await readProductInTransaction(transaction, db, productSnapshots, productId);
+            if (!productSnapshot.exists) {
+              throw new ApiError(409, "A product in your bag is no longer available. Please refresh your bag.");
+            }
+            const productData = productSnapshot.data() || {};
+            const price = numberValue(productData.price, NaN);
+            if (!Number.isFinite(price) || price < 0) {
+              throw new ApiError(409, cleanText(productData.name || productId) + " has an invalid price.");
+            }
+            addRequiredStock(requiredStock, productId, quantity);
+            resolvedLines.push({
+              itemType: "product",
+              productId,
+              productData,
+              quantity,
+              unitPrice: price,
+            });
+          }
+        }
+
+        // Load every product referenced by bundles before any writes are issued.
+        for (const productId of requiredStock.keys()) {
+          const snapshot = await readProductInTransaction(transaction, db, productSnapshots, productId);
+          if (!snapshot.exists) {
+            throw new ApiError(409, "A product included in your order is no longer available. Please refresh your bag.");
+          }
+        }
+
+        const nextStock = new Map();
+        for (const [productId, requestedQuantity] of requiredStock.entries()) {
+          const snapshot = productSnapshots.get(productId);
+          const productData = snapshot.data() || {};
+          const available = stockValue(productData);
+          if (available < requestedQuantity) {
+            const productName = cleanText(productData.name || productId);
+            throw new ApiError(
+              409,
+              productName + " has only " + available + " in stock, but your order needs " +
+                requestedQuantity + ". Please update your bag and try again."
+            );
+          }
+          nextStock.set(productId, available - requestedQuantity);
+        }
+
+        const orderItems = resolvedLines.map((line) => {
+          if (line.itemType === "bundle") {
+            const bundle = line.bundleData;
+            const includedItems = line.productIds.map((productId) => {
+              const productData = productSnapshots.get(productId).data() || {};
+              return {
+                productId,
+                name: cleanText(productData.name || productId),
+                price: numberValue(productData.price, 0),
+                imageUrl: cleanText(productData.imageUrl),
+              };
+            });
+            return {
+              itemType: "bundle",
+              bundleId: line.bundleId,
+              name: cleanText(bundle.name || bundle.title || "Student Bundle"),
+              price: line.unitPrice,
+              imageUrl: cleanText(bundle.imageUrl || bundle.image),
+              quantity: line.quantity,
+              includedProductIds: line.productIds,
+              includedItems,
+            };
+          }
+          return {
+            itemType: "product",
+            productId: line.productId,
+            name: cleanText(line.productData.name || line.productId),
+            price: line.unitPrice,
+            imageUrl: cleanText(line.productData.imageUrl),
+            quantity: line.quantity,
+          };
+        });
+
+        finalTotal = resolvedLines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+        if (Math.abs(finalTotal - requestedTotal) > 0.01) {
+          throw new ApiError(
+            409,
+            "A product or bundle price changed while your bag was open. Please return to your bag and check the updated total."
+          );
+        }
+
+        // Stock decrements and order creation commit together as one transaction.
+        for (const [productId, remaining] of nextStock.entries()) {
+          transaction.update(db.collection("products").doc(productId), {
+            stock: remaining,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
+
+        transaction.set(orderRef, {
+          userId: identity.uid,
+          items: orderItems,
+          total: finalTotal,
+          status: "pending",
+          customerName,
+          customerPhone,
+          customerEmail: cleanText(identity.email || payload.customerEmail),
+          deliveryAddress,
+          deliveryCity,
+          deliveryPinCode,
+          stockDeducted: true,
+          stockRestocked: false,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      });
+
+      return res.status(200).json({ ok: true, orderId: orderRef.id, total: finalTotal });
+    } catch (error) {
+      console.error("placeOrder failed", error);
+      const status = error instanceof ApiError ? error.status : 500;
+      return sendError(
+        res,
+        status,
+        error && error.message ? error.message : "Could not place the order. Please try again."
+      );
+    }
+  }
+);
+
+exports.updateOrderStatus = onRequest(
+  { region: "us-central1", timeoutSeconds: 60, memory: "256MiB", cors: true },
+  async (req, res) => {
+    if (req.method !== "POST") return sendError(res, 405, "POST is required.");
+
+    try {
+      const identity = await authenticatedUser(req);
+      await requireAdmin(identity.uid);
+      const payload = getRequestBody(req);
+      const orderId = cleanText(payload.orderId);
+      const nextStatus = cleanText(payload.status).toLowerCase();
+      const allowedStatuses = new Set(["pending", "confirmed", "shipped", "delivered", "cancelled"]);
+      if (!orderId || !allowedStatuses.has(nextStatus)) {
+        throw new ApiError(400, "A valid order ID and status are required.");
+      }
+
+      const db = getFirestore();
+      const orderRef = db.collection("orders").doc(orderId);
+      await db.runTransaction(async (transaction) => {
+        const orderSnapshot = await transaction.get(orderRef);
+        if (!orderSnapshot.exists) throw new ApiError(404, "This order could not be found.");
+
+        const orderData = orderSnapshot.data() || {};
+        const currentStatus = cleanText(orderData.status || "pending").toLowerCase();
+        const stockWasDeducted = orderData.stockDeducted === true;
+        const wasRestocked = orderData.stockRestocked === true;
+        const shouldRestock = stockWasDeducted && !wasRestocked &&
+          currentStatus !== "cancelled" && nextStatus === "cancelled";
+        const shouldDeductAgain = stockWasDeducted && wasRestocked &&
+          currentStatus === "cancelled" && nextStatus !== "cancelled";
+
+        const items = Array.isArray(orderData.items) ? orderData.items : [];
+        const requirements = (shouldRestock || shouldDeductAgain)
+          ? orderStockRequirements(items)
+          : new Map();
+        const productSnapshots = new Map();
+
+        for (const productId of requirements.keys()) {
+          const snapshot = await transaction.get(db.collection("products").doc(productId));
+          productSnapshots.set(productId, snapshot);
+        }
+
+        const nextStock = new Map();
+        for (const [productId, quantity] of requirements.entries()) {
+          const snapshot = productSnapshots.get(productId);
+          if (!snapshot.exists) {
+            if (shouldRestock) continue;
+            throw new ApiError(409, "A product from this order is no longer in the catalog; the order cannot be reopened.");
+          }
+          const productData = snapshot.data() || {};
+          const currentStock = stockValue(productData);
+          if (shouldDeductAgain && currentStock < quantity) {
+            throw new ApiError(
+              409,
+              cleanText(productData.name || productId) + " has only " + currentStock +
+                " in stock. There is not enough stock to reopen this order."
+            );
+          }
+          nextStock.set(productId, shouldRestock ? currentStock + quantity : shouldDeductAgain ? currentStock - quantity : currentStock);
+        }
+
+        for (const [productId, quantity] of nextStock.entries()) {
+          transaction.update(db.collection("products").doc(productId), {
+            stock: quantity,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
+
+        transaction.update(orderRef, {
+          status: nextStatus,
+          updatedAt: FieldValue.serverTimestamp(),
+          ...(shouldRestock ? { stockRestocked: true } : {}),
+          ...(shouldDeductAgain ? { stockRestocked: false } : {}),
+        });
+      });
+
+      return res.status(200).json({ ok: true, orderId, status: nextStatus });
+    } catch (error) {
+      console.error("updateOrderStatus failed", error);
+      const status = error instanceof ApiError ? error.status : 500;
+      return sendError(
+        res,
+        status,
+        error && error.message ? error.message : "Could not update order status. Please try again."
+      );
+    }
+  }
+);
 
 exports.uploadImageToGitHub = onRequest(
   {

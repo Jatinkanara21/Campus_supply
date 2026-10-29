@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 
 /// Firestore data layer for Campus Supply.
 ///
@@ -281,65 +285,50 @@ class FirestoreDatabase {
             .toList());
   }
 
-  /// Computes the product quantities consumed by an order.
-  /// A bundle consumes each product in its includedProductIds for every bundle
-  /// ordered. Duplicate product IDs count as multiple units per bundle.
-  Map<String, int> _requiredStockQuantities(List<Map<String, dynamic>> items) {
-    final required = <String, int>{};
+  static const String _placeOrderEndpoint =
+      'https://us-central1-campus-supply-abcbf.cloudfunctions.net/placeOrder';
+  static const String _updateOrderStatusEndpoint =
+      'https://us-central1-campus-supply-abcbf.cloudfunctions.net/updateOrderStatus';
 
-    void addProduct(Object? rawId, int quantity) {
-      final productId = (rawId ?? '').toString().trim();
-      if (productId.isEmpty) {
-        throw StateError('An order item is missing its product information. Please review your bag.');
-      }
-      required[productId] = (required[productId] ?? 0) + quantity;
+  Future<Map<String, dynamic>> _postAuthenticatedFunction(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw StateError('Please sign in before continuing.');
+    }
+    final token = await user.getIdToken();
+    if (token == null || token.isEmpty) {
+      throw StateError('Unable to verify your session. Please sign in again.');
     }
 
-    for (final item in items) {
-      final rawQuantity = item['quantity'];
-      final quantity = rawQuantity is num
-          ? rawQuantity.toInt()
-          : int.tryParse((rawQuantity ?? '1').toString()) ?? 1;
-      if (quantity < 1) {
-        throw StateError('Order quantities must be at least one.');
-      }
+    final response = await http.post(
+      Uri.parse(endpoint),
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    ).timeout(const Duration(seconds: 60));
 
-      final isBundle = (item['itemType'] ?? 'product').toString() == 'bundle';
-      if (isBundle) {
-        final rawIds = item['includedProductIds'];
-        final rawIncludedItems = item['includedItems'];
-        final includedIds = rawIds is List && rawIds.isNotEmpty
-            ? rawIds
-            : rawIncludedItems is List
-                ? rawIncludedItems
-                    .whereType<Map>()
-                    .map((entry) => entry['productId'])
-                    .where((id) => id != null)
-                    .toList()
-                : <dynamic>[];
-
-        if (includedIds.isEmpty) {
-          final bundleName = (item['name'] ?? 'Student bundle').toString();
-          throw StateError('$bundleName has no included products configured.');
-        }
-        for (final productId in includedIds) {
-          addProduct(productId, quantity);
-        }
-      } else {
-        addProduct(item['productId'], quantity);
-      }
+    Map<String, dynamic> payload = <String, dynamic>{};
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) payload = decoded;
+    } catch (_) {
+      // Use the HTTP status-based fallback below.
     }
 
-    if (required.isEmpty) {
-      throw StateError('No valid products were found in this order.');
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final message = (payload['error'] ?? '').toString().trim();
+      throw StateError(
+        message.isNotEmpty
+            ? message
+            : 'The secure order service could not complete the request (HTTP ${response.statusCode}).',
+      );
     }
-    return required;
-  }
-
-  int _readStock(Map<String, dynamic>? productData) {
-    final rawStock = productData?['stock'];
-    if (rawStock is num) return rawStock.toInt();
-    return int.tryParse((rawStock ?? '0').toString()) ?? 0;
+    return payload;
   }
 
   Future<String> createOrder({
@@ -354,151 +343,35 @@ class FirestoreDatabase {
     required String deliveryCity,
     required String deliveryPinCode,
   }) async {
-    final orderRef = orders.doc();
-    final requiredStock = _requiredStockQuantities(items);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.uid != uid) {
+      throw StateError('Please sign in again before placing your order.');
+    }
 
-    // Stock updates and order creation are atomic. If any product has too
-    // little stock, the order and all stock updates are rolled back.
-    await _db.runTransaction((transaction) async {
-      final productSnapshots = <String, DocumentSnapshot<Map<String, dynamic>>>{};
-
-      // Read every product before writing anything in this transaction.
-      for (final productId in requiredStock.keys) {
-        productSnapshots[productId] = await transaction.get(products.doc(productId));
-      }
-
-      final nextStock = <String, int>{};
-      for (final entry in requiredStock.entries) {
-        final productId = entry.key;
-        final snapshot = productSnapshots[productId]!;
-        if (!snapshot.exists) {
-          throw StateError('A product in your bag is no longer available. Please refresh your bag and try again.');
-        }
-
-        final productData = snapshot.data() ?? <String, dynamic>{};
-        final available = _readStock(productData);
-        final requested = entry.value;
-        if (available < requested) {
-          final productName = (productData['name'] ?? productId).toString();
-          throw StateError(
-            '$productName has only $available in stock, but your order needs $requested. '
-            'Please update your bag and try again.',
-          );
-        }
-        nextStock[productId] = available - requested;
-      }
-
-      for (final entry in nextStock.entries) {
-        transaction.update(products.doc(entry.key), {
-          'stock': entry.value,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-
-      transaction.set(orderRef, {
-        'userId': uid,
-        'items': items,
-        'total': total,
-        'status': status,
-        'customerName': customerName.trim(),
-        'customerPhone': customerPhone.trim(),
-        'customerEmail': customerEmail.trim(),
-        'deliveryAddress': deliveryAddress.trim(),
-        'deliveryCity': deliveryCity.trim(),
-        'deliveryPinCode': deliveryPinCode.trim(),
-        'stockDeducted': true,
-        'stockRestocked': false,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+    final payload = await _postAuthenticatedFunction(_placeOrderEndpoint, {
+      'items': items,
+      'total': total,
+      'customerName': customerName.trim(),
+      'customerPhone': customerPhone.trim(),
+      'customerEmail': customerEmail.trim(),
+      'deliveryAddress': deliveryAddress.trim(),
+      'deliveryCity': deliveryCity.trim(),
+      'deliveryPinCode': deliveryPinCode.trim(),
     });
-
-    return orderRef.id;
+    final orderId = (payload['orderId'] ?? '').toString().trim();
+    if (orderId.isEmpty) {
+      throw StateError('The order service did not return an order ID. Please check My Orders.');
+    }
+    return orderId;
   }
 
-  /// Updates the status and keeps stock consistent for cancellation/reopening.
-  /// Only newly placed orders marked stockDeducted are adjusted; old historical
-  /// orders therefore cannot accidentally increase the catalog stock.
   Future<void> updateOrderStatus({
     required String orderId,
     required String status,
   }) async {
-    const allowedStatuses = {'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'};
-    final nextStatus = status.toLowerCase().trim();
-    if (!allowedStatuses.contains(nextStatus)) {
-      throw ArgumentError.value(status, 'status', 'Unsupported order status.');
-    }
-
-    final orderRef = orders.doc(orderId);
-    await _db.runTransaction((transaction) async {
-      final orderSnapshot = await transaction.get(orderRef);
-      if (!orderSnapshot.exists) {
-        throw StateError('This order could not be found.');
-      }
-      final orderData = orderSnapshot.data() ?? <String, dynamic>{};
-      final currentStatus = (orderData['status'] ?? 'pending').toString().toLowerCase().trim();
-      final stockWasDeducted = orderData['stockDeducted'] == true;
-      final wasRestocked = orderData['stockRestocked'] == true;
-
-      final shouldRestock = stockWasDeducted &&
-          !wasRestocked &&
-          currentStatus != 'cancelled' &&
-          nextStatus == 'cancelled';
-      final shouldDeductAgain = stockWasDeducted &&
-          wasRestocked &&
-          currentStatus == 'cancelled' &&
-          nextStatus != 'cancelled';
-
-      final requiredStock = (shouldRestock || shouldDeductAgain)
-          ? _requiredStockQuantities(
-              (orderData['items'] is List ? orderData['items'] as List : const <dynamic>[])
-                  .whereType<Map>()
-                  .map((item) => Map<String, dynamic>.from(item))
-                  .toList(),
-            )
-          : <String, int>{};
-
-      final productSnapshots = <String, DocumentSnapshot<Map<String, dynamic>>>{};
-      for (final productId in requiredStock.keys) {
-        productSnapshots[productId] = await transaction.get(products.doc(productId));
-      }
-
-      final nextStock = <String, int>{};
-      for (final entry in requiredStock.entries) {
-        final snapshot = productSnapshots[entry.key]!;
-        if (!snapshot.exists) {
-          if (shouldRestock) continue;
-          throw StateError('A product from this order is no longer in the catalog; the order cannot be reopened.');
-        }
-
-        final productData = snapshot.data() ?? <String, dynamic>{};
-        final currentStock = _readStock(productData);
-        if (shouldDeductAgain && currentStock < entry.value) {
-          final productName = (productData['name'] ?? entry.key).toString();
-          throw StateError(
-            '$productName has only $currentStock in stock. There is not enough stock to reopen this order.',
-          );
-        }
-        nextStock[entry.key] = shouldRestock
-            ? currentStock + entry.value
-            : shouldDeductAgain
-                ? currentStock - entry.value
-                : currentStock;
-      }
-
-      for (final entry in nextStock.entries) {
-        transaction.update(products.doc(entry.key), {
-          'stock': entry.value,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-
-      transaction.update(orderRef, {
-        'status': nextStatus,
-        'updatedAt': FieldValue.serverTimestamp(),
-        if (shouldRestock) 'stockRestocked': true,
-        if (shouldDeductAgain) 'stockRestocked': false,
-      });
+    await _postAuthenticatedFunction(_updateOrderStatusEndpoint, {
+      'orderId': orderId,
+      'status': status,
     });
   }
 
