@@ -126,15 +126,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/orders', (_) => false);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       final message = orderCreated
           ? 'Your order was placed, but checkout needs attention. Please check My Orders.'
-          : 'We could not place your order. Please try again.';
+          : error is StateError
+              ? error.toString().replaceFirst('Bad state: ', '')
+              : 'We could not place your order. Please check your connection and try again.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
           behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
         ),
       );
     } finally {

@@ -298,7 +298,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     required String? productId,
   }) {
     final displayName = name.isEmpty ? 'Product details' : name;
-    final canUseActions = productId != null && productId.isNotEmpty;
+    final rawStock = product['stock'];
+    final availableStock = rawStock is num
+        ? rawStock.toInt()
+        : int.tryParse((rawStock ?? '0').toString()) ?? 0;
+    final inStock = availableStock > 0;
+    final canUseActions = productId != null && productId.isNotEmpty && inStock;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -406,6 +411,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ),
         ],
+        Container(
+          margin: const EdgeInsets.only(top: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: inStock ? const Color(0xFFECFDF3) : const Color(0xFFFFF0EF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: inStock ? const Color(0xFFB7E4C7) : const Color(0xFFF4C7C3),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                inStock ? Icons.check_circle_outline_rounded : Icons.remove_shopping_cart_outlined,
+                color: inStock ? const Color(0xFF15803D) : const Color(0xFFB42318),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  inStock ? '$availableStock available in stock' : 'Out of stock',
+                  style: TextStyle(
+                    color: inStock ? const Color(0xFF15803D) : const Color(0xFFB42318),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         if (description.isNotEmpty) ...[
           const SizedBox(height: 24),
           const Text(
@@ -460,7 +496,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               _quantityButton(
                 icon: Icons.add_rounded,
                 tooltip: 'Increase quantity',
-                onPressed: () => setState(() => quantity++),
+                onPressed: inStock && quantity < availableStock
+                    ? () => setState(() => quantity++)
+                    : null,
               ),
             ],
           ),
@@ -483,7 +521,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                   )
                 : const Icon(Icons.shopping_bag_outlined),
-            label: Text(saving ? 'Adding to cart...' : 'Add to cart'),
+            label: Text(
+              saving
+                  ? 'Adding to cart...'
+                  : (inStock ? 'Add to cart' : 'Out of stock'),
+            ),
           ),
         ),
         const SizedBox(height: 10),
@@ -637,6 +679,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (id == null || id.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('This product cannot be added right now.')),
+      );
+      return;
+    }
+
+    final rawStock = product['stock'];
+    final availableStock = rawStock is num
+        ? rawStock.toInt()
+        : int.tryParse((rawStock ?? '0').toString()) ?? 0;
+    if (availableStock < 1 || quantity > availableStock) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            availableStock < 1
+                ? 'This product is out of stock.'
+                : 'Only $availableStock item(s) are available in stock.',
+          ),
+        ),
       );
       return;
     }

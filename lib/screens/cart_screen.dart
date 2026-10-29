@@ -87,6 +87,7 @@ class CartScreen extends StatelessWidget {
                     uid,
                     item,
                     byId[item['productId']?.toString()],
+                    byId,
                   )).toList();
                   final summary = _summary(context, total, cart.length);
                   final sections = wide
@@ -144,11 +145,21 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _item(BuildContext context, String uid, Map<String, dynamic> item, Map<String, dynamic>? product) {
+  Widget _item(
+    BuildContext context,
+    String uid,
+    Map<String, dynamic> item,
+    Map<String, dynamic>? product,
+    Map<String, Map<String, dynamic>> productsById,
+  ) {
     final isBundle = (item['itemType'] ?? 'product').toString() == 'bundle';
     final id = isBundle ? (item['bundleId'] ?? '').toString() : (item['productId'] ?? '').toString();
     final itemType = isBundle ? 'bundle' : 'product';
     final qty = (item['quantity'] as num?)?.toInt() ?? 1;
+    final availableQuantity = isBundle
+        ? _availableBundleQuantity(item, productsById)
+        : _productStock(product);
+    final canIncreaseQuantity = availableQuantity > qty;
     final rawPrice = isBundle ? item['bundlePrice'] : product?['price'];
     final price = rawPrice is num ? rawPrice.toDouble() : double.tryParse((rawPrice ?? '').toString());
     final storedImage = (isBundle ? (item['bundleImageUrl'] ?? '') : (product?['imageUrl'] ?? '')).toString().trim();
@@ -257,9 +268,11 @@ class CartScreen extends StatelessWidget {
                         style: const TextStyle(color: ink, fontSize: 14, fontWeight: FontWeight.w900)),
                     ),
                     _qtyButton(
-                      tooltip: 'Increase quantity',
+                      tooltip: canIncreaseQuantity ? 'Increase quantity' : 'No more stock available',
                       icon: Icons.add_rounded,
-                      onTap: id.isEmpty ? null : () => _updateQuantity(context, uid, id, qty + 1, itemType: itemType),
+                      onTap: id.isEmpty || !canIncreaseQuantity
+                          ? null
+                          : () => _updateQuantity(context, uid, id, qty + 1, itemType: itemType),
                     ),
                     if (price != null)
                       Text('Line total ₹' + (price * qty).toStringAsFixed(0),
@@ -272,6 +285,46 @@ class CartScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  int _productStock(Map<String, dynamic>? product) {
+    final rawStock = product?['stock'];
+    if (rawStock is num) return rawStock.toInt();
+    return int.tryParse((rawStock ?? '0').toString()) ?? 0;
+  }
+
+  int _availableBundleQuantity(
+    Map<String, dynamic> item,
+    Map<String, Map<String, dynamic>> productsById,
+  ) {
+    final rawIds = item['includedProductIds'];
+    final includedItems = item['includedItems'];
+    final productIds = rawIds is List && rawIds.isNotEmpty
+        ? rawIds.map((value) => value.toString().trim()).where((value) => value.isNotEmpty).toList()
+        : includedItems is List
+            ? includedItems
+                .whereType<Map>()
+                .map((entry) => (entry['productId'] ?? '').toString().trim())
+                .where((value) => value.isNotEmpty)
+                .toList()
+            : <String>[];
+    if (productIds.isEmpty) return 0;
+
+    final unitsPerBundle = <String, int>{};
+    for (final productId in productIds) {
+      unitsPerBundle[productId] = (unitsPerBundle[productId] ?? 0) + 1;
+    }
+
+    int? maximumBundles;
+    for (final entry in unitsPerBundle.entries) {
+      final product = productsById[entry.key];
+      if (product == null) return 0;
+      final possible = _productStock(product) ~/ entry.value;
+      maximumBundles = maximumBundles == null || possible < maximumBundles
+          ? possible
+          : maximumBundles;
+    }
+    return maximumBundles ?? 0;
   }
 
   String _fallbackBundleImagePath(String name) {

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/image_storage_service.dart';
 import '../services/auth_service.dart';
+import '../database/firestore_database.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -1605,10 +1606,10 @@ class AdminManagementScreen extends StatelessWidget {
   }
 
   Future<void> _setOrderStatus(String id, String status) {
-    return FirebaseFirestore.instance.collection('orders').doc(id).update({
-      'status': status,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    return FirestoreDatabase.instance.updateOrderStatus(
+      orderId: id,
+      status: status,
+    );
   }
 
   Future<void> _setRole(String uid, String role) {
