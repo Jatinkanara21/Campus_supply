@@ -294,7 +294,7 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
                   const SizedBox(width: 6),
                   const Expanded(
                     child: Text(
-                      'Demo payment only · No real money charged',
+                      'Demo payment only · No real money charged · Saved on this device',
                       style: TextStyle(color: muted, fontSize: 11),
                     ),
                   ),
@@ -385,7 +385,7 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
           const LinearProgressIndicator(minHeight: 3, color: blue),
           const SizedBox(height: 9),
           const Text(
-            'Processing your order and checking stock…',
+            'Saving your demo order on this device…',
             textAlign: TextAlign.center,
             style: TextStyle(color: muted, fontSize: 12),
           ),
@@ -447,14 +447,14 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
         ),
         const SizedBox(height: 7),
         const Text(
-          'Your order has been placed successfully. This was a demo payment; no real money was charged.',
+          'Your order has been saved locally. This was a demo payment; no real money was charged, and the order will not sync to the admin dashboard.',
           style: TextStyle(color: muted, fontSize: 13, height: 1.6),
         ),
         const SizedBox(height: 22),
         _messagePanel(
           success: true,
           title: 'Order confirmed',
-          message: 'Your payment details and order confirmation are shown below.',
+          message: 'Your payment details and order confirmation are saved on this browser/device only.',
         ),
         const SizedBox(height: 17),
         Container(
