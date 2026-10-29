@@ -5,7 +5,6 @@ import '../widgets/customer_bottom_nav.dart';
 
 import '../database/firestore_database.dart';
 import '../database/local_demo_orders.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/app_image.dart';
 
 class OrdersScreen extends StatefulWidget {
