@@ -24,33 +24,34 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
   static const green = Color(0xFF15803D);
   static const red = Color(0xFFB42318);
 
+  final _formKey = GlobalKey<FormState>();
+  final _paymentIdentifierController = TextEditingController();
+
   bool processing = false;
   bool completed = false;
-  bool simulatedFailure = false;
   bool cartClearFailed = false;
-  final _paymentFormKey = GlobalKey<FormState>();
-  final _paymentIdentifierController = TextEditingController();
   String? orderId;
   String? transactionId;
   String? errorMessage;
 
-  String get paymentMethod => (widget.checkoutData['paymentMethod'] ?? 'demo_upi').toString();
+  String get paymentMethod =>
+      (widget.checkoutData['paymentMethod'] ?? 'demo_upi').toString();
+
   bool get isCardPayment => paymentMethod == 'demo_card';
-  String get methodLabel => isCardPayment ? 'Card · Demo' : 'UPI · Demo';
+
+  String get methodLabel => isCardPayment ? 'Card payment' : 'UPI payment';
+
   String get paymentDetailLabel => isCardPayment ? 'Card number' : 'UPI ID';
 
-  String get _displayPaymentIdentifier {
+  String get paymentIdentifierHint =>
+      isCardPayment ? '1111 2222 3333 4444' : 'student.demo@upi';
+
+  String get displayedIdentifier {
     final value = _paymentIdentifierController.text.trim();
     if (!isCardPayment) return value;
     final digits = value.replaceAll(RegExp('[^0-9]'), '');
     if (digits.length < 4) return '••••';
     return '•••• •••• •••• ' + digits.substring(digits.length - 4);
-  }
-
-  @override
-  void dispose() {
-    _paymentIdentifierController.dispose();
-    super.dispose();
   }
 
   double get total {
@@ -59,21 +60,40 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
     return double.tryParse((value ?? '').toString()) ?? 0;
   }
 
-  Future<void> _simulateFailure() async {
-    if (processing || completed) return;
-    setState(() {
-      simulatedFailure = true;
-      errorMessage = null;
-    });
+  @override
+  void dispose() {
+    _paymentIdentifierController.dispose();
+    super.dispose();
   }
 
-  Future<void> _simulateSuccess() async {
+  String? _validatePaymentIdentifier(String? rawValue) {
+    final value = (rawValue ?? '').trim();
+
+    if (isCardPayment) {
+      final digits = value.replaceAll(RegExp('[^0-9]'), '');
+      if (digits.length != 16) {
+        return 'Enter a 16-digit demo card number.';
+      }
+      return null;
+    }
+
+    final pieces = value.split('@');
+    if (pieces.length != 2 ||
+        pieces.first.length < 2 ||
+        pieces.last.length < 3 ||
+        !pieces.last.contains('.')) {
+      return 'Enter a valid demo UPI ID, e.g. student.demo@upi.';
+    }
+    return null;
+  }
+
+  Future<void> _completePayment() async {
     if (processing || completed) return;
-    if (!(_paymentFormKey.currentState?.validate() ?? false)) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
     FocusScope.of(context).unfocus();
     setState(() {
       processing = true;
-      simulatedFailure = false;
       errorMessage = null;
     });
 
@@ -81,23 +101,36 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
       final uid = (widget.checkoutData['uid'] ?? '').toString();
       final rawItems = widget.checkoutData['items'];
       final items = rawItems is List
-          ? rawItems.whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList()
+          ? rawItems
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList()
           : <Map<String, dynamic>>[];
+
       if (uid.isEmpty || items.isEmpty) {
-        throw StateError('Checkout information is missing. Please return to your bag and try again.');
+        throw StateError(
+          'Checkout information is missing. Please return to checkout and try again.',
+        );
       }
 
+      // Only the selected payment method is sent to the backend.
+      // The entered demo UPI ID/card number is kept on this screen and is not saved.
       final result = await FirestoreDatabase.instance.createOrder(
         uid: uid,
         items: items,
         total: total,
         paymentMethod: paymentMethod,
-        customerName: (widget.checkoutData['customerName'] ?? '').toString(),
-        customerPhone: (widget.checkoutData['customerPhone'] ?? '').toString(),
-        customerEmail: (widget.checkoutData['customerEmail'] ?? '').toString(),
-        deliveryAddress: (widget.checkoutData['deliveryAddress'] ?? '').toString(),
+        customerName:
+            (widget.checkoutData['customerName'] ?? '').toString(),
+        customerPhone:
+            (widget.checkoutData['customerPhone'] ?? '').toString(),
+        customerEmail:
+            (widget.checkoutData['customerEmail'] ?? '').toString(),
+        deliveryAddress:
+            (widget.checkoutData['deliveryAddress'] ?? '').toString(),
         deliveryCity: (widget.checkoutData['deliveryCity'] ?? '').toString(),
-        deliveryPinCode: (widget.checkoutData['deliveryPinCode'] ?? '').toString(),
+        deliveryPinCode:
+            (widget.checkoutData['deliveryPinCode'] ?? '').toString(),
       );
 
       if (!mounted) return;
@@ -116,7 +149,6 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        simulatedFailure = true;
         errorMessage = error is StateError
             ? error.toString().replaceFirst('Bad state: ', '')
             : 'The order could not be completed. Please check your connection and try again.';
@@ -131,284 +163,442 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
     return Scaffold(
       backgroundColor: cream,
       appBar: AppBar(
-        title: const Text('Demo payment', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: Text(
+          completed ? 'Payment confirmation' : 'Payment',
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        backgroundColor: cream,
+        foregroundColor: ink,
+        elevation: 0,
       ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 650),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 24, 18, 36),
-            shrinkWrap: true,
-            children: [
-              Container(
-                width: 66,
-                height: 66,
-                decoration: BoxDecoration(color: const Color(0xFFEAF2FF), borderRadius: BorderRadius.circular(20)),
-                child: const Icon(Icons.lock_outline_rounded, color: blue, size: 31),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                completed ? 'Demo payment successful' : 'Complete your demo payment',
-                style: const TextStyle(color: ink, fontSize: 27, height: 1.15, letterSpacing: -.6, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 7),
-              const Text(
-                'This is a simulated payment for a faculty demonstration. No real money will be charged.',
-                style: TextStyle(color: muted, fontSize: 13, height: 1.55),
-              ),
-              const SizedBox(height: 22),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: border)),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('PAYMENT SUMMARY', style: TextStyle(color: muted, fontSize: 10, letterSpacing: .9, fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 13),
-                  Row(children: [
-                    const Icon(Icons.payments_outlined, color: blue, size: 21),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(methodLabel, style: const TextStyle(color: ink, fontSize: 15, fontWeight: FontWeight.w900))),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                      decoration: BoxDecoration(color: const Color(0xFFFFF0BF), borderRadius: BorderRadius.circular(8)),
-                      child: const Text('DEMO ONLY', style: TextStyle(color: Color(0xFF946200), fontSize: 9, fontWeight: FontWeight.w900)),
-                    ),
-                  ]),
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1)),
-                  Row(children: [
-                    const Expanded(child: Text('Amount to simulate', style: TextStyle(color: muted, fontSize: 13, fontWeight: FontWeight.w600))),
-                    Text('₹${total.toStringAsFixed(0)}', style: const TextStyle(color: blue, fontSize: 26, fontWeight: FontWeight.w900)),
-                  ]),
-                ]),
-              ),
-              if (!completed) ...[
-                const SizedBox(height: 18),
-                Form(
-                  key: _paymentFormKey,
-                  child: _paymentIdentifierField(),
-                ),
-              ],
-              if (processing) ...[
-                const SizedBox(height: 18),
-                const LinearProgressIndicator(minHeight: 3, color: blue),
-                const SizedBox(height: 10),
-                const Text('Processing simulated payment and validating stock…', textAlign: TextAlign.center,
-                    style: TextStyle(color: muted, fontSize: 12, fontWeight: FontWeight.w600)),
-              ],
-              if (simulatedFailure && !completed) ...[
-                const SizedBox(height: 18),
-                _outcomePanel(
-                  success: false,
-                  title: errorMessage == null ? 'Payment failed (simulated)' : 'Order could not be completed',
-                  message: errorMessage ??
-                      'No order was created and no stock was changed. You can retry the demo or return to checkout.',
-                ),
-              ],
-              if (completed) ...[
-                const SizedBox(height: 18),
-                _outcomePanel(success: true, title: 'Order placed successfully',
-                    message: 'Your demo payment was recorded. No real money was charged.'),
-                const SizedBox(height: 14),
-                _detailRow('ORDER ID', orderId ?? 'Unavailable'),
-                _detailRow(paymentDetailLabel.toUpperCase(), _displayPaymentIdentifier),
-                if (transactionId != null) _detailRow('DEMO TRANSACTION', transactionId!),
-                _detailRow('PAYMENT STATUS', 'Paid · Demo'),
-                if (cartClearFailed) ...[
-                  const SizedBox(height: 10),
-                  const Text('The order was placed, but the bag could not be cleared. Check My Orders before trying another purchase.',
-                      style: TextStyle(color: red, fontSize: 12, height: 1.45)),
-                ],
-              ],
-              const SizedBox(height: 20),
-              if (completed) ...[
-                SizedBox(
-                  height: 52,
-                  child: FilledButton.icon(
-                    onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/orders', (_) => false),
-                    icon: const Icon(Icons.receipt_long_outlined),
-                    label: const Text('Check your order'),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 50,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false),
-                    child: const Text('Continue shopping'),
-                  ),
-                ),
-              ] else ...[
-                SizedBox(
-                  height: 52,
-                  child: FilledButton.icon(
-                    onPressed: processing ? null : _simulateSuccess,
-                    icon: processing
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.check_circle_outline_rounded),
-                    label: Text(processing ? 'Processing payment…' : 'Pay ₹' + total.toStringAsFixed(0) + ' now'),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: processing ? null : _simulateFailure,
-                    icon: const Icon(Icons.error_outline_rounded, color: red),
-                    label: const Text('Test a failed payment', style: TextStyle(color: red)),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextButton.icon(
-                  onPressed: processing ? null : () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  label: const Text('Back to checkout'),
-                ),
-              ],
-            ],
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 36),
+            children: completed ? _successContent() : _paymentContent(),
           ),
         ),
       ),
     );
   }
 
-  Widget _paymentIdentifierField() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            isCardPayment ? 'CARD DETAILS' : 'UPI DETAILS',
-            style: const TextStyle(
-              color: muted,
-              fontSize: 10,
-              letterSpacing: .9,
-              fontWeight: FontWeight.w900,
+  List<Widget> _paymentContent() => [
+        Row(
+          children: [
+            Container(
+              height: 48,
+              width: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF2FF),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                isCardPayment
+                    ? Icons.credit_card_rounded
+                    : Icons.account_balance_wallet_outlined,
+                color: blue,
+                size: 25,
+              ),
+            ),
+            const SizedBox(width: 13),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Complete your payment',
+                    style: TextStyle(
+                      color: ink,
+                      fontSize: 23,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -.4,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Enter the details for your selected method.',
+                    style: TextStyle(color: muted, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(19),
+            border: Border.all(color: border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'ORDER PAYMENT',
+                style: TextStyle(
+                  color: muted,
+                  fontSize: 10,
+                  letterSpacing: .9,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 13),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      methodLabel,
+                      style: const TextStyle(
+                        color: ink,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '₹${total.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: blue,
+                      fontSize: 25,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Icons.lock_outline_rounded,
+                      size: 15, color: muted),
+                  const SizedBox(width: 6),
+                  const Expanded(
+                    child: Text(
+                      'Demo payment only · No real money charged',
+                      style: TextStyle(color: muted, fontSize: 11),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(19),
+            border: Border.all(color: border),
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isCardPayment ? 'CARD DETAILS' : 'UPI DETAILS',
+                  style: const TextStyle(
+                    color: ink,
+                    fontSize: 12,
+                    letterSpacing: .6,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                TextFormField(
+                  controller: _paymentIdentifierController,
+                  keyboardType: isCardPayment
+                      ? TextInputType.number
+                      : TextInputType.emailAddress,
+                  textInputAction: TextInputAction.done,
+                  inputFormatters: isCardPayment
+                      ? <TextInputFormatter>[_DemoCardNumberFormatter()]
+                      : const <TextInputFormatter>[],
+                  maxLength: isCardPayment ? 19 : 80,
+                  validator: _validatePaymentIdentifier,
+                  decoration: InputDecoration(
+                    labelText: paymentDetailLabel,
+                    hintText: paymentIdentifierHint,
+                    prefixIcon: Icon(
+                      isCardPayment
+                          ? Icons.credit_card_rounded
+                          : Icons.alternate_email_rounded,
+                      color: blue,
+                    ),
+                    counterText: '',
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(13),
+                      borderSide: const BorderSide(color: border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(13),
+                      borderSide: const BorderSide(color: border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(13),
+                      borderSide: const BorderSide(color: blue, width: 1.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 9),
+                const Text(
+                  'Use sample details only. Do not enter a real card number, CVV, UPI PIN or OTP. These details are not saved.',
+                  style: TextStyle(color: muted, fontSize: 10, height: 1.5),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _paymentIdentifierController,
-            keyboardType: isCardPayment ? TextInputType.number : TextInputType.emailAddress,
-            textInputAction: TextInputAction.done,
-            inputFormatters: isCardPayment
-                ? <TextInputFormatter>[_DemoCardNumberFormatter()]
-                : const <TextInputFormatter>[],
-            maxLength: isCardPayment ? 19 : 80,
-            validator: (rawValue) {
-              final value = (rawValue ?? '').trim();
-              if (isCardPayment) {
-                final digits = value.replaceAll(RegExp('[^0-9]'), '');
-                if (digits.length != 16) {
-                  return 'Enter a 16-digit demo card number.';
-                }
-                return null;
-              }
-              if (!RegExp(r'^[A-Za-z0-9._-]{2,}@[A-Za-z][A-Za-z0-9.-]{1,}
+        ),
+        if (errorMessage != null) ...[
+          const SizedBox(height: 14),
+          _messagePanel(
+            success: false,
+            title: 'Payment was not completed',
+            message: errorMessage!,
+          ),
+        ],
+        if (processing) ...[
+          const SizedBox(height: 17),
+          const LinearProgressIndicator(minHeight: 3, color: blue),
+          const SizedBox(height: 9),
+          const Text(
+            'Processing your order and checking stock…',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: muted, fontSize: 12),
+          ),
+        ],
+        const SizedBox(height: 22),
+        SizedBox(
+          height: 52,
+          child: FilledButton.icon(
+            onPressed: processing ? null : _completePayment,
+            icon: processing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.lock_rounded),
+            label: Text(
+              processing
+                  ? 'Processing…'
+                  : 'Pay ₹${total.toStringAsFixed(0)} now',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+        const SizedBox(height: 9),
+        SizedBox(
+          height: 48,
+          child: OutlinedButton(
+            onPressed: processing ? null : () => Navigator.pop(context),
+            child: const Text('Back to checkout'),
+          ),
+        ),
+      ];
+
+  List<Widget> _successContent() => [
+        Container(
+          width: 76,
+          height: 76,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFFDCFCE7),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: const Icon(Icons.check_circle_rounded,
+              color: green, size: 46),
+        ),
+        const SizedBox(height: 20),
+        const Text(
+          'Payment successful!',
+          style: TextStyle(
+            color: ink,
+            fontSize: 29,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -.6,
+          ),
+        ),
+        const SizedBox(height: 7),
+        const Text(
+          'Your order has been placed successfully. This was a demo payment; no real money was charged.',
+          style: TextStyle(color: muted, fontSize: 13, height: 1.6),
+        ),
+        const SizedBox(height: 22),
+        _messagePanel(
+          success: true,
+          title: 'Order confirmed',
+          message: 'Your payment details and order confirmation are shown below.',
+        ),
+        const SizedBox(height: 17),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(19),
+            border: Border.all(color: border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'PAYMENT DETAILS',
+                style: TextStyle(
+                  color: muted,
+                  fontSize: 10,
+                  letterSpacing: .9,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _detailRow('Amount', '₹${total.toStringAsFixed(0)}'),
+              _detailRow('Method', isCardPayment ? 'Card · Demo' : 'UPI · Demo'),
+              _detailRow(paymentDetailLabel, displayedIdentifier),
+              _detailRow('Payment status', 'Successful · Demo'),
+              if ((transactionId ?? '').isNotEmpty)
+                _detailRow('Transaction ID', transactionId!),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 14),
+                child: Divider(height: 1),
+              ),
+              const Text(
+                'ORDER DETAILS',
+                style: TextStyle(
+                  color: muted,
+                  fontSize: 10,
+                  letterSpacing: .9,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _detailRow('Order ID', orderId ?? 'Unavailable'),
+            ],
+          ),
+        ),
+        if (cartClearFailed) ...[
+          const SizedBox(height: 13),
+          const Text(
+            'Your order is placed, but the bag could not be cleared. Please check My Orders before placing another order.',
+            style: TextStyle(color: red, fontSize: 12, height: 1.5),
+          ),
+        ],
+        const SizedBox(height: 22),
+        SizedBox(
+          height: 52,
+          child: FilledButton.icon(
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/orders',
+              (_) => false,
+            ),
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: const Text('Check your order'),
+          ),
+        ),
+        const SizedBox(height: 9),
+        SizedBox(
+          height: 48,
+          child: OutlinedButton(
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/home',
+              (_) => false,
+            ),
+            child: const Text('Continue shopping'),
+          ),
+        ),
+      ];
+
+  Widget _messagePanel({
     required bool success,
     required String title,
     required String message,
   }) {
     final color = success ? green : red;
-    final background = success ? const Color(0xFFECFDF3) : const Color(0xFFFFF0EF);
-    final stroke = success ? const Color(0xFFB7E4C7) : const Color(0xFFF4C7C3);
+    final background =
+        success ? const Color(0xFFECFDF3) : const Color(0xFFFFF0EF);
+    final stroke =
+        success ? const Color(0xFFB7E4C7) : const Color(0xFFF4C7C3);
+
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(15), border: Border.all(color: stroke)),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(success ? Icons.check_circle_rounded : Icons.cancel_rounded, color: color, size: 22),
-        const SizedBox(width: 10),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 5),
-          Text(message, style: TextStyle(color: color, fontSize: 11, height: 1.5)),
-        ])),
-      ]),
-    );
-  }
-
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 145, child: Text(label, style: const TextStyle(color: muted, fontSize: 10, letterSpacing: .5, fontWeight: FontWeight.w900))),
-        const SizedBox(width: 10),
-        Expanded(child: SelectableText(value, style: const TextStyle(color: ink, fontSize: 11, fontWeight: FontWeight.w700))),
-      ]),
-    );
-  }
-}
-).hasMatch(value)) {
-                return 'Enter a demo UPI ID, e.g. student.demo@upi.';
-              }
-              return null;
-            },
-            decoration: InputDecoration(
-              labelText: paymentDetailLabel,
-              hintText: isCardPayment ? '1111 2222 3333 4444' : 'student.demo@upi',
-              prefixIcon: Icon(isCardPayment ? Icons.credit_card_rounded : Icons.alternate_email_rounded, color: blue),
-              counterText: '',
-              filled: true,
-              fillColor: const Color(0xFFF8FAFC),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(13),
-                borderSide: const BorderSide(color: border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(13),
-                borderSide: const BorderSide(color: border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(13),
-                borderSide: const BorderSide(color: blue, width: 1.5),
-              ),
-            ),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: stroke),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            success ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+            color: color,
+            size: 22,
           ),
-          const SizedBox(height: 6),
-          const Text(
-            'Demo input only. Do not use a real UPI ID or card number. No PIN, CVV or OTP is needed. This value is not saved.',
-            style: TextStyle(color: muted, fontSize: 10, height: 1.45),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  message,
+                  style: TextStyle(color: color, fontSize: 11, height: 1.5),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _outcomePanel({
-    required bool success,
-    required String title,
-    required String message,
-  }) {
-    final color = success ? green : red;
-    final background = success ? const Color(0xFFECFDF3) : const Color(0xFFFFF0EF);
-    final stroke = success ? const Color(0xFFB7E4C7) : const Color(0xFFF4C7C3);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(15), border: Border.all(color: stroke)),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(success ? Icons.check_circle_rounded : Icons.cancel_rounded, color: color, size: 22),
-        const SizedBox(width: 10),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 5),
-          Text(message, style: TextStyle(color: color, fontSize: 11, height: 1.5)),
-        ])),
-      ]),
-    );
-  }
-
   Widget _detailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 145, child: Text(label, style: const TextStyle(color: muted, fontSize: 10, letterSpacing: .5, fontWeight: FontWeight.w900))),
-        const SizedBox(width: 10),
-        Expanded(child: SelectableText(value, style: const TextStyle(color: ink, fontSize: 11, fontWeight: FontWeight.w700))),
-      ]),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 130,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: SelectableText(
+              value,
+              style: const TextStyle(
+                color: ink,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -429,7 +619,9 @@ class _DemoCardNumberFormatter extends TextInputFormatter {
     }
     final formatted = chunks.join(' ');
 
-    final cursorBefore = newValue.selection.end.clamp(0, newValue.text.length).toInt();
+    final cursorBefore = newValue.selection.end
+        .clamp(0, newValue.text.length)
+        .toInt();
     final digitsBeforeCursor = newValue.text
         .substring(0, cursorBefore)
         .replaceAll(RegExp('[^0-9]'), '')
@@ -437,8 +629,8 @@ class _DemoCardNumberFormatter extends TextInputFormatter {
         .clamp(0, digits.length)
         .toInt();
     final formattedCursor = (digitsBeforeCursor == 0
-        ? 0
-        : digitsBeforeCursor + ((digitsBeforeCursor - 1) ~/ 4))
+            ? 0
+            : digitsBeforeCursor + ((digitsBeforeCursor - 1) ~/ 4))
         .clamp(0, formatted.length)
         .toInt();
 
@@ -449,4 +641,3 @@ class _DemoCardNumberFormatter extends TextInputFormatter {
     );
   }
 }
-
