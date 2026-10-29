@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../widgets/customer_bottom_nav.dart';
 
 import '../database/firestore_database.dart';
-import '../database/local_demo_orders.dart';
 import 'demo_payment_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -25,6 +24,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _formKey = GlobalKey<FormState>();
   bool loading = false;
   String _paymentMethod = 'demo_upi';
+
+  /// Idempotency key for a Cash on Delivery attempt (re-used on retry).
+  late final String _codOrderKey = FirestoreDatabase.instance.newOrderKey();
 
   final name = TextEditingController();
   final phone = TextEditingController();
@@ -99,7 +101,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       'deliveryPinCode': pin.text.trim(),
     };
 
-    // UPI/Card demo payments use the local SharedPreferences order store.
+    // UPI/Card demo payments: the payment screen saves the order in Firestore.
     if (_paymentMethod != 'cash_on_delivery') {
       setState(() => loading = true);
       try {
@@ -116,36 +118,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     setState(() => loading = true);
     try {
-      // Time-limited demo fallback: keep COD order history on this browser/device.
-      // This does not update the shared backend inventory or admin order list.
-      final now = DateTime.now();
-      final localOrderId = 'LOCAL-${now.millisecondsSinceEpoch}';
-      await LocalDemoOrders.saveForUser(uid, <String, dynamic>{
-        'id': localOrderId,
-        'userId': uid,
-        'items': items,
-        'total': total,
-        'status': 'pending',
-        'paymentMethod': 'cash_on_delivery',
-        'paymentMode': 'cod',
-        'paymentStatus': 'pending',
-        'isLocalDemo': true,
-        'customerName': name.text.trim(),
-        'customerPhone': phone.text.trim(),
-        'customerEmail': FirebaseAuth.instance.currentUser?.email?.trim() ?? '',
-        'deliveryAddress': address.text.trim(),
-        'deliveryCity': city.text.trim(),
-        'deliveryPinCode': pin.text.trim(),
-        'createdAt': now.toIso8601String(),
-        'updatedAt': now.toIso8601String(),
-      });
+      // Cash on Delivery: same Firestore transaction as the demo payment
+      // (stock check + stock decrease + order save together), payment pending.
+      final result = await FirestoreDatabase.instance.createOrder(
+        uid: uid,
+        orderKey: _codOrderKey,
+        items: items,
+        total: total,
+        paymentMethod: 'cash_on_delivery',
+        customerName: name.text.trim(),
+        customerPhone: phone.text.trim(),
+        customerEmail: FirebaseAuth.instance.currentUser?.email?.trim() ?? '',
+        deliveryAddress: address.text.trim(),
+        deliveryCity: city.text.trim(),
+        deliveryPinCode: pin.text.trim(),
+      );
+      debugPrint('COD order saved: ${result.orderId}');
 
       var cartCleared = true;
       try {
         await FirestoreDatabase.instance
             .clearCart(uid)
-            .timeout(const Duration(seconds: 5));
-      } catch (_) {
+            .timeout(const Duration(seconds: 10));
+      } catch (error) {
+        debugPrint('clearCart after COD order failed: $error');
         cartCleared = false;
       }
 
@@ -154,19 +150,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         SnackBar(
           content: Text(
             cartCleared
-                ? 'Demo COD order saved on this device. Payment is due on delivery.'
-                : 'Demo COD order saved locally. Your bag could not be cleared; please check My Orders.',
+                ? 'COD order placed. Payment is due on delivery.'
+                : 'COD order placed, but your bag could not be cleared. Please check My Orders.',
           ),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 5),
         ),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/orders', (_) => false);
+    } on OrderException catch (error) {
+      debugPrint('COD order failed [${error.code}]: ${error.message}');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 6),
+        ),
+      );
     } catch (error) {
+      debugPrint('COD order failed (unexpected): $error');
       if (!mounted) return;
       final message = error is StateError
-          ? error.toString().replaceFirst('Bad state: ', '')
-          : 'We could not save this demo order on your device. Please try again.';
+          ? error.message
+          : 'The order could not be saved. Please try again.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),

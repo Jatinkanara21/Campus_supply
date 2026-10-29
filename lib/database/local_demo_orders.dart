@@ -2,8 +2,12 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Browser/device-local order history for demo-only payments.
-/// These orders are not synced to Firestore or visible to other devices.
+/// Browser/device-local order history (SharedPreferences).
+///
+/// Since the Firestore order fix, NEW orders are saved only in Firestore
+/// (FirestoreDatabase.createOrder). This class is kept so demo orders that were
+/// saved on this device before the fix still appear in My Orders (marked
+/// "Saved on this device only"). Nothing here changes stock.
 class LocalDemoOrders {
   LocalDemoOrders._();
 
