@@ -4,11 +4,18 @@ import 'package:flutter/material.dart';
 import '../widgets/customer_bottom_nav.dart';
 
 import '../database/firestore_database.dart';
+import '../database/local_demo_orders.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/app_image.dart';
 
-class OrdersScreen extends StatelessWidget {
+class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
 
+  @override
+  State<OrdersScreen> createState() => _OrdersScreenState();
+}
+
+class _OrdersScreenState extends State<OrdersScreen> {
   static const cream = Color(0xFFFAF8F3);
   static const ink = Color(0xFF172554);
   static const blue = Color(0xFF2563EB);
@@ -18,6 +25,33 @@ class OrdersScreen extends StatelessWidget {
   static const softBlue = Color(0xFFEAF2FF);
   static const amber = Color(0xFF9A6700);
   static const red = Color(0xFFB42318);
+
+  List<Map<String, dynamic>> _localOrders = <Map<String, dynamic>>[];
+  bool _localOrdersLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocalOrders();
+  }
+
+  Future<void> _loadLocalOrders() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      if (mounted) setState(() => _localOrdersLoaded = true);
+      return;
+    }
+    try {
+      final localOrders = await LocalDemoOrders.readForUser(uid);
+      if (!mounted) return;
+      setState(() {
+        _localOrders = localOrders;
+        _localOrdersLoaded = true;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _localOrdersLoaded = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +83,19 @@ class OrdersScreen extends StatelessWidget {
           }
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-          final orders = snapshot.data!;
+          final orders = <Map<String, dynamic>>[
+            ...snapshot.data!,
+            ..._localOrders,
+          ]..sort((a, b) {
+              final aDate = _dateTimeValue(a['createdAt']) ??
+                  DateTime.fromMillisecondsSinceEpoch(0);
+              final bDate = _dateTimeValue(b['createdAt']) ??
+                  DateTime.fromMillisecondsSinceEpoch(0);
+              return bDate.compareTo(aDate);
+            });
+          if (orders.isEmpty && !_localOrdersLoaded) {
+            return const Center(child: CircularProgressIndicator());
+          }
           if (orders.isEmpty) {
             return _state(
               icon: Icons.receipt_long_outlined,
@@ -414,6 +460,9 @@ class OrdersScreen extends StatelessWidget {
     final color = paid ? green : status == 'failed' ? red : const Color(0xFF946200);
     final transactionId = (order['demoTransactionId'] ?? '').toString().trim();
     final isDemo = (order['paymentMode'] ?? '').toString() == 'demo';
+    final isLocalDemo = order['isLocalDemo'] == true;
+    final paymentIdentifier =
+        (order['paymentIdentifier'] ?? '').toString().trim();
 
     return Container(
       width: double.infinity,
@@ -441,6 +490,14 @@ class OrdersScreen extends StatelessWidget {
         if (isDemo) ...[
           const SizedBox(height: 7),
           const Text('Simulated payment · No real money charged', style: TextStyle(color: muted, fontSize: 10, height: 1.4)),
+        ],
+        if (isLocalDemo) ...[
+          const SizedBox(height: 7),
+          const Text('Saved on this device only · Not synced to the admin dashboard', style: TextStyle(color: muted, fontSize: 10, height: 1.4)),
+        ],
+        if (showTransactionId && paymentIdentifier.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          SelectableText('Payment detail: ' + paymentIdentifier, style: const TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w700)),
         ],
         if (showTransactionId && transactionId.isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -548,10 +605,15 @@ class OrdersScreen extends StatelessWidget {
     return isBundle ? 'assets/image/products/backpack.svg' : '';
   }
 
+  DateTime? _dateTimeValue(Object? value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
   String? _formatOrderDate(Object? value) {
-    DateTime? date;
-    if (value is Timestamp) date = value.toDate();
-    if (value is DateTime) date = value;
+    final date = _dateTimeValue(value);
     if (date == null) return null;
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
