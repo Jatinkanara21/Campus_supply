@@ -202,6 +202,15 @@ exports.placeOrder = onRequest(
         throw new ApiError(400, "Please complete all required delivery details.");
       }
 
+      const paymentMethod = cleanText(payload.paymentMethod).toLowerCase();
+      const allowedPaymentMethods = new Set(["demo_upi", "demo_card", "cash_on_delivery"]);
+      if (!allowedPaymentMethods.has(paymentMethod)) {
+        throw new ApiError(400, "Choose a valid demo payment method or Cash on Delivery.");
+      }
+      const isDemoPayment = paymentMethod === "demo_upi" || paymentMethod === "demo_card";
+      const paymentMode = isDemoPayment ? "demo" : "cod";
+      const paymentStatus = isDemoPayment ? "success" : "pending";
+
       const requestedTotal = Number(payload.total);
       if (!Number.isFinite(requestedTotal) || requestedTotal < 0) {
         throw new ApiError(400, "The order total is invalid. Please review your bag.");
@@ -213,6 +222,9 @@ exports.placeOrder = onRequest(
       }
       const db = getFirestore();
       const orderRef = db.collection("orders").doc();
+      const demoTransactionId = isDemoPayment
+        ? "DEMO-TXN-" + orderRef.id.slice(0, 12).toUpperCase()
+        : null;
       let finalTotal = 0;
 
       await db.runTransaction(async (transaction) => {
@@ -361,6 +373,10 @@ exports.placeOrder = onRequest(
           items: orderItems,
           total: finalTotal,
           status: "pending",
+          paymentMethod,
+          paymentMode,
+          paymentStatus,
+          ...(demoTransactionId ? { demoTransactionId } : {}),
           customerName,
           customerPhone,
           customerEmail: cleanText(identity.email || payload.customerEmail),
@@ -374,7 +390,15 @@ exports.placeOrder = onRequest(
         });
       });
 
-      return res.status(200).json({ ok: true, orderId: orderRef.id, total: finalTotal });
+      return res.status(200).json({
+        ok: true,
+        orderId: orderRef.id,
+        total: finalTotal,
+        paymentMethod,
+        paymentMode,
+        paymentStatus,
+        demoTransactionId,
+      });
     } catch (error) {
       console.error("placeOrder failed", error);
       const status = error instanceof ApiError ? error.status : 500;

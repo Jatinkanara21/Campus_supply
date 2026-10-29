@@ -4,6 +4,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
+/// Result returned by the trusted order endpoint.
+class OrderCreationResult {
+  const OrderCreationResult({
+    required this.orderId,
+    this.demoTransactionId,
+  });
+
+  final String orderId;
+  final String? demoTransactionId;
+}
+
 /// Firestore data layer for Campus Supply.
 ///
 /// Expected top-level collections:
@@ -331,11 +342,11 @@ class FirestoreDatabase {
     return payload;
   }
 
-  Future<String> createOrder({
+  Future<OrderCreationResult> createOrder({
     required String uid,
     required List<Map<String, dynamic>> items,
     required double total,
-    required String status,
+    required String paymentMethod,
     required String customerName,
     required String customerPhone,
     required String customerEmail,
@@ -351,6 +362,7 @@ class FirestoreDatabase {
     final payload = await _postAuthenticatedFunction(_placeOrderEndpoint, {
       'items': items,
       'total': total,
+      'paymentMethod': paymentMethod,
       'customerName': customerName.trim(),
       'customerPhone': customerPhone.trim(),
       'customerEmail': customerEmail.trim(),
@@ -362,7 +374,11 @@ class FirestoreDatabase {
     if (orderId.isEmpty) {
       throw StateError('The order service did not return an order ID. Please check My Orders.');
     }
-    return orderId;
+    final transactionId = (payload['demoTransactionId'] ?? '').toString().trim();
+    return OrderCreationResult(
+      orderId: orderId,
+      demoTransactionId: transactionId.isEmpty ? null : transactionId,
+    );
   }
 
   Future<void> updateOrderStatus({
