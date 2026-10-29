@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../database/firestore_database.dart';
 
@@ -27,12 +28,30 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
   bool completed = false;
   bool simulatedFailure = false;
   bool cartClearFailed = false;
+  final _paymentFormKey = GlobalKey<FormState>();
+  final _paymentIdentifierController = TextEditingController();
   String? orderId;
   String? transactionId;
   String? errorMessage;
 
   String get paymentMethod => (widget.checkoutData['paymentMethod'] ?? 'demo_upi').toString();
-  String get methodLabel => paymentMethod == 'demo_card' ? 'Card · Demo' : 'UPI · Demo';
+  bool get isCardPayment => paymentMethod == 'demo_card';
+  String get methodLabel => isCardPayment ? 'Card · Demo' : 'UPI · Demo';
+  String get paymentDetailLabel => isCardPayment ? 'Card number' : 'UPI ID';
+
+  String get _displayPaymentIdentifier {
+    final value = _paymentIdentifierController.text.trim();
+    if (!isCardPayment) return value;
+    final digits = value.replaceAll(RegExp('[^0-9]'), '');
+    if (digits.length < 4) return '••••';
+    return '•••• •••• •••• ' + digits.substring(digits.length - 4);
+  }
+
+  @override
+  void dispose() {
+    _paymentIdentifierController.dispose();
+    super.dispose();
+  }
 
   double get total {
     final value = widget.checkoutData['total'];
@@ -50,6 +69,8 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
 
   Future<void> _simulateSuccess() async {
     if (processing || completed) return;
+    if (!(_paymentFormKey.currentState?.validate() ?? false)) return;
+    FocusScope.of(context).unfocus();
     setState(() {
       processing = true;
       simulatedFailure = false;
@@ -159,6 +180,13 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
                   ]),
                 ]),
               ),
+              if (!completed) ...[
+                const SizedBox(height: 18),
+                Form(
+                  key: _paymentFormKey,
+                  child: _paymentIdentifierField(),
+                ),
+              ],
               if (processing) ...[
                 const SizedBox(height: 18),
                 const LinearProgressIndicator(minHeight: 3, color: blue),
@@ -181,6 +209,7 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
                     message: 'Your demo payment was recorded. No real money was charged.'),
                 const SizedBox(height: 14),
                 _detailRow('ORDER ID', orderId ?? 'Unavailable'),
+                _detailRow(paymentDetailLabel.toUpperCase(), _displayPaymentIdentifier),
                 if (transactionId != null) _detailRow('DEMO TRANSACTION', transactionId!),
                 _detailRow('PAYMENT STATUS', 'Paid · Demo'),
                 if (cartClearFailed) ...[
@@ -196,7 +225,7 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
                   child: FilledButton.icon(
                     onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/orders', (_) => false),
                     icon: const Icon(Icons.receipt_long_outlined),
-                    label: const Text('View My Orders'),
+                    label: const Text('Check your order'),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -215,7 +244,7 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
                     icon: processing
                         ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.check_circle_outline_rounded),
-                    label: Text(processing ? 'Processing…' : 'Simulate successful payment'),
+                    label: Text(processing ? 'Processing payment…' : 'Pay ₹' + total.toStringAsFixed(0) + ' now'),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -224,7 +253,7 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
                   child: OutlinedButton.icon(
                     onPressed: processing ? null : _simulateFailure,
                     icon: const Icon(Icons.error_outline_rounded, color: red),
-                    label: const Text('Simulate failed payment', style: TextStyle(color: red)),
+                    label: const Text('Test a failed payment', style: TextStyle(color: red)),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -237,6 +266,114 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _paymentIdentifierField() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isCardPayment ? 'CARD DETAILS' : 'UPI DETAILS',
+            style: const TextStyle(
+              color: muted,
+              fontSize: 10,
+              letterSpacing: .9,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _paymentIdentifierController,
+            keyboardType: isCardPayment ? TextInputType.number : TextInputType.emailAddress,
+            textInputAction: TextInputAction.done,
+            inputFormatters: isCardPayment
+                ? <TextInputFormatter>[_DemoCardNumberFormatter()]
+                : const <TextInputFormatter>[],
+            maxLength: isCardPayment ? 19 : 80,
+            validator: (rawValue) {
+              final value = (rawValue ?? '').trim();
+              if (isCardPayment) {
+                final digits = value.replaceAll(RegExp('[^0-9]'), '');
+                if (digits.length != 16) {
+                  return 'Enter a 16-digit demo card number.';
+                }
+                return null;
+              }
+              if (!RegExp(r'^[A-Za-z0-9._-]{2,}@[A-Za-z][A-Za-z0-9.-]{1,}
+    required bool success,
+    required String title,
+    required String message,
+  }) {
+    final color = success ? green : red;
+    final background = success ? const Color(0xFFECFDF3) : const Color(0xFFFFF0EF);
+    final stroke = success ? const Color(0xFFB7E4C7) : const Color(0xFFF4C7C3);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(15), border: Border.all(color: stroke)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(success ? Icons.check_circle_rounded : Icons.cancel_rounded, color: color, size: 22),
+        const SizedBox(width: 10),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 5),
+          Text(message, style: TextStyle(color: color, fontSize: 11, height: 1.5)),
+        ])),
+      ]),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(width: 145, child: Text(label, style: const TextStyle(color: muted, fontSize: 10, letterSpacing: .5, fontWeight: FontWeight.w900))),
+        const SizedBox(width: 10),
+        Expanded(child: SelectableText(value, style: const TextStyle(color: ink, fontSize: 11, fontWeight: FontWeight.w700))),
+      ]),
+    );
+  }
+}
+).hasMatch(value)) {
+                return 'Enter a demo UPI ID, e.g. student.demo@upi.';
+              }
+              return null;
+            },
+            decoration: InputDecoration(
+              labelText: paymentDetailLabel,
+              hintText: isCardPayment ? '1111 2222 3333 4444' : 'student.demo@upi',
+              prefixIcon: Icon(isCardPayment ? Icons.credit_card_rounded : Icons.alternate_email_rounded, color: blue),
+              counterText: '',
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(13),
+                borderSide: const BorderSide(color: border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(13),
+                borderSide: const BorderSide(color: border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(13),
+                borderSide: const BorderSide(color: blue, width: 1.5),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Demo input only. Do not use a real UPI ID or card number. No PIN, CVV or OTP is needed. This value is not saved.',
+            style: TextStyle(color: muted, fontSize: 10, height: 1.45),
+          ),
+        ],
       ),
     );
   }
@@ -275,3 +412,41 @@ class _DemoPaymentScreenState extends State<DemoPaymentScreen> {
     );
   }
 }
+
+class _DemoCardNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final rawDigits = newValue.text.replaceAll(RegExp('[^0-9]'), '');
+    final digits = rawDigits.length > 16 ? rawDigits.substring(0, 16) : rawDigits;
+
+    final chunks = <String>[];
+    for (var start = 0; start < digits.length; start += 4) {
+      final end = (start + 4) > digits.length ? digits.length : start + 4;
+      chunks.add(digits.substring(start, end));
+    }
+    final formatted = chunks.join(' ');
+
+    final cursorBefore = newValue.selection.end.clamp(0, newValue.text.length).toInt();
+    final digitsBeforeCursor = newValue.text
+        .substring(0, cursorBefore)
+        .replaceAll(RegExp('[^0-9]'), '')
+        .length
+        .clamp(0, digits.length)
+        .toInt();
+    final formattedCursor = (digitsBeforeCursor == 0
+        ? 0
+        : digitsBeforeCursor + ((digitsBeforeCursor - 1) ~/ 4))
+        .clamp(0, formatted.length)
+        .toInt();
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formattedCursor),
+      composing: TextRange.empty,
+    );
+  }
+}
+
