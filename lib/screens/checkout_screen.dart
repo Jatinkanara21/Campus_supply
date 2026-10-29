@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/customer_bottom_nav.dart';
 
 import '../database/firestore_database.dart';
+import '../database/local_demo_orders.dart';
 import 'demo_payment_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -114,50 +115,64 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     setState(() => loading = true);
-    var orderCreated = false;
     try {
-      await FirestoreDatabase.instance.createOrder(
-        uid: uid,
-        items: items,
-        total: total,
-        customerName: name.text.trim(),
-        customerPhone: phone.text.trim(),
-        customerEmail: FirebaseAuth.instance.currentUser?.email?.trim() ?? '',
-        deliveryAddress: address.text.trim(),
-        deliveryCity: city.text.trim(),
-        deliveryPinCode: pin.text.trim(),
-        paymentMethod: 'cash_on_delivery',
-      );
-      orderCreated = true;
+      // Time-limited demo fallback: keep COD order history on this browser/device.
+      // This does not update the shared backend inventory or admin order list.
+      final now = DateTime.now();
+      final localOrderId = 'LOCAL-${now.millisecondsSinceEpoch}';
+      await LocalDemoOrders.saveForUser(uid, <String, dynamic>{
+        'id': localOrderId,
+        'userId': uid,
+        'items': items,
+        'total': total,
+        'status': 'pending',
+        'paymentMethod': 'cash_on_delivery',
+        'paymentMode': 'cod',
+        'paymentStatus': 'pending',
+        'isLocalDemo': true,
+        'customerName': name.text.trim(),
+        'customerPhone': phone.text.trim(),
+        'customerEmail': FirebaseAuth.instance.currentUser?.email?.trim() ?? '',
+        'deliveryAddress': address.text.trim(),
+        'deliveryCity': city.text.trim(),
+        'deliveryPinCode': pin.text.trim(),
+        'createdAt': now.toIso8601String(),
+        'updatedAt': now.toIso8601String(),
+      });
 
+      var cartCleared = true;
       try {
-        await FirestoreDatabase.instance.clearCart(uid);
+        await FirestoreDatabase.instance
+            .clearCart(uid)
+            .timeout(const Duration(seconds: 5));
       } catch (_) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Your COD order was placed, but the bag could not be cleared. Please review it before ordering again.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        Navigator.pushNamedAndRemoveUntil(context, '/orders', (_) => false);
-        return;
+        cartCleared = false;
       }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('COD order placed successfully. Payment is due on delivery.'), behavior: SnackBarBehavior.floating),
+        SnackBar(
+          content: Text(
+            cartCleared
+                ? 'Demo COD order saved on this device. Payment is due on delivery.'
+                : 'Demo COD order saved locally. Your bag could not be cleared; please check My Orders.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+        ),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/orders', (_) => false);
     } catch (error) {
       if (!mounted) return;
-      final message = orderCreated
-          ? 'Your order was placed, but checkout needs attention. Please check My Orders.'
-          : error is StateError
-              ? error.toString().replaceFirst('Bad state: ', '')
-              : 'We could not place your COD order. Please check your connection and try again.';
+      final message = error is StateError
+          ? error.toString().replaceFirst('Bad state: ', '')
+          : 'We could not save this demo order on your device. Please try again.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 5)),
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+        ),
       );
     } finally {
       if (mounted) setState(() => loading = false);
