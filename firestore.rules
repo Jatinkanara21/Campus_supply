@@ -11,18 +11,90 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    // Admin = users/{uid}.role == 'admin' (same as the rules currently live).
+    // The old `admin == true` check was removed on purpose: a user can edit
+    // their own profile, so they could have set admin: true themselves.
     function isAdmin() {
       return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function orderPath(orderId) {
+      return /databases/$(database)/documents/orders/$(orderId);
+    }
+
+    // A signed-in customer may ONLY lower a product's stock, and only inside
+    // the same transaction that creates their own new order. The amount
+    // removed must equal order.stockDeductions[productId], and stock can
+    // never go below 0. No other product field may change.
+    function isStockDecrementForNewOrder(productId) {
+      let before = resource.data;
+      let after = request.resource.data;
+      let orderId = after.lastOrderId;
+      return signedIn()
+        && after.diff(before).affectedKeys().hasOnly(['stock', 'updatedAt', 'lastOrderId'])
+        && after.stock is int
+        && before.stock is number
+        && after.stock >= 0
+        && after.stock < before.stock
+        && after.updatedAt == request.time
+        && orderId is string
+        && orderId.size() > 0
+        && orderId.size() <= 64
+        && !exists(orderPath(orderId))
+        && existsAfter(orderPath(orderId))
+        && getAfter(orderPath(orderId)).data.userId == request.auth.uid
+        && getAfter(orderPath(orderId)).data.stockDeductions[productId] == before.stock - after.stock;
+    }
+
+    // An order created by the app (demo UPI / demo card / Cash on Delivery).
+    function isValidCustomerOrder(orderId) {
+      let d = request.resource.data;
+      return signedIn()
+        && d.keys().hasAll([
+          'orderKey', 'userId', 'items', 'total', 'status', 'paymentMethod',
+          'paymentMode', 'paymentStatus', 'customerName', 'customerPhone',
+          'customerEmail', 'deliveryAddress', 'deliveryCity', 'deliveryPinCode',
+          'stockDeducted', 'stockRestocked', 'stockDeductions', 'createdAt', 'updatedAt'
+        ])
+        && d.keys().hasOnly([
+          'orderKey', 'userId', 'items', 'total', 'status', 'paymentMethod',
+          'paymentMode', 'paymentStatus', 'demoTransactionId', 'customerName',
+          'customerPhone', 'customerEmail', 'deliveryAddress', 'deliveryCity',
+          'deliveryPinCode', 'stockDeducted', 'stockRestocked', 'stockDeductions',
+          'createdAt', 'updatedAt'
+        ])
+        && d.userId == request.auth.uid
+        && d.orderKey == orderId
+        && d.items is list && d.items.size() > 0 && d.items.size() <= 50
+        && d.total is number && d.total >= 0
+        && d.status == 'pending'
         && (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true
-        );
+          (d.paymentMethod in ['demo_upi', 'demo_card']
+            && d.paymentMode == 'demo' && d.paymentStatus == 'success'
+            && d.demoTransactionId is string)
+          || (d.paymentMethod == 'cash_on_delivery'
+            && d.paymentMode == 'cod' && d.paymentStatus == 'pending')
+        )
+        && d.customerName is string && d.customerName.size() > 0 && d.customerName.size() <= 200
+        && d.customerPhone is string && d.customerPhone.size() > 0 && d.customerPhone.size() <= 40
+        && d.customerEmail is string && d.customerEmail.size() <= 200
+        && d.deliveryAddress is string && d.deliveryAddress.size() > 0 && d.deliveryAddress.size() <= 500
+        && d.deliveryCity is string && d.deliveryCity.size() > 0 && d.deliveryCity.size() <= 100
+        && d.deliveryPinCode is string && d.deliveryPinCode.size() > 0 && d.deliveryPinCode.size() <= 20
+        && d.stockDeducted == true
+        && d.stockRestocked == false
+        && d.stockDeductions is map
+        && d.stockDeductions.size() > 0 && d.stockDeductions.size() <= 100
+        && d.createdAt == request.time
+        && d.updatedAt == request.time;
     }
 
     // Public catalog content.
     match /products/{productId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || isStockDecrementForNewOrder(productId);
     }
 
     match /categories/{categoryId} {
@@ -71,15 +143,19 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      // Real orders are created by the authenticated placeOrder Cloud Function,
-      // which validates prices and decrements inventory atomically.
-      // Allow only explicitly marked faculty-demo orders from the client SDK.
-      allow create: if signedIn()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.isDemo == true
-        && request.resource.data.demoBatch == 'faculty_demo_v1';
+      // Orders are created by the app in a Firestore transaction together with
+      // the stock decrease (no Cloud Functions on the Spark plan).
+      // The faculty-demo seed orders keep their original rule.
+      allow create: if isValidCustomerOrder(orderId)
+        || (signedIn()
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.isDemo == true
+          && request.resource.data.demoBatch == 'faculty_demo_v1');
+      // `resource == null` lets the app check that its own new order ID is
+      // still free (needed for the no-duplicate retry). It reveals nothing:
+      // an existing order is readable only by its owner or an admin.
       allow read: if signedIn()
-        && (resource.data.userId == request.auth.uid || isAdmin());
+        && (resource == null || resource.data.userId == request.auth.uid || isAdmin());
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
