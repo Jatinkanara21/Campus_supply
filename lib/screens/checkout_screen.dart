@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/customer_bottom_nav.dart';
 
 import '../database/firestore_database.dart';
+import 'demo_payment_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -22,6 +23,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   final _formKey = GlobalKey<FormState>();
   bool loading = false;
+  String _paymentMethod = 'demo_upi';
 
   final name = TextEditingController();
   final phone = TextEditingController();
@@ -53,15 +55,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your bag is empty. Add an item before checkout.'),
-        ),
+        const SnackBar(content: Text('Your bag is empty. Add an item before checkout.')),
       );
       return;
     }
 
-    setState(() => loading = true);
-    var orderCreated = false;
     final items = cart.map((item) {
       final isBundle = (item['itemType'] ?? 'product').toString() == 'bundle';
       if (isBundle) {
@@ -82,22 +80,53 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'productId': item['productId'],
         'name': product?['name'] ?? 'Product',
         'price': product?['price'] ?? 0,
+        'imageUrl': product?['imageUrl'] ?? '',
         'quantity': item['quantity'] ?? 1,
       };
     }).toList();
 
+    final checkoutData = <String, dynamic>{
+      'uid': uid,
+      'items': items,
+      'total': total,
+      'paymentMethod': _paymentMethod,
+      'customerName': name.text.trim(),
+      'customerPhone': phone.text.trim(),
+      'customerEmail': FirebaseAuth.instance.currentUser?.email?.trim() ?? '',
+      'deliveryAddress': address.text.trim(),
+      'deliveryCity': city.text.trim(),
+      'deliveryPinCode': pin.text.trim(),
+    };
+
+    // Demo failure stays local. The backend is called only after simulated success.
+    if (_paymentMethod != 'cash_on_delivery') {
+      setState(() => loading = true);
+      try {
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute<void>(
+            builder: (_) => DemoPaymentScreen(checkoutData: checkoutData),
+          ),
+        );
+      } finally {
+        if (mounted) setState(() => loading = false);
+      }
+      return;
+    }
+
+    setState(() => loading = true);
+    var orderCreated = false;
     try {
       await FirestoreDatabase.instance.createOrder(
         uid: uid,
         items: items,
         total: total,
-        status: 'pending',
         customerName: name.text.trim(),
         customerPhone: phone.text.trim(),
         customerEmail: FirebaseAuth.instance.currentUser?.email?.trim() ?? '',
         deliveryAddress: address.text.trim(),
         deliveryCity: city.text.trim(),
         deliveryPinCode: pin.text.trim(),
+        paymentMethod: 'cash_on_delivery',
       );
       orderCreated = true;
 
@@ -107,10 +136,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Your order was placed, but the bag could not be cleared. '
-              'Please review it before ordering again.',
-            ),
+            content: Text('Your COD order was placed, but the bag could not be cleared. Please review it before ordering again.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -120,10 +146,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Order placed successfully.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+        const SnackBar(content: Text('COD order placed successfully. Payment is due on delivery.'), behavior: SnackBarBehavior.floating),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/orders', (_) => false);
     } catch (error) {
@@ -132,13 +155,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ? 'Your order was placed, but checkout needs attention. Please check My Orders.'
           : error is StateError
               ? error.toString().replaceFirst('Bad state: ', '')
-              : 'We could not place your order. Please check your connection and try again.';
+              : 'We could not place your COD order. Please check your connection and try again.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 5),
-        ),
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 5)),
       );
     } finally {
       if (mounted) setState(() => loading = false);
@@ -207,7 +226,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               return LayoutBuilder(
                 builder: (context, constraints) {
                   final wide = constraints.maxWidth >= 900;
-                  final details = _deliverySection(constraints.maxWidth);
+                  final details = Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _deliverySection(constraints.maxWidth),
+                      const SizedBox(height: 14),
+                      _paymentSection(constraints.maxWidth),
+                    ],
+                  );
                   final summary = _orderSummary(
                     total: total,
                     totalUnits: totalUnits,
@@ -390,6 +416,84 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  Widget _paymentSection(double width) {
+    return _section(
+      icon: Icons.credit_card_rounded,
+      title: 'Payment method',
+      subtitle: 'Demo payments only. No real money will be charged.',
+      children: [
+        _paymentOption(method: 'demo_upi', title: 'UPI · Demo',
+            subtitle: 'Simulate a UPI payment result', icon: Icons.qr_code_2_rounded, isDemo: true),
+        const SizedBox(height: 10),
+        _paymentOption(method: 'demo_card', title: 'Card · Demo',
+            subtitle: 'Simulate a card payment result', icon: Icons.credit_card_rounded, isDemo: true),
+        const SizedBox(height: 10),
+        _paymentOption(method: 'cash_on_delivery', title: 'Cash on Delivery',
+            subtitle: 'Pay when your order is delivered', icon: Icons.local_shipping_outlined, isDemo: false),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(11),
+          decoration: BoxDecoration(color: const Color(0xFFFFF8E8), borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFF4D99A))),
+          child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(Icons.info_outline_rounded, color: Color(0xFF946200), size: 18),
+            SizedBox(width: 8),
+            Expanded(child: Text(
+              'This is a faculty demonstration. Do not enter real card details, UPI PINs or OTPs.',
+              style: TextStyle(color: Color(0xFF795400), fontSize: 11, height: 1.45),
+            )),
+          ]),
+        ),
+      ],
+    );
+  }
+
+  Widget _paymentOption({
+    required String method,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool isDemo,
+  }) {
+    final selected = _paymentMethod == method;
+    return Material(
+      color: selected ? softBlue : Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: loading ? null : () => setState(() => _paymentMethod = method),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: selected ? blue : border, width: selected ? 1.5 : 1)),
+          child: Row(children: [
+            Container(width: 41, height: 41,
+                decoration: BoxDecoration(color: selected ? Colors.white : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+                child: Icon(icon, color: blue, size: 22)),
+            const SizedBox(width: 11),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: ink, fontSize: 13, fontWeight: FontWeight.w900))),
+                if (isDemo) ...[
+                  const SizedBox(width: 7),
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(color: const Color(0xFFFFF0BF), borderRadius: BorderRadius.circular(6)),
+                      child: const Text('DEMO', style: TextStyle(color: Color(0xFF946200), fontSize: 8, fontWeight: FontWeight.w900))),
+                ],
+              ]),
+              const SizedBox(height: 4),
+              Text(subtitle, style: const TextStyle(color: muted, fontSize: 10, height: 1.35)),
+            ])),
+            const SizedBox(width: 8),
+            Icon(selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                color: selected ? blue : muted, size: 21),
+          ]),
+        ),
+      ),
+    );
+  }
+
   Widget _input({
     required TextEditingController controller,
     required String label,
@@ -490,14 +594,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: FilledButton.icon(
         onPressed: loading ? null : () => _placeOrder(total, cart, byId),
         icon: loading
-            ? const SizedBox(
-                width: 19,
-                height: 19,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-              )
-            : const Icon(Icons.check_circle_outline_rounded, size: 20),
+            ? const SizedBox(width: 19, height: 19,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            : Icon(_paymentMethod == 'cash_on_delivery' ? Icons.local_shipping_outlined : Icons.lock_outline_rounded, size: 20),
         label: Text(
-          loading ? 'Placing order...' : 'Place order',
+          loading
+              ? (_paymentMethod == 'cash_on_delivery' ? 'Placing COD order...' : 'Opening demo payment...')
+              : (_paymentMethod == 'cash_on_delivery' ? 'Place COD order' : 'Continue to demo payment'),
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
