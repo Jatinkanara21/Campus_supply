@@ -208,6 +208,9 @@ exports.placeOrder = onRequest(
       }
 
       const requestedLines = Array.isArray(payload.items) ? payload.items : [];
+      if (requestedLines.length === 0) {
+        throw new ApiError(400, "Your bag is empty. Add an item before checkout.");
+      }
       const db = getFirestore();
       const orderRef = db.collection("orders").doc();
       let finalTotal = 0;
