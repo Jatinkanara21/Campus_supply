@@ -267,6 +267,8 @@ class OrdersScreen extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          _paymentInfo(order),
           const SizedBox(height: 15),
           Container(
             width: double.infinity,
@@ -346,6 +348,10 @@ class OrdersScreen extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 9),
                     child: _orderLineItem(item, productsById),
                   )),
+                if ((order['paymentMethod'] ?? '').toString().trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  _paymentInfo(order, showTransactionId: true),
+                ],
                 if ((order['customerName'] ?? '').toString().trim().isNotEmpty ||
                     (order['deliveryAddress'] ?? '').toString().trim().isNotEmpty)
                   _deliverySummary(order),
@@ -380,6 +386,67 @@ class OrdersScreen extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _paymentInfo(
+    Map<String, dynamic> order, {
+    bool showTransactionId = false,
+  }) {
+    final method = (order['paymentMethod'] ?? '').toString().trim().toLowerCase();
+    final status = (order['paymentStatus'] ?? '').toString().trim().toLowerCase();
+    if (method.isEmpty && status.isEmpty) return const SizedBox.shrink();
+
+    final methodLabel = switch (method) {
+      'demo_upi' => 'UPI · Demo',
+      'demo_card' => 'Card · Demo',
+      'cash_on_delivery' => 'Cash on Delivery',
+      _ => method.isEmpty ? 'Payment method unavailable' : method,
+    };
+    final statusLabel = switch (status) {
+      'success' => method.startsWith('demo_') ? 'Paid · Demo' : 'Paid',
+      'pending' => method == 'cash_on_delivery' ? 'Pay on delivery' : 'Pending',
+      'failed' => 'Failed',
+      'refunded' => 'Refunded',
+      _ => status.isEmpty ? 'Payment details unavailable' : status,
+    };
+    final paid = status == 'success';
+    final color = paid ? green : status == 'failed' ? red : const Color(0xFF946200);
+    final transactionId = (order['demoTransactionId'] ?? '').toString().trim();
+    final isDemo = (order['paymentMode'] ?? '').toString() == 'demo';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE8EDF5)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.payments_outlined, color: blue, size: 18),
+          const SizedBox(width: 8),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('PAYMENT', style: TextStyle(color: muted, fontSize: 9, letterSpacing: .8, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 3),
+            Text(methodLabel, style: const TextStyle(color: ink, fontSize: 12, fontWeight: FontWeight.w800)),
+          ])),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            decoration: BoxDecoration(color: color.withValues(alpha: .10), borderRadius: BorderRadius.circular(8)),
+            child: Text(statusLabel, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900)),
+          ),
+        ]),
+        if (isDemo) ...[
+          const SizedBox(height: 7),
+          const Text('Simulated payment · No real money charged', style: TextStyle(color: muted, fontSize: 10, height: 1.4)),
+        ],
+        if (showTransactionId && transactionId.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          SelectableText('Demo transaction: ' + transactionId, style: const TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w700)),
+        ],
+      ]),
     );
   }
 

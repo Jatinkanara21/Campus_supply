@@ -5840,6 +5840,11 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
               const SizedBox(height: 4),
               Text(itemCount.toString() + (itemCount == 1 ? ' item' : ' items'),
                   style: const TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w600)),
+              if (_paymentShortLabel(data).isNotEmpty) ...[
+                const SizedBox(height: 5),
+                Text(_paymentShortLabel(data), maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Color(0xFF2563EB), fontSize: 10, fontWeight: FontWeight.w800)),
+              ],
             ])),
             const SizedBox(width: 7),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -5904,6 +5909,10 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
               ],
             ]),
           ),
+          if ((data['paymentMethod'] ?? '').toString().trim().isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _paymentSummary(data),
+          ],
           if (userId.isNotEmpty) ...[
             const SizedBox(height: 17),
             _sectionLabel('CUSTOMER ACCOUNT ID'),
@@ -6019,6 +6028,64 @@ class _OrdersWorkspaceState extends State<_OrdersWorkspace> {
           ),
         ]),
       ),
+    );
+  }
+
+  String _paymentMethodLabel(Map<String, dynamic> data) {
+    switch ((data['paymentMethod'] ?? '').toString().toLowerCase()) {
+      case 'demo_upi': return 'UPI · Demo';
+      case 'demo_card': return 'Card · Demo';
+      case 'cash_on_delivery': return 'Cash on Delivery';
+      default: return 'Payment method unavailable';
+    }
+  }
+
+  String _paymentStatusLabel(Map<String, dynamic> data) {
+    final status = (data['paymentStatus'] ?? '').toString().toLowerCase();
+    final method = (data['paymentMethod'] ?? '').toString().toLowerCase();
+    switch (status) {
+      case 'success': return method.startsWith('demo_') ? 'Paid · Demo' : 'Paid';
+      case 'pending': return method == 'cash_on_delivery' ? 'Pay on delivery' : 'Pending';
+      case 'failed': return 'Failed';
+      case 'refunded': return 'Refunded';
+      default: return 'Not recorded';
+    }
+  }
+
+  String _paymentShortLabel(Map<String, dynamic> data) {
+    if ((data['paymentMethod'] ?? '').toString().trim().isEmpty) return '';
+    return _paymentMethodLabel(data) + ' · ' + _paymentStatusLabel(data);
+  }
+
+  Widget _paymentSummary(Map<String, dynamic> data) {
+    final mode = (data['paymentMode'] ?? '').toString().trim().toLowerCase();
+    final transaction = (data['demoTransactionId'] ?? '').toString().trim();
+    final status = (data['paymentStatus'] ?? '').toString().toLowerCase();
+    final paid = status == 'success';
+    final color = paid ? green : status == 'failed' ? red : amber;
+
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(16), border: Border.all(color: border)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(width: 36, height: 36, decoration: BoxDecoration(color: softBlue, borderRadius: BorderRadius.circular(11)),
+            child: const Icon(Icons.payments_outlined, color: blue, size: 19)),
+          const SizedBox(width: 10),
+          const Expanded(child: Text('Payment details', style: TextStyle(color: ink, fontSize: 14, fontWeight: FontWeight.w900))),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            decoration: BoxDecoration(color: color.withValues(alpha: .10), borderRadius: BorderRadius.circular(8)),
+            child: Text(_paymentStatusLabel(data), style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900)),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        _customerDetailRow(icon: Icons.credit_card_outlined, label: 'Payment method', value: _paymentMethodLabel(data)),
+        _customerDetailRow(icon: Icons.verified_outlined, label: 'Payment mode',
+            value: mode == 'demo' ? 'Demo only · No real charge' : mode == 'cod' ? 'Cash on Delivery' : 'Not recorded'),
+        if (transaction.isNotEmpty)
+          _customerDetailRow(icon: Icons.tag_rounded, label: 'Demo transaction ID', value: transaction),
+      ]),
     );
   }
 
